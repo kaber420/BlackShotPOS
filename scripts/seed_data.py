@@ -1,0 +1,134 @@
+import asyncio
+import os
+import sys
+
+# Añadir el directorio raíz al path para poder importar pos_core
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from pos_core.database import engine, init_db, async_session_maker
+from pos_core.inventory.models import Category, Product, Ingredient, RecipeItem, Measure, ProductVariant
+from sqlmodel import select
+
+async def seed():
+    print("--- Iniciando Sembrado de Datos ---")
+    
+    # 1. Asegurar que las tablas existan
+    await init_db()
+    
+    async with async_session_maker() as session:
+        # Check if already seeded
+        statement = select(Category)
+        result = await session.execute(statement)
+        if result.scalars().first():
+            print("La base de datos ya tiene datos. Saltando sembrado.")
+            return
+
+        # 2. Crear Categorías
+        print("Creando categorías...")
+        cat_cafe = Category(name="Café", description="Bebidas calientes a base de espresso")
+        cat_te = Category(name="Té & Infusiones", description="Tés de hoja suelta y tisanas")
+        cat_frias = Category(name="Bebidas Frías", description="Frappés, Iced Coffee y Sodas")
+        cat_bread = Category(name="Repostería", description="Pan dulce y acompañamientos")
+        
+        session.add_all([cat_cafe, cat_te, cat_frias, cat_bread])
+        await session.commit()
+        await session.refresh(cat_cafe)
+        await session.refresh(cat_bread)
+
+        # 3. Crear Medidas
+        print("Creando medidas...")
+        m_chico = Measure(name="Chico", value=8, unit="oz")
+        m_mediano = Measure(name="Mediano", value=12, unit="oz")
+        m_grande = Measure(name="Grande", value=16, unit="oz")
+        m_unico = Measure(name="Único", value=1, unit="pz")
+        
+        session.add_all([m_chico, m_mediano, m_grande, m_unico])
+        await session.commit()
+        await session.refresh(m_chico)
+        await session.refresh(m_mediano)
+        await session.refresh(m_grande)
+        await session.refresh(m_unico)
+
+        # 4. Crear Ingredientes
+        print("Creando ingredientes...")
+        i_grano = Ingredient(name="Café en Grano (Mezcla Casa)", unit="g", current_stock=10000, minimum_stock=1000)
+        i_leche = Ingredient(name="Leche Entera", unit="ml", current_stock=20000, minimum_stock=2000)
+        i_agua = Ingredient(name="Agua Purificada", unit="ml", current_stock=100000, minimum_stock=5000)
+        i_croissant = Ingredient(name="Croissant Mantequilla", unit="pz", current_stock=24, minimum_stock=5)
+        
+        session.add_all([i_grano, i_leche, i_agua, i_croissant])
+        await session.commit()
+        await session.refresh(i_grano)
+        await session.refresh(i_leche)
+        await session.refresh(i_agua)
+        await session.refresh(i_croissant)
+
+        # 5. Crear Productos con Variantes (Café)
+        print("Creando productos y variantes...")
+        
+        # Americano
+        p_americano = Product(name="Americano", description="Espresso con agua caliente", price=35, category_id=cat_cafe.id)
+        session.add(p_americano)
+        await session.commit()
+        await session.refresh(p_americano)
+        
+        v_ame_chico = ProductVariant(product_id=p_americano.id, measure_id=m_chico.id, price=35)
+        v_ame_mediano = ProductVariant(product_id=p_americano.id, measure_id=m_mediano.id, price=45)
+        v_ame_grande = ProductVariant(product_id=p_americano.id, measure_id=m_grande.id, price=55)
+        session.add_all([v_ame_chico, v_ame_mediano, v_ame_grande])
+        
+        # Latte
+        p_latte = Product(name="Latte", description="Espresso con leche vaporizada", price=45, category_id=cat_cafe.id)
+        session.add(p_latte)
+        await session.commit()
+        await session.refresh(p_latte)
+        
+        v_lat_chico = ProductVariant(product_id=p_latte.id, measure_id=m_chico.id, price=45)
+        v_lat_mediano = ProductVariant(product_id=p_latte.id, measure_id=m_mediano.id, price=55)
+        v_lat_grande = ProductVariant(product_id=p_latte.id, measure_id=m_grande.id, price=65)
+        session.add_all([v_lat_chico, v_lat_mediano, v_lat_grande])
+
+        # Repostería (Sin variantes usualmente, o variante 'Único')
+        p_croissant = Product(name="Croissant", description="Delicioso pan de mantequilla", price=40, category_id=cat_bread.id)
+        session.add(p_croissant)
+        await session.commit()
+        await session.refresh(p_croissant)
+        
+        v_croissant = ProductVariant(product_id=p_croissant.id, measure_id=m_unico.id, price=40)
+        session.add(v_croissant)
+
+        await session.commit()
+        await session.refresh(v_ame_chico)
+        await session.refresh(v_ame_grande)
+        await session.refresh(v_lat_chico)
+        await session.refresh(v_lat_grande)
+
+        # 6. Crear Recetas específicas por Variante
+        print("Creando recetas por variante...")
+        
+        # Americano Chico: 15g café, 200ml agua
+        r1 = RecipeItem(variant_id=v_ame_chico.id, ingredient_id=i_grano.id, quantity=15)
+        r2 = RecipeItem(variant_id=v_ame_chico.id, ingredient_id=i_agua.id, quantity=200)
+        
+        # Americano Grande: 20g café, 400ml agua
+        r3 = RecipeItem(variant_id=v_ame_grande.id, ingredient_id=i_grano.id, quantity=20)
+        r4 = RecipeItem(variant_id=v_ame_grande.id, ingredient_id=i_agua.id, quantity=400)
+        
+        # Latte Chico: 15g café, 200ml leche
+        r5 = RecipeItem(variant_id=v_lat_chico.id, ingredient_id=i_grano.id, quantity=15)
+        r6 = RecipeItem(variant_id=v_lat_chico.id, ingredient_id=i_leche.id, quantity=200)
+        
+        # Latte Grande: 20g café, 400ml leche
+        r7 = RecipeItem(variant_id=v_lat_grande.id, ingredient_id=i_grano.id, quantity=20)
+        r8 = RecipeItem(variant_id=v_lat_grande.id, ingredient_id=i_leche.id, quantity=400)
+        
+        # Croissant: 1 unidad
+        r9 = RecipeItem(variant_id=v_croissant.id, ingredient_id=i_croissant.id, quantity=1)
+        
+        session.add_all([r1, r2, r3, r4, r5, r6, r7, r8, r9])
+        await session.commit()
+
+        print("--- Sembrado de Datos COMPLETADO ---")
+
+if __name__ == "__main__":
+    asyncio.run(seed())

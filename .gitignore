@@ -1,0 +1,62 @@
+# =========================
+# Entornos
+# =========================
+.env
+.venv/
+venv/
+env/
+
+# =========================
+# Node.js y Frontend
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.svelte-kit/
+build/
+dist/
+
+# =========================
+# Bases de datos y SQLite
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+pos_database.db
+
+# =========================
+# Python y Back-end
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+.eggs/
+
+# =========================
+# Editores y SO (OS)
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.bak
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+bs_frontend/.npmrc
+omni_auth/PLAN_OMNI_AUTH_V2.md
+data/

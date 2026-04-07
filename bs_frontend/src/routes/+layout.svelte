@@ -1,0 +1,51 @@
+<script lang="ts">
+	import '../app.css';
+	import favicon from '$lib/assets/favicon.svg';
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
+	import { appState, setAuth } from '$lib/app_state.svelte';
+
+	let { children } = $props();
+
+	function checkAuth() {
+		if (typeof window !== 'undefined') {
+			const token = localStorage.getItem('X-Omni-Token');
+			setAuth(!!token);
+			
+			const path = page.url.pathname;
+			
+			// Redirección si no está logueado
+			if (!appState.isLoggedIn && !path.startsWith('/login')) {
+				goto('/login');
+			} 
+			// Redirección si ya está logueado y trata de ir a login
+			else if (appState.isLoggedIn && path.startsWith('/login')) {
+				goto('/');
+			}
+		}
+	}
+
+	onMount(() => {
+		checkAuth();
+		// Escuchar cambios en localStorage (opcional)
+		window.addEventListener('storage', checkAuth);
+		return () => window.removeEventListener('storage', checkAuth);
+	});
+
+	// Re-verificar auth cuando cambia la ruta
+	$effect(() => {
+		// Accedemos a page.url.pathname para que el efecto dependa de la ruta
+		const _currentPath = page.url.pathname;
+		checkAuth();
+	});
+</script>
+
+<svelte:head>
+	<link rel="icon" href={favicon} />
+	<meta name="theme-color" content="#ffffff" />
+</svelte:head>
+
+<div data-theme={appState.currentTheme}>
+	{@render children()}
+</div>
