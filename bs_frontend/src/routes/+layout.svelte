@@ -14,9 +14,10 @@
 			setAuth(!!token);
 			
 			const path = page.url.pathname;
+			const isPublicRoute = path.startsWith('/login') || path.startsWith('/carta');
 			
 			// Redirección si no está logueado
-			if (!appState.isLoggedIn && !path.startsWith('/login')) {
+			if (!appState.isLoggedIn && !isPublicRoute) {
 				goto('/login');
 			} 
 			// Redirección si ya está logueado y trata de ir a login
