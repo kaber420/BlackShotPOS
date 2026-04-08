@@ -155,5 +155,20 @@ export const ProductService = {
     updateModifierMeasureQuantity: (modifierId: number, measure_id: number, quantity: number) =>
         fetchApi<any>(`/api/v1/pos/modifiers/${modifierId}/measures/${measure_id}/quantity?quantity=${quantity}`, {
             method: 'POST'
+        }),
+
+    // Gestión de Imágenes
+    uploadImage: (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return fetchApi<{url: string, filename: string}>('/api/v1/pos/upload', {
+            method: 'POST',
+            body: formData
+        });
+    },
+
+    deleteImage: (filename: string) =>
+        fetchApi<{detail: string}>(`/api/v1/pos/upload/${filename}`, {
+            method: 'DELETE'
         })
 };

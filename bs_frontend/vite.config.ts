@@ -15,6 +15,10 @@ export default defineConfig(({ mode }) => {
 				'/api': {
 					target: `http://${host}:${port}`,
 					changeOrigin: true
+				},
+				'/uploads': {
+					target: `http://${host}:${port}`,
+					changeOrigin: true
 				}
 			}
 		}

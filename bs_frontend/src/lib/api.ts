@@ -4,10 +4,12 @@
  */
 
 // Para el prototipo rápido, simularemos un token, después lo conectaremos a omni_auth
-const getAuthHeaders = () => {
-	const headers: Record<string, string> = {
-		'Content-Type': 'application/json'
-	};
+const getAuthHeaders = (isFormData: boolean = false) => {
+	const headers: Record<string, string> = {};
+	
+	if (!isFormData) {
+		headers['Content-Type'] = 'application/json';
+	}
 	
 	// Leer token de localStorage si estamos en el navegador
 	if (typeof window !== 'undefined') {
@@ -23,12 +25,13 @@ const getAuthHeaders = () => {
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 	// Asegurar que endpoint empiece con /
 	const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+	const isFormData = options.body instanceof FormData;
 
 	try {
 		const response = await fetch(path, {
 			...options,
 			headers: {
-				...getAuthHeaders(),
+				...getAuthHeaders(isFormData),
 				...options.headers
 			}
 		});

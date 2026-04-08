@@ -160,6 +160,7 @@
             return;
         }
 
+        isUploading = false; // Reset just in case
         isSaving = true;
         errorMessage = '';
         try {
@@ -241,6 +242,62 @@
         }
     }
 
+    // --- Gestión de Imágenes ---
+    let isUploading = $state(false);
+
+    async function handleImageUpload(e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        isUploading = true;
+        try {
+            const res = await ProductService.uploadImage(file);
+            // Si ya teníamos una imagen local, el backend la borrará al hacer el update
+            // O podemos borrarla nosotros si es un cambio "borrador"
+            formData.image_url = res.url;
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            errorMessage = 'Error al subir la imagen.';
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    async function handleVariantImageUpload(vIndex: number, e: Event) {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        isUploading = true;
+        try {
+            const res = await ProductService.uploadImage(file);
+            selectedVariants[vIndex].image_url = res.url;
+        } catch (error) {
+            console.error('Error uploading variant image:', error);
+            errorMessage = 'Error al subir la imagen de la variante.';
+        } finally {
+            isUploading = false;
+        }
+    }
+
+    async function removeImage() {
+        // El borrado físico lo maneja el backend al actualizar o podemos llamar explícitamente
+        // Para inmediatez, si es local, lo borramos
+        if (formData.image_url?.startsWith('/uploads/')) {
+            const filename = formData.image_url.split('/').pop();
+            if (filename) await ProductService.deleteImage(filename).catch(console.error);
+        }
+        formData.image_url = '';
+    }
+
+    async function removeVariantImage(vIndex: number) {
+        const v = selectedVariants[vIndex];
+        if (v.image_url?.startsWith('/uploads/')) {
+            const filename = v.image_url.split('/').pop();
+            if (filename) await ProductService.deleteImage(filename).catch(console.error);
+        }
+        v.image_url = '';
+    }
+
 </script>
 
 {#if isOpen}
@@ -300,8 +357,34 @@
                         </div>
                         <div class="flex flex-col gap-6">
                             <div class="form-control">
-                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">URL Imagen (General)</label>
-                                <input type="text" placeholder="https://..." class="input input-bordered w-full focus:input-primary" bind:value={formData.image_url} />
+                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Foto del Producto</label>
+                                <div class="flex flex-col gap-3">
+                                    {#if formData.image_url}
+                                        <div class="relative group w-full aspect-video rounded-2xl overflow-hidden border border-base-300 bg-base-200">
+                                            <img src={formData.image_url} alt={formData.name} class="w-full h-full object-cover" />
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <button class="btn btn-circle btn-error btn-sm" onclick={removeImage} title="Eliminar Imagen">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                </button>
+                                                <label class="btn btn-circle btn-primary btn-sm cursor-pointer" title="Cambiar Imagen">
+                                                    <input type="file" class="hidden" accept="image/*" onchange={handleImageUpload} />
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    {:else}
+                                        <label class="flex flex-col items-center justify-center w-full h-40 border-2 border-dashed border-base-300 rounded-2xl cursor-pointer hover:bg-base-200 transition-all gap-2 group">
+                                            <input type="file" class="hidden" accept="image/*" onchange={handleImageUpload} />
+                                            {#if isUploading}
+                                                <span class="loading loading-spinner text-primary"></span>
+                                            {:else}
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 opacity-20 group-hover:opacity-40 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                                <span class="text-[10px] font-black uppercase tracking-widest opacity-40">Subir Imagen</span>
+                                            {/if}
+                                        </label>
+                                    {/if}
+                                    <input type="text" placeholder="O pega una URL externa..." class="input input-bordered input-xs w-full focus:input-primary text-[10px]" bind:value={formData.image_url} />
+                                </div>
                             </div>
                             <div class="form-control">
                                 <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Descripción</label>
@@ -381,15 +464,33 @@
                                             <h5 class="font-black text-xl text-primary uppercase tracking-tighter">{variant.measure?.name}</h5>
                                             <button class="btn btn-ghost btn-sm text-error font-bold" onclick={() => removeVariant(i)}>Eliminar Talla</button>
                                         </div>
-                                        
-                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                             <div class="form-control">
                                                 <label class="label font-bold text-[10px] uppercase opacity-50" for="v-price-{i}">Precio Final ($)</label>
                                                 <input id="v-price-{i}" type="number" step="0.01" class="input input-bordered input-sm font-bold border-primary/30" bind:value={variant.price} />
                                             </div>
                                             <div class="form-control md:col-span-2">
-                                                <label class="label font-bold text-[10px] uppercase opacity-50" for="v-img-{i}">URL Foto (Opcional)</label>
-                                                <input id="v-img-{i}" type="text" class="input input-bordered input-sm" bind:value={variant.image_url} placeholder="Vacío para usar foto general" />
+                                                <label class="label font-bold text-[10px] uppercase opacity-50">Imagen de la Talla (Opcional)</label>
+                                                <div class="flex gap-3">
+                                                    {#if variant.image_url}
+                                                        <div class="relative group w-12 h-12 rounded-lg overflow-hidden border border-base-300">
+                                                            <img src={variant.image_url} alt={variant.measure?.name} class="w-full h-full object-cover" />
+                                                            <button class="absolute inset-0 bg-error/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white" onclick={() => removeVariantImage(i)}>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        </div>
+                                                    {/if}
+                                                    <div class="flex-1 flex flex-col gap-1">
+                                                        <div class="flex gap-1">
+                                                            <input type="text" class="input input-bordered input-xs flex-1 text-[10px]" bind:value={variant.image_url} placeholder="URL externa o selecciona archivo..." />
+                                                            <label class="btn btn-square btn-xs btn-primary cursor-pointer">
+                                                                <input type="file" class="hidden" accept="image/*" onchange={(e) => handleVariantImageUpload(i, e)} />
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                                                            </label>
+                                                        </div>
+                                                        <span class="text-[9px] opacity-40 uppercase">Si está vacío usará la foto general.</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
 

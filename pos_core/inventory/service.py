@@ -1,5 +1,6 @@
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
+import os
 from .models import (
     Category, CategoryCreate, CategoryUpdate, 
     Product, ProductCreate, ProductUpdate, 
@@ -13,6 +14,21 @@ from .models import (
     ModifierQuantity
 )
 from typing import List, Optional
+
+def delete_local_image(url: Optional[str]):
+    """Elimina físicamente un archivo de imagen si es local."""
+    if not url or not url.startswith("/uploads/"):
+        return
+    filename = url.replace("/uploads/", "")
+    # Evitar salir del directorio por seguridad
+    if "/" in filename or ".." in filename:
+        return
+    file_path = os.path.join("data/img", filename)
+    if os.path.exists(file_path):
+        try:
+            os.remove(file_path)
+        except Exception as e:
+            print(f"Error borrando archivo {file_path}: {e}")
 
 async def create_category(session: AsyncSession, category: CategoryCreate) -> Category:
     """Crea una nueva categoría en la base de datos."""
@@ -117,6 +133,9 @@ async def update_product(session: AsyncSession, product_id: int, product_data: P
     # Actualizar campos básicos
     update_data = product_data.model_dump(exclude_unset=True, exclude={"modifier_groups"})
     for key, value in update_data.items():
+        if key == "image_url" and db_product.image_url != value:
+            # Si la imagen cambió y teníamos una local, borrar la anterior
+            delete_local_image(db_product.image_url)
         setattr(db_product, key, value)
         
     # Sincronizar Grupos de Modificadores (Many-to-Many)
@@ -365,6 +384,8 @@ async def update_variant(session: AsyncSession, variant_id: int, variant_data: P
     
     update_data = variant_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
+        if key == "image_url" and db_variant.image_url != value:
+            delete_local_image(db_variant.image_url)
         setattr(db_variant, key, value)
         
     session.add(db_variant)
@@ -380,10 +401,15 @@ async def update_variant(session: AsyncSession, variant_id: int, variant_data: P
     return result.scalar_one()
 
 async def delete_variant(session: AsyncSession, variant_id: int) -> bool:
-    """Elimina una variante de producto."""
+    """Elimina una variante de producto y su imagen asociada."""
     db_variant = await session.get(ProductVariant, variant_id)
     if not db_variant:
         return False
+    
+    # Limpiar imagen antes de borrar de DB
+    if db_variant.image_url:
+        delete_local_image(db_variant.image_url)
+        
     await session.delete(db_variant)
     await session.commit()
     return True
