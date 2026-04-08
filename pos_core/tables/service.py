@@ -30,6 +30,29 @@ async def update_table_status(session: AsyncSession, table_id: int, status: str)
     await session.refresh(db_table)
     return db_table
 
+async def update_table(session: AsyncSession, table_id: int, **kwargs) -> Optional[Table]:
+    """Actualiza propiedades de una mesa."""
+    db_table = await session.get(Table, table_id)
+    if not db_table:
+        return None
+    for key, value in kwargs.items():
+        if hasattr(db_table, key):
+            setattr(db_table, key, value)
+    session.add(db_table)
+    await session.commit()
+    await session.refresh(db_table)
+    return db_table
+
+async def delete_table(session: AsyncSession, table_id: int) -> bool:
+    """Eliminación lógica de una mesa."""
+    db_table = await session.get(Table, table_id)
+    if not db_table:
+        return False
+    db_table.is_active = False
+    session.add(db_table)
+    await session.commit()
+    return True
+
 async def get_table_by_id(session: AsyncSession, table_id: int) -> Optional[Table]:
     """Obtiene una mesa específica por su ID."""
     return await session.get(Table, table_id)

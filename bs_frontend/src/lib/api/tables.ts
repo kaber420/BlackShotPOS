@@ -25,5 +25,22 @@ export const TableService = {
     updateStatus: (id: number, status: TableStatus) =>
         fetchApi<Table>(`/api/v1/pos/tables/${id}/status?status=${status}`, {
             method: 'PATCH'
+        }),
+
+    update: (id: number, data: Partial<Table>) => {
+        const params = new URLSearchParams();
+        if (data.number !== undefined) params.append('number', data.number.toString());
+        if (data.capacity !== undefined) params.append('capacity', data.capacity.toString());
+        if (data.location !== undefined) params.append('location', data.location);
+        if (data.is_active !== undefined) params.append('is_active', data.is_active.toString());
+        
+        return fetchApi<Table>(`/api/v1/pos/tables/${id}?${params.toString()}`, {
+            method: 'PATCH'
+        });
+    },
+
+    delete: (id: number) =>
+        fetchApi<{detail: string}>(`/api/v1/pos/tables/${id}`, {
+            method: 'DELETE'
         })
 };

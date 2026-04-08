@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.database import get_session
 from .models import Table
 from . import service
-from typing import List
+from typing import List, Optional
 
 router = APIRouter()
 
@@ -24,3 +24,25 @@ async def update_table_status(table_id: int, status: str, db: AsyncSession = Dep
     if not table:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
     return table
+
+@router.patch("/tables/{table_id}", response_model=Table)
+async def update_table(table_id: int, number: Optional[int] = None, capacity: Optional[int] = None, location: Optional[str] = None, is_active: Optional[bool] = None, db: AsyncSession = Depends(get_session)):
+    """Actualiza propiedades de una mesa."""
+    update_data = {}
+    if number is not None: update_data["number"] = number
+    if capacity is not None: update_data["capacity"] = capacity
+    if location is not None: update_data["location"] = location
+    if is_active is not None: update_data["is_active"] = is_active
+    
+    table = await service.update_table(db, table_id, **update_data)
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    return table
+
+@router.delete("/tables/{table_id}")
+async def delete_table(table_id: int, db: AsyncSession = Depends(get_session)):
+    """Desactiva una mesa."""
+    success = await service.delete_table(db, table_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    return {"detail": "Mesa desactivada"}
