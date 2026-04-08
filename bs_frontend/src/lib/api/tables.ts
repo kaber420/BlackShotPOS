@@ -12,7 +12,10 @@ export interface Table {
 }
 
 export const TableService = {
-    getAll: () => fetchApi<Table[]>('/api/v1/pos/tables'),
+    getAll: (includeInactive: boolean = false) => {
+        const url = includeInactive ? '/api/v1/pos/tables?include_inactive=true' : '/api/v1/pos/tables';
+        return fetchApi<Table[]>(url);
+    },
     
     create: (number: number, capacity: number = 4, location?: string) => 
         fetchApi<Table>(`/api/v1/pos/tables?number=${number}&capacity=${capacity}${location ? `&location=${location}` : ''}`, {

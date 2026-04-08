@@ -26,7 +26,7 @@
         try {
             isLoading = true;
             const [p, c] = await Promise.all([
-                ProductService.getAll(filterCategory || undefined),
+                ProductService.getAll(filterCategory || undefined, true),
                 CategoryService.getAll()
             ]);
             products = p;
@@ -202,13 +202,13 @@
                 <!-- Columna Izquierda -->
                 <div class="space-y-4">
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold">Nombre</span></label>
-                        <input type="text" class="input input-bordered w-full" bind:value={productForm.name} required />
+                        <label class="label" for="prod_name"><span class="label-text font-bold">Nombre</span></label>
+                        <input id="prod_name" type="text" class="input input-bordered w-full" bind:value={productForm.name} required />
                     </div>
 
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold">Categoría</span></label>
-                        <select class="select select-bordered w-full" bind:value={productForm.category_id} required>
+                        <label class="label" for="prod_cat"><span class="label-text font-bold">Categoría</span></label>
+                        <select id="prod_cat" class="select select-bordered w-full" bind:value={productForm.category_id} required>
                             {#each categories as cat}
                                 <option value={cat.id}>{cat.name}</option>
                             {/each}
@@ -216,10 +216,10 @@
                     </div>
 
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold text-secondary">Precio de Venta</span></label>
+                        <label class="label" for="prod_price"><span class="label-text font-bold text-secondary">Precio de Venta</span></label>
                         <div class="join">
                             <span class="btn join-item no-animation bg-base-200 border-base-300">$</span>
-                            <input type="number" step="0.01" class="input input-bordered w-full join-item" bind:value={productForm.price} required />
+                            <input id="prod_price" type="number" step="0.01" class="input input-bordered w-full join-item" bind:value={productForm.price} required />
                         </div>
                     </div>
                 </div>
@@ -227,14 +227,14 @@
                 <!-- Columna Derecha -->
                 <div class="space-y-4">
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold">URL de Imagen</span></label>
-                        <input type="text" class="input input-bordered w-full" bind:value={productForm.image_url} placeholder="https://..." />
+                        <label class="label" for="prod_img"><span class="label-text font-bold">URL de Imagen</span></label>
+                        <input id="prod_img" type="text" class="input input-bordered w-full" bind:value={productForm.image_url} placeholder="https://..." />
                     </div>
                     
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold">Estado</span></label>
+                        <label class="label" for="prod_active"><span class="label-text font-bold">Estado</span></label>
                         <label class="label cursor-pointer justify-start gap-4 bg-base-200 rounded-lg px-4">
-                            <input type="checkbox" class="toggle toggle-success" bind:checked={productForm.is_active} />
+                            <input id="prod_active" type="checkbox" class="toggle toggle-success" bind:checked={productForm.is_active} />
                             <span class="label-text font-medium">{productForm.is_active ? 'Activo' : 'Inactivo'}</span>
                         </label>
                     </div>
@@ -242,8 +242,8 @@
             </div>
 
             <div class="form-control w-full">
-                <label class="label"><span class="label-text font-bold">Descripción</span></label>
-                <textarea class="textarea textarea-bordered h-24" bind:value={productForm.description} placeholder="Detalles del producto..."></textarea>
+                <label class="label" for="prod_desc"><span class="label-text font-bold">Descripción</span></label>
+                <textarea id="prod_desc" class="textarea textarea-bordered h-24" bind:value={productForm.description} placeholder="Detalles del producto..."></textarea>
             </div>
 
             <div class="modal-action gap-2">

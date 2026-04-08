@@ -56,8 +56,12 @@ export interface Product {
 }
 
 export const ProductService = {
-    getAll: (categoryId?: number) => {
-        const url = categoryId ? `/api/v1/pos/products?category_id=${categoryId}` : '/api/v1/pos/products';
+    getAll: (categoryId?: number, includeInactive: boolean = false) => {
+        let url = '/api/v1/pos/products?';
+        const params = new URLSearchParams();
+        if (categoryId) params.append('category_id', categoryId.toString());
+        if (includeInactive) params.append('include_inactive', 'true');
+        url += params.toString();
         return fetchApi<Product[]>(url);
     },
     

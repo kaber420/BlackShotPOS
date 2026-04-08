@@ -32,7 +32,7 @@
         errorMessage = '';
         try {
             const [fetchedProducts, fetchedCategories] = await Promise.all([
-                ProductService.getAll(),
+                ProductService.getAll(undefined, true),
                 CategoryService.getAll()
             ]);
             products = fetchedProducts;

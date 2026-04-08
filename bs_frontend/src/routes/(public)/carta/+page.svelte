@@ -14,8 +14,8 @@
 
     const filteredProducts = $derived(
         selectedCategory 
-            ? products.filter(p => p.category_id === selectedCategory && p.is_active)
-            : products.filter(p => p.is_active)
+            ? products.filter(p => p.category_id === selectedCategory)
+            : products
     );
 
     async function loadData() {
@@ -23,7 +23,7 @@
         errorMessage = '';
         try {
             const [fetchedProducts, fetchedCategories] = await Promise.all([
-                ProductService.getAll(),
+                ProductService.getAll(undefined, true),
                 CategoryService.getAll()
             ]);
             products = fetchedProducts;
@@ -144,7 +144,7 @@
         {:else}
             {#each filteredProducts as product (product.id)}
                 <div 
-                    class="group relative bg-base-100 border border-base-200 rounded-[2rem] overflow-hidden hover:shadow-2xl hover:shadow-primary/5 transition-all duration-500 hover:-translate-y-1"
+                    class="group relative bg-base-100 border border-base-200 rounded-[2rem] overflow-hidden transition-all duration-500 {product.is_active ? 'hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1' : 'opacity-70 grayscale-[0.5]'}"
                     in:fly={{ y: 20, duration: 400 }}
                 >
                     <!-- Image Area -->
@@ -153,7 +153,7 @@
                             <img 
                                 src={product.image_url} 
                                 alt={product.name} 
-                                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                class="w-full h-full object-cover transition-transform duration-700 {product.is_active ? 'group-hover:scale-110' : ''}"
                             />
                         {:else}
                             <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
@@ -163,6 +163,14 @@
                             </div>
                         {/if}
                         
+                        {#if !product.is_active}
+                            <div class="absolute inset-0 bg-base-300/60 backdrop-blur-[2px] flex items-center justify-center p-6">
+                                <div class="bg-base-100/90 text-base-content px-6 py-3 rounded-2xl shadow-xl border border-base-300 transform -rotate-3 font-black uppercase tracking-tighter text-sm">
+                                    No Disponible
+                                </div>
+                            </div>
+                        {/if}
+
                         <!-- Badges Overlay -->
                         <div class="absolute top-4 left-4 flex gap-2">
                             {#if product.calories}

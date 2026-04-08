@@ -11,9 +11,11 @@ async def create_table(session: AsyncSession, number: int, capacity: int = 4, lo
     await session.refresh(db_table)
     return db_table
 
-async def get_tables(session: AsyncSession) -> List[Table]:
+async def get_tables(session: AsyncSession, include_inactive: bool = False) -> List[Table]:
     """Obtiene el listado de todas las mesas activas."""
-    statement = select(Table).where(Table.is_active == True)
+    statement = select(Table)
+    if not include_inactive:
+        statement = statement.where(Table.is_active == True)
     result = await session.execute(statement)
     return result.scalars().all()
 

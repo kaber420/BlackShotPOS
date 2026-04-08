@@ -96,14 +96,16 @@
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {#each tables as table}
                 <button 
-                    class="card aspect-square shadow-xl bg-base-100 hover:scale-105 transition-all cursor-pointer border-2 { table.status === 'Occupied' ? 'border-error' : 'border-success' } active:scale-95"
-                    onclick={() => handleTableClick(table)}
+                    class="card aspect-square shadow-xl bg-base-100 transition-all border-2 { table.is_active ? (table.status === 'Occupied' ? 'border-error hover:scale-105 cursor-pointer active:scale-95' : 'border-success hover:scale-105 cursor-pointer active:scale-95') : 'border-base-300 opacity-50 grayscale cursor-not-allowed' }"
+                    onclick={() => table.is_active && handleTableClick(table)}
                 >
                     <div class="card-body p-4 items-center justify-center text-center">
                         <span class="text-3xl font-black">{table.number}</span>
                         <p class="text-xs font-bold uppercase tracking-widest opacity-60">MESA</p>
                         
-                        {#if table.status === 'Occupied'}
+                        {#if !table.is_active}
+                            <div class="badge badge-ghost font-bold mt-2">INACTIVA</div>
+                        {:else if table.status === 'Occupied'}
                             <div class="badge badge-error text-white font-bold mt-2">OCUPADA</div>
                         {:else if table.status === 'Free'}
                             <div class="badge badge-success text-white font-bold mt-2">LIBRE</div>

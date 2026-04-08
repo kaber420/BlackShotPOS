@@ -224,12 +224,17 @@
 				{:else}
 					{#each products as prod}
 						<button 
-							class="card bg-base-100 shadow-sm hover:shadow-md transition-all active:scale-95 border border-base-200 hover:border-primary cursor-pointer text-left h-40 flex flex-col group overflow-hidden"
-							onclick={() => handleProductClick(prod)}
+							class="card bg-base-100 shadow-sm transition-all border border-base-200 h-40 flex flex-col group overflow-hidden {prod.is_active ? 'hover:shadow-md active:scale-95 hover:border-primary cursor-pointer' : 'opacity-60 grayscale cursor-not-allowed'}"
+							onclick={() => prod.is_active && handleProductClick(prod)}
 						>
 							<div class="h-24 w-full bg-base-200 relative">
 								{#if prod.image_url}
-									<img src={prod.image_url} alt={prod.name} class="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+									<img src={prod.image_url} alt={prod.name} class="w-full h-full object-cover {prod.is_active ? 'group-hover:scale-105' : ''} transition-transform" />
+								{/if}
+								{#if !prod.is_active}
+									<div class="absolute inset-0 bg-black/40 flex items-center justify-center p-2">
+										<span class="text-[10px] bg-error text-white font-black px-2 py-1 rounded uppercase tracking-tighter">No Disponible</span>
+									</div>
 								{/if}
 								<div class="absolute top-2 right-2 badge badge-ghost">${prod.price}</div>
 							</div>

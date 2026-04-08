@@ -8,9 +8,9 @@ from typing import List
 router = APIRouter()
 
 @router.get("/tables", response_model=List[Table])
-async def list_tables(db: AsyncSession = Depends(get_session)):
+async def list_tables(include_inactive: bool = False, db: AsyncSession = Depends(get_session)):
     """Estado actual de todas las mesas."""
-    return await service.get_tables(db)
+    return await service.get_tables(db, include_inactive)
 
 @router.post("/tables", response_model=Table)
 async def create_table(number: int, capacity: int = 4, location: str = None, db: AsyncSession = Depends(get_session)):

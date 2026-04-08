@@ -92,14 +92,16 @@ async def create_product(session: AsyncSession, product: ProductCreate) -> Produ
     result = await session.execute(statement)
     return result.scalar_one()
 
-async def get_products(session: AsyncSession, category_id: Optional[int] = None) -> List[Product]:
+async def get_products(session: AsyncSession, category_id: Optional[int] = None, include_inactive: bool = False) -> List[Product]:
     """Obtiene el listado de productos, con sus grupos de modificadores y categorías cargados."""
     from sqlalchemy.orm import selectinload
-    statement = select(Product).where(Product.is_active == True).options(
+    statement = select(Product).options(
         selectinload(Product.category),
         selectinload(Product.modifier_groups).selectinload(ModifierGroup.modifiers).selectinload(Modifier.ingredient),
         selectinload(Product.variants).selectinload(ProductVariant.measure)
     )
+    if not include_inactive:
+        statement = statement.where(Product.is_active == True)
     if category_id:
         statement = statement.where(Product.category_id == category_id)
     result = await session.execute(statement)

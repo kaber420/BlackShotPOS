@@ -77,9 +77,9 @@ async def delete_category(category_id: int, db: AsyncSession = Depends(get_sessi
     return {"detail": "Categoría eliminada"}
 
 @router.get("/products", response_model=List[ProductRead])
-async def list_products(category_id: Optional[int] = None, db: AsyncSession = Depends(get_session)):
+async def list_products(category_id: Optional[int] = None, include_inactive: bool = False, db: AsyncSession = Depends(get_session)):
     """Listado de productos, filtrable por categoría."""
-    return await service.get_products(db, category_id)
+    return await service.get_products(db, category_id, include_inactive)
 
 @router.post("/products", response_model=ProductRead, dependencies=[Depends(require_role("admin"))])
 async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_session)):
