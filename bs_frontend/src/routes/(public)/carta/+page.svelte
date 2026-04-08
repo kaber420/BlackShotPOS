@@ -41,6 +41,48 @@
         }
     }
 
+    function getDisplayPrice(product: Product) {
+        // 1. Si hay variantes con precios válidos, priorizamos eso
+        if (product.variants && product.variants.length > 0) {
+            const prices = product.variants
+                .map(v => v.price)
+                .filter(p => p > 0);
+            
+            if (prices.length > 0) {
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                if (minPrice === maxPrice) return `$${minPrice.toFixed(0)}`;
+                return `Desde $${minPrice.toFixed(0)}`;
+            }
+        }
+        
+        // 2. Si no hay variantes, usamos el precio base si es >= 1
+        if (product.price && product.price >= 1) {
+            return `$${product.price.toFixed(0)}`;
+        }
+        
+        // 3. Caso especial: si es 0, no mostramos precio
+        return null;
+    }
+
+    function getInitials(name: string | undefined) {
+        if (!name) return '';
+        if (name.length <= 2) return name.toUpperCase();
+        
+        const lower = name.toLowerCase();
+        if (lower.startsWith('chi')) return 'CH';
+        if (lower.startsWith('med')) return 'ME';
+        if (lower.startsWith('gra')) return 'GR';
+        if (lower.startsWith('ext')) return 'EX';
+        
+        // Fallback: first 2 letters or first letter of each word
+        const words = name.split(' ');
+        if (words.length > 1) {
+            return words.map(w => w[0]).join('').toUpperCase().substring(0, 2);
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
     onMount(loadData);
 </script>
 
@@ -133,13 +175,31 @@
 
                     <!-- Info Area -->
                     <div class="p-6">
-                        <div class="flex justify-between items-start gap-2 mb-2">
+                        <div class="flex flex-col gap-1 mb-2">
                             <h3 class="text-xl font-bold leading-tight group-hover:text-primary transition-colors">
                                 {product.name}
                             </h3>
-                            <span class="text-2xl font-black text-base-content/90 font-mono tracking-tighter">
-                                ${product.price.toFixed(0)}
-                            </span>
+                            
+                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                {#if product.variants && product.variants.length > 0}
+                                    {#each product.variants as variant}
+                                        {#if variant.price > 0}
+                                            <div class="flex items-center gap-1.5 bg-base-200/50 px-2 py-1 rounded-lg border border-base-300/30">
+                                                <span class="text-[9px] font-black opacity-40 uppercase tracking-tighter">
+                                                    {getInitials(variant.measure?.name)}
+                                                </span>
+                                                <span class="font-mono font-bold text-sm">
+                                                    ${variant.price.toFixed(0)}
+                                                </span>
+                                            </div>
+                                        {/if}
+                                    {/each}
+                                {:else if product.price && product.price >= 1}
+                                    <span class="text-2xl font-black text-base-content/90 font-mono tracking-tighter">
+                                        ${product.price.toFixed(0)}
+                                    </span>
+                                {/if}
+                            </div>
                         </div>
                         
                         {#if product.description}
