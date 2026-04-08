@@ -14,6 +14,7 @@ class OrderStatus(str, Enum):
     PREPARING = "PREPARING"
     READY = "READY"
     PAID = "PAID"
+    DELIVERED = "DELIVERED"
     CANCELLED = "CANCELLED"
 
 class PaymentMethod(str, Enum):
@@ -57,6 +58,7 @@ class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     type: OrderType
     status: OrderStatus = Field(default=OrderStatus.PENDING)
+    is_paid: bool = Field(default=False)
     table_id: Optional[int] = Field(default=None, foreign_key="table.id")
     external_reference: Optional[str] = Field(default=None, description="PIN de Uber, ID de Rappi, etc.")
     created_at: datetime = Field(default_factory=datetime.utcnow)

@@ -40,6 +40,10 @@ async def verify_omni_token(
         }
 
     if not api_key:
+        # Fallback to query parameter for SSE/WebSockets
+        api_key = request.query_params.get("token")
+
+    if not api_key:
         raise HTTPException(
             status_code=401, 
             detail="Authentication required. Please provide X-Omni-Token or a valid mTLS certificate."

@@ -2,7 +2,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from .models import Order, OrderItem, Payment, OrderStatus, OrderType, PaymentMethod
-from pos_core.inventory.models import Product, Modifier
+from pos_core.inventory.models import Product, Modifier, ProductVariant
 from pos_core.inventory.service import process_inventory_depletion
 
 async def create_order(
@@ -44,14 +44,26 @@ async def add_item_to_order(
     order_id: int,
     product_id: int, 
     quantity: int,
+    product_variant_id: Optional[int] = None,
     modifier_ids: Optional[List[int]] = None
 ) -> OrderItem:
-    # First, get the product to find its current price
+    # 1. Obtener el producto base
     product = await session.get(Product, product_id)
     if not product:
         raise ValueError(f"Product with id {product_id} not found")
 
-    # Calculate extra price from modifiers
+    # 2. Determinar precio base (desde el producto o la variante)
+    base_price = product.price
+    variant = None
+    if product_variant_id:
+        from pos_core.inventory.models import ProductVariant
+        variant = await session.get(ProductVariant, product_variant_id)
+        if variant:
+            base_price = variant.price
+        else:
+            raise ValueError(f"Variant with id {product_variant_id} not found")
+
+    # 3. Calcular extras por modificadores
     extra_price = 0.0
     modifiers = []
     if modifier_ids:
@@ -61,11 +73,13 @@ async def add_item_to_order(
                 extra_price += mod.extra_price
                 modifiers.append(mod)
 
+    # 4. Crear el item de la orden
     order_item = OrderItem(
         order_id=order_id,
         product_id=product_id,
+        product_variant_id=product_variant_id,
         quantity=quantity,
-        unit_price=product.price + extra_price,
+        unit_price=base_price + extra_price,
         modifiers=modifiers
     )
     session.add(order_item)
@@ -85,9 +99,97 @@ async def add_payment(
         amount=amount
     )
     session.add(payment)
+    
+    # Marcamos la orden como pagada
+    order = await session.get(Order, order_id)
+    if order:
+        order.is_paid = True
+        
     await session.commit()
     await session.refresh(payment)
     return payment
+
+def format_order_json(order: Order) -> dict:
+    """Format an order object into a serializable dict with full nested details."""
+    items_data = []
+    for item in (order.items or []):
+        items_data.append({
+            "id": item.id,
+            "product_id": item.product_id,
+            "product": {"id": item.product.id, "name": item.product.name} if item.product else None,
+            "variant": {
+                "id": item.variant.id, 
+                "measure": {"id": item.variant.measure.id, "name": item.variant.measure.name} if item.variant and item.variant.measure else (item.variant.measure if item.variant else None),
+                "price": item.variant.price
+            } if item.variant else None,
+            "quantity": item.quantity,
+            "unit_price": item.unit_price,
+            "modifiers": [{"id": m.id, "name": m.name, "extra_price": m.extra_price} for m in (item.modifiers or [])],
+        })
+    return {
+        "id": order.id,
+        "type": order.type,
+        "status": order.status,
+        "is_paid": order.is_paid,
+        "table_id": order.table_id,
+        "external_reference": order.external_reference,
+        "created_at": order.created_at.isoformat(),
+        "updated_at": order.updated_at.isoformat(),
+        "items": items_data,
+    }
+
+async def get_kitchen_orders(session: AsyncSession) -> list:
+    """
+    Retorna las órdenes PENDING y PREPARING como lista de dicts serializables.
+    """
+    from sqlalchemy.orm import selectinload
+    statement = (
+        select(Order)
+        .where(Order.status.in_([OrderStatus.PENDING, OrderStatus.PREPARING]))
+        .order_by(Order.created_at)
+        .options(
+            selectinload(Order.items),
+            selectinload(Order.items, OrderItem.product),
+            selectinload(Order.items, OrderItem.modifiers),
+            selectinload(Order.items, OrderItem.variant),
+            selectinload(Order.items, OrderItem.variant, ProductVariant.measure)
+        )
+    )
+    result = await session.execute(statement)
+    orders = result.unique().scalars().all()
+    return [format_order_json(o) for o in orders]
+
+async def get_orders_json(session: AsyncSession, status: Optional[OrderStatus] = None) -> List[dict]:
+    """Lista órdenes serializadas como JSON."""
+    from sqlalchemy.orm import selectinload
+    statement = select(Order).options(
+        selectinload(Order.items),
+        selectinload(Order.items, OrderItem.product),
+        selectinload(Order.items, OrderItem.modifiers),
+        selectinload(Order.items, OrderItem.variant),
+        selectinload(Order.items, OrderItem.variant, ProductVariant.measure)
+    )
+    if status is not None:
+        statement = statement.where(Order.status == status)
+    
+    result = await session.execute(statement)
+    orders = result.unique().scalars().all()
+    return [format_order_json(o) for o in orders]
+
+async def get_order_json(session: AsyncSession, order_id: int) -> Optional[dict]:
+    """Obtiene una orden específica serializada como JSON."""
+    from sqlalchemy.orm import selectinload
+    statement = select(Order).where(Order.id == order_id).options(
+        selectinload(Order.items),
+        selectinload(Order.items, OrderItem.product),
+        selectinload(Order.items, OrderItem.modifiers),
+        selectinload(Order.items, OrderItem.variant),
+        selectinload(Order.items, OrderItem.variant, ProductVariant.measure)
+    )
+    result = await session.execute(statement)
+    order = result.unique().scalar_one_or_none()
+    return format_order_json(order) if order else None
+
 
 async def update_order_status(
     session: AsyncSession,
@@ -105,8 +207,9 @@ async def update_order_status(
         await session.commit()
         await session.refresh(order)
         
-        # Deplete inventory when transitioning from PENDING to PREPARING or PAID
-        if old_status == OrderStatus.PENDING and new_status in (OrderStatus.PREPARING, OrderStatus.PAID):
+        # Deplete inventory when transitioning from PENDING to PREPARING
+        # O si movemos a READY/DELIVERED directamente (casos especiales)
+        if old_status == OrderStatus.PENDING and new_status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
             # Fetch order items WITH modifiers explicitly
             from sqlalchemy.orm import selectinload
             items_statement = select(OrderItem).where(OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))

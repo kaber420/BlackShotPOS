@@ -1,14 +1,18 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
-    import { OrderService, type Order } from '$lib/api/orders';
+    import { OrderService, type Order, OrderStatus } from '$lib/api/orders';
+    import { printTicket, getRecommendedMethod, type PrintMethod } from '$lib/printer';
 
     let orders = $state<Order[]>([]);
     let isLoading = $state(true);
     let interval: any;
+    let printingOrderId = $state<number | null>(null);
+    let selectedMethod = $state<PrintMethod>('download');
 
     onMount(async () => {
         await loadOrders();
-        interval = setInterval(loadOrders, 15000); // Poll cada 15s
+        interval = setInterval(loadOrders, 15000);
+        selectedMethod = getRecommendedMethod();
     });
 
     onDestroy(() => {
@@ -39,9 +43,34 @@
             case 'PREPARING': return 'badge-primary';
             case 'READY': return 'badge-success';
             case 'PAID': return 'badge-neutral';
+            case 'DELIVERED': return 'badge-ghost opacity-70';
             case 'CANCELLED': return 'badge-error';
             default: return 'badge-ghost';
         }
+    }
+
+    async function handleComplete(orderId: number) {
+        try {
+            await OrderService.updateStatus(orderId, OrderStatus.DELIVERED);
+            await loadOrders();
+        } catch (e) {
+            alert(`Error al entregar: ${e}`);
+        }
+    }
+
+    async function handlePrintTicket(orderId: number) {
+        printingOrderId = orderId;
+        try {
+            await printTicket(orderId, selectedMethod);
+        } catch (e: any) {
+            alert(`Error al imprimir ticket: ${e?.message}`);
+        } finally {
+            printingOrderId = null;
+        }
+    }
+
+    function calculateTotal(order: Order) {
+        return order.items?.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0) || 0;
     }
 </script>
 
@@ -78,8 +107,13 @@
                 <div class="card bg-base-100 shadow-md hover:shadow-xl transition-shadow border-t-8 { order.status === 'PAID' ? 'border-neutral' : 'border-primary'}">
                     <div class="card-body p-6">
                         <div class="flex justify-between items-start mb-2">
-                            <span class="text-xs font-black uppercase tracking-widest opacity-50 px-2 py-1 bg-base-200 rounded">#{order.id}</span>
-                            <span class="badge badge-sm font-bold {getStatusBadge(order.status)}">{order.status}</span>
+                            <div class="flex flex-col gap-1">
+                                <span class="text-xs font-black uppercase tracking-widest opacity-50 px-2 py-1 bg-base-200 rounded w-fit">#{order.id}</span>
+                                {#if order.is_paid}
+                                    <span class="badge badge-success badge-xs font-black text-[9px] border-none">PAGADO</span>
+                                {/if}
+                            </div>
+                            <span class="badge badge-sm font-bold {getStatusBadge(order.status)}">{order.status === 'DELIVERED' ? 'ENTREGADO' : order.status}</span>
                         </div>
                         <h3 class="text-xl font-bold">
                             {order.table_id ? `Mesa ${order.table_id}` : 'Mostrador'}
@@ -89,9 +123,49 @@
                         </p>
                         
                         <div class="mt-4 pt-4 border-t border-base-200 flex justify-between items-center">
-                            <!-- Nota: El total de la orden se calcularía sumando items en el backend o frontend -->
-                            <span class="font-mono text-lg font-black text-primary">$ --.--</span>
-                            <button class="btn btn-ghost btn-sm text-primary font-bold">Detalle</button>
+                            <span class="font-mono text-lg font-black text-primary">
+                                ${calculateTotal(order).toFixed(2)}
+                            </span>
+                            <div class="flex gap-1">
+                                {#if order.status === 'READY' && order.is_paid}
+                                    <button 
+                                        class="btn btn-success btn-sm font-bold shadow-sm"
+                                        onclick={() => handleComplete(order.id)}
+                                    >
+                                        Entregar
+                                    </button>
+                                {:else if order.status === 'READY' && !order.is_paid}
+                                    <a 
+                                        href="/?order_id={order.id}" 
+                                        class="btn btn-primary btn-sm font-bold shadow-sm"
+                                    >
+                                        Cobrar y Entregar
+                                    </a>
+                                {:else if order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && !order.is_paid}
+                                    <a 
+                                        href="/?order_id={order.id}" 
+                                        class="btn btn-primary btn-sm font-bold shadow-sm"
+                                    >
+                                        Cobrar
+                                    </a>
+                                {/if}
+                                <!-- Botón de impresión de ticket -->
+                                <button
+                                    class="btn btn-ghost btn-sm"
+                                    onclick={() => handlePrintTicket(order.id)}
+                                    disabled={printingOrderId === order.id}
+                                    title="Imprimir ticket"
+                                    id="print-ticket-{order.id}"
+                                    aria-label="Imprimir ticket de la orden {order.id}"
+                                >
+                                    {#if printingOrderId === order.id}
+                                        <span class="loading loading-spinner loading-xs"></span>
+                                    {:else}
+                                        🖨️
+                                    {/if}
+                                </button>
+                                <button class="btn btn-ghost btn-sm text-primary font-bold">Detalle</button>
+                            </div>
                         </div>
                     </div>
                 </div>

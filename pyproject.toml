@@ -20,6 +20,10 @@ dependencies = [
     "cryptography",
     "python-dotenv",
     "python-multipart",
+    "sse-starlette",
+    "python-escpos",
+    "sqlmodel",
+    "aiosqlite",
 ]
 
 [project.optional-dependencies]

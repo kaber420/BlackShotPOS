@@ -14,7 +14,8 @@ export default defineConfig(({ mode }) => {
 			proxy: {
 				'/api': {
 					target: `http://${host}:${port}`,
-					changeOrigin: true
+					changeOrigin: true,
+					ws: true
 				},
 				'/uploads': {
 					target: `http://${host}:${port}`,

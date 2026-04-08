@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fetchApi } from '$lib/api';
+    import { goto } from '$app/navigation';
+    import { page } from '$app/state';
 	import { ProductService, type Product } from '$lib/api/products';
 	import { CategoryService, type Category } from '$lib/api/categories';
-	import { appState, addToCart, removeFromCart, clearCart, setActiveTable } from '$lib/app_state.svelte';
+	import { OrderService } from '$lib/api/orders';
+	import { appState, addToCart, removeFromCart, clearCart, setActiveTable, loadOrderToCart } from '$lib/app_state.svelte';
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
 
 	let categories = $state<Category[]>([]);
@@ -25,6 +28,13 @@
 
             // Si hay una orden activa (desde el tablero de mesas), cargar sus items al carrito
             // (Para simplicidad en este MVP, las órdenes se completan en una sesión)
+            
+            // Detección de orden vía URL (Cobro desde lista de órdenes)
+            const orderId = page.url.searchParams.get('order_id');
+            if (orderId) {
+                const order = await OrderService.getById(parseInt(orderId));
+                loadOrderToCart(order);
+            }
 		} catch (e) {
 			console.error("Error loading initial data", e);
 		} finally {
@@ -71,6 +81,7 @@
 		if (appState.cart.length === 0) return;
 		
 		try {
+            isLoading = true;
 			// 1. Get or Create order
             let order;
             if (appState.activeOrder) {
@@ -82,31 +93,89 @@
 			    });
             }
 
-			// 2. Add items
+			// 2. Add New items only (those without db_id)
 			for (const item of appState.cart) {
-				await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
-					method: 'POST',
-					body: JSON.stringify({
-						product_id: item.product_id,
-						product_variant_id: item.product_variant_id,
-						quantity: item.quantity,
-						modifier_ids: item.modifiers.map((m: any) => m.id)
-					})
-				});
+                if (!item.db_id) {
+    				await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
+	    				method: 'POST',
+		    			body: JSON.stringify({
+			    			product_id: item.product_id,
+				    		product_variant_id: item.product_variant_id,
+					    	quantity: item.quantity,
+						    modifier_ids: item.modifiers.map((m: any) => m.id)
+    					})
+	    			});
+                }
 			}
 
-			// 3. Mark as PAID (Simulated checkout)
-			await fetchApi(`/api/v1/pos/orders/${order.id}/status?status=PAID`, {
-				method: 'PATCH'
-			});
+            // 3. Register payment (will set is_paid = true in backend)
+            await OrderService.pay(order.id, 'CASH', finalTotal);
 
-			alert("Venta realizada con éxito!");
+			alert("¡Venta realizada con éxito!");
 			clearCart();
             setActiveTable(null);
+            
+            // Si veníamos de una orden específica, limpiar URL
+            if (page.url.searchParams.has('order_id')) {
+                goto('/', { replaceState: true });
+            }
 		} catch (e) {
 			alert(`Error al procesar: ${e}`);
-		}
+		} finally {
+            isLoading = false;
+        }
 	}
+
+    async function sendToKitchen() {
+        if (appState.cart.length === 0) return;
+        
+        try {
+            isLoading = true;
+            // 1. Obtener o crear orden
+            let order;
+            if (appState.activeOrder) {
+                order = appState.activeOrder;
+            } else {
+                order = await fetchApi<any>('/api/v1/pos/orders', {
+                    method: 'POST',
+                    body: JSON.stringify({ type: 'TAKEAWAY' })
+                });
+            }
+
+            // 2. Añadir items al backend
+            for (const item of appState.cart) {
+                await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        product_id: item.product_id,
+                        product_variant_id: item.product_variant_id,
+                        quantity: item.quantity,
+                        modifier_ids: item.modifiers.map((m: any) => m.id)
+                    })
+                });
+            }
+
+            // 3. Pasar a PREPARING si es PENDING
+            if (order.status === 'PENDING') {
+                await fetchApi(`/api/v1/pos/orders/${order.id}/status?status=PREPARING`, {
+                    method: 'PATCH'
+                });
+            }
+
+            alert("¡Comanda enviada a cocina!");
+            clearCart();
+            
+            // Si era una mesa, volver al tablero de mesas
+            if (appState.activeTable) {
+                setActiveTable(null);
+                goto('/tables');
+            }
+        } catch (e) {
+            alert(`Error al enviar a cocina: ${e}`);
+        } finally {
+            isLoading = false;
+        }
+    }
 </script>
 
 <div class="p-4 md:p-6 lg:p-8 flex flex-col gap-6 h-full">
@@ -227,13 +296,32 @@
 					<span class="text-3xl font-black text-primary font-serif">${finalTotal.toFixed(2)}</span>
 				</div>
 				
-				<button 
-					class="btn btn-primary w-full btn-lg shadow-lg shadow-primary/20" 
-					disabled={appState.cart.length === 0}
-					onclick={processCheckout}
-				>
-					Cobrar ${finalTotal.toFixed(2)}
-				</button>
+				<div class="flex flex-col gap-2">
+                    <button 
+                        class="btn btn-primary w-full shadow-lg shadow-primary/20" 
+                        disabled={appState.cart.length === 0 || isLoading}
+                        onclick={processCheckout}
+                    >
+                        {#if isLoading}
+                            <span class="loading loading-spinner loading-xs"></span>
+                        {:else}
+                            Cobrar ${finalTotal.toFixed(2)}
+                        {/if}
+                    </button>
+
+                    <button 
+                        class="btn btn-outline btn-secondary w-full" 
+                        disabled={appState.cart.length === 0 || isLoading}
+                        onclick={sendToKitchen}
+                    >
+                        {#if isLoading}
+                            <span class="loading loading-spinner loading-xs"></span>
+                        {:else}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-1.333-1.756A3.75 3.75 0 0012 18z" /></svg>
+                            Enviar a Cocina
+                        {/if}
+                    </button>
+                </div>
 			</div>
 		</div>
 

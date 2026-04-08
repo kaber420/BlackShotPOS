@@ -11,6 +11,7 @@ export enum OrderStatus {
     PREPARING = "PREPARING",
     READY = "READY",
     PAID = "PAID",
+    DELIVERED = "DELIVERED",
     CANCELLED = "CANCELLED"
 }
 
@@ -34,6 +35,7 @@ export interface Order {
     id: number;
     type: OrderType;
     status: OrderStatus;
+    is_paid: boolean;
     table_id?: number;
     external_reference?: string;
     created_at: string;
@@ -46,6 +48,9 @@ export const OrderService = {
         const url = status ? `/api/v1/pos/orders?status=${status}` : '/api/v1/pos/orders';
         return fetchApi<Order[]>(url);
     },
+
+    getById: (id: number) =>
+        fetchApi<Order>(`/api/v1/pos/orders/${id}`),
 
     create: (order: { type: OrderType, table_id?: number, external_reference?: string }) =>
         fetchApi<Order>('/api/v1/pos/orders', {

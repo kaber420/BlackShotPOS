@@ -32,9 +32,9 @@ Fortalecer la relación con los clientes sin pagar membresías de Apple/Google.
 
 ## ⚡ Fase 4: Experiencia y Desempeño
 Mejorar la velocidad de servicio y la interacción en el local.
-- [ ] **Comunicación en Tiempo Real**:
+- [x] **Comunicación en Tiempo Real**:
     - Integración de WebSockets/SSE para que la cocina reciba órdenes sin refrescar la página.
-- [ ] **Soporte de Impresión**:
+- [x] **Soporte de Impresión**:
     - Lógica para enviar tickets de venta y comandas a impresoras térmicas (formato ESC/POS).
 - [ ] **UI Móvil para Meseros**:
     - Optimización de la interfaz de "Mesas" para uso fluido en teléfonos o tablets pequeñas.
