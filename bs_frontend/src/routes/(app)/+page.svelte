@@ -5,7 +5,7 @@
     import { page } from '$app/state';
 	import { ProductService, type Product } from '$lib/api/products';
 	import { CategoryService, type Category } from '$lib/api/categories';
-	import { OrderService } from '$lib/api/orders';
+	import { OrderService, OrderStatus } from '$lib/api/orders';
 	import { appState, addToCart, removeFromCart, clearCart, setActiveTable, loadOrderToCart } from '$lib/app_state.svelte';
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
 
@@ -13,6 +13,14 @@
 	let products = $state<Product[]>([]);
 	let selectedCategory = $state<number | null>(null);
 	let isLoading = $state(true);
+
+	// Operational Stats State
+	let preparingCount = $state(0);
+	let readyCount = $state(0);
+	let starProductToday = $state("Cargando...");
+	let starProductWeek = $state("Cargando...");
+	let showWeeklyStar = $state(false);
+	let statsInterval: any;
 
 	// Modal State
 	let showCustomizer = $state(false);
@@ -35,12 +43,63 @@
                 const order = await OrderService.getById(parseInt(orderId));
                 loadOrderToCart(order);
             }
+
+            // Load Stats
+            await loadStats();
+            statsInterval = setInterval(loadStats, 30000); // Update every 30s
+            
+            // Rotation for Star Product
+            setInterval(() => {
+                showWeeklyStar = !showWeeklyStar;
+            }, 8000);
+
 		} catch (e) {
 			console.error("Error loading initial data", e);
 		} finally {
 			isLoading = false;
 		}
 	});
+
+    async function loadStats() {
+        try {
+            const allOrders = await OrderService.getAll();
+            
+            // 1. Filter counts
+            preparingCount = allOrders.filter(o => o.status === OrderStatus.PREPARING || o.status === OrderStatus.PENDING).length;
+            readyCount = allOrders.filter(o => o.status === OrderStatus.READY).length;
+
+            // 2. Star Product Logic
+            const now = new Date();
+            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            
+            // Start of week (Monday)
+            const today = now.getDay(); // 0 is Sunday, 1 is Monday...
+            const diff = now.getDate() - today + (today === 0 ? -6 : 1); 
+            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff);
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const findBestProduct = (filteredOrders: any[]) => {
+                const productCounts: Record<string, number> = {};
+                filteredOrders.forEach(o => {
+                    o.items?.forEach((item: any) => {
+                        const name = item.product?.name || "Producto";
+                        productCounts[name] = (productCounts[name] || 0) + item.quantity;
+                    });
+                });
+                const entries = Object.entries(productCounts);
+                if (entries.length === 0) return "Ninguno aún";
+                return entries.sort((a, b) => b[1] - a[1])[0][0];
+            };
+
+            const todayOrders = allOrders.filter(o => new Date(o.created_at) >= startOfToday);
+            const weekOrders = allOrders.filter(o => new Date(o.created_at) >= startOfWeek);
+
+            starProductToday = findBestProduct(todayOrders);
+            starProductWeek = findBestProduct(weekOrders);
+        } catch (e) {
+            console.error("Error loading stats", e);
+        }
+    }
 
 	async function loadProducts(categoryId: number | null) {
 		isLoading = true;
@@ -179,21 +238,26 @@
 </script>
 
 <div class="p-4 md:p-6 lg:p-8 flex flex-col gap-6 h-full">
-	<!-- Top Stats Row (Visual Only for now) -->
+	<!-- Top Operational Row -->
 	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200">
-			<div class="stat-title">Ventas Hoy</div>
-			<div class="stat-value text-primary font-serif">$4,200.00</div>
-			<div class="stat-desc">Actualizado hace un momento</div>
+			<div class="stat-title uppercase text-[10px] font-black tracking-widest opacity-60">En Cocina</div>
+			<div class="stat-value text-warning font-serif">{preparingCount}</div>
+			<div class="stat-desc">Órdenes pendientes</div>
 		</div>
 		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200">
-			<div class="stat-title">Tickets Abiertos</div>
-			<div class="stat-value text-secondary">8</div>
-			<div class="stat-desc">Operación normal</div>
+			<div class="stat-title uppercase text-[10px] font-black tracking-widest opacity-60">Listos</div>
+			<div class="stat-value text-success">{readyCount}</div>
+			<div class="stat-desc">Para entregar</div>
 		</div>
-		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200">
-			<div class="stat-title">Producto Estrella</div>
-			<div class="stat-value text-accent text-3xl font-bold">Latte Vainilla</div>
+		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
+			<div class="stat-title uppercase text-[10px] font-black tracking-widest opacity-60">
+                ⭐ Producto Estrella ({showWeeklyStar ? 'Semana' : 'Hoy'})
+            </div>
+			<div class="stat-value text-accent text-2xl font-bold truncate">
+                {showWeeklyStar ? starProductWeek : starProductToday}
+            </div>
+			<div class="stat-desc">Rotando cada 8 segundos</div>
 		</div>
 	</div>
 
@@ -247,11 +311,11 @@
 			</div>
 		</div>
 
-		<!-- Right: Current Ticket (30%) -->
+		<!-- Right: Current Pedido (30%) -->
 		<div class="w-full lg:w-1/3 bg-base-100 rounded-xl shadow-sm flex flex-col h-full border border-base-200">
 			<div class="p-4 border-b border-base-200 bg-base-200/30 rounded-t-xl">
 				<div class="flex justify-between items-center">
-					<h2 class="font-bold text-lg uppercase tracking-widest text-primary">Ticket</h2>
+					<h2 class="font-bold text-lg uppercase tracking-widest text-primary">Pedido</h2>
 					<button class="btn btn-ghost btn-xs text-error" onclick={() => { clearCart(); setActiveTable(null); }}>Limpiar</button>
 				</div>
 				<p class="text-[10px] opacity-70">
@@ -266,7 +330,7 @@
 						<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
 						</svg>
-						<p class="mt-2 font-bold">Ticket Vacío</p>
+						<p class="mt-2 font-bold">Pedido Vacío</p>
 					</div>
 				{:else}
 					{#each appState.cart as item (item.id)}

@@ -63,7 +63,7 @@
         try {
             await printTicket(orderId, selectedMethod);
         } catch (e: any) {
-            alert(`Error al imprimir ticket: ${e?.message}`);
+            alert(`Error al imprimir pedido: ${e?.message}`);
         } finally {
             printingOrderId = null;
         }
@@ -154,9 +154,9 @@
                                     class="btn btn-ghost btn-sm"
                                     onclick={() => handlePrintTicket(order.id)}
                                     disabled={printingOrderId === order.id}
-                                    title="Imprimir ticket"
+                                    title="Imprimir Pedido"
                                     id="print-ticket-{order.id}"
-                                    aria-label="Imprimir ticket de la orden {order.id}"
+                                    aria-label="Imprimir pedido de la orden {order.id}"
                                 >
                                     {#if printingOrderId === order.id}
                                         <span class="loading loading-spinner loading-xs"></span>
