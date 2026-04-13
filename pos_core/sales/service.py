@@ -225,3 +225,47 @@ async def update_order_status(
             await process_inventory_depletion(session, order_items)
             
     return order
+
+
+async def get_dashboard_stats(session: AsyncSession) -> dict:
+    """Calcula las estadísticas para el Dashboard de POS centralizando la lógica."""
+    import datetime
+    
+    # Obtener todas las ordenes (igual que el comportamiento original)
+    orders = await get_orders_json(session)
+    
+    preparing_count = len([o for o in orders if o["status"] in (OrderStatus.PREPARING.value, OrderStatus.PENDING.value)])
+    ready_count = len([o for o in orders if o["status"] == OrderStatus.READY.value])
+    
+    now = datetime.datetime.now()
+    start_of_today = datetime.datetime(now.year, now.month, now.day)
+    
+    # Start of week (Monday)
+    today = now.weekday() # 0 is Monday
+    start_of_week = start_of_today - datetime.timedelta(days=today)
+    
+    def find_best_product(filtered_orders):
+        product_counts = {}
+        for o in filtered_orders:
+            for item in o.get("items", []):
+                name = item.get("product", {}).get("name", "Producto") if item.get("product") else "Producto"
+                quantity = item.get("quantity", 0)
+                product_counts[name] = product_counts.get(name, 0) + quantity
+                
+        if not product_counts:
+            return "Ninguno aún"
+        
+        # sort by count descending
+        sorted_counts = sorted(product_counts.items(), key=lambda x: x[1], reverse=True)
+        return sorted_counts[0][0]
+        
+    # Date parsing since the json returns isoformat strings
+    today_orders = [o for o in orders if datetime.datetime.fromisoformat(o["created_at"]).replace(tzinfo=None) >= start_of_today]
+    week_orders = [o for o in orders if datetime.datetime.fromisoformat(o["created_at"]).replace(tzinfo=None) >= start_of_week]
+
+    return {
+        "preparingCount": preparing_count,
+        "readyCount": ready_count,
+        "starProductToday": find_best_product(today_orders),
+        "starProductWeek": find_best_product(week_orders)
+    }

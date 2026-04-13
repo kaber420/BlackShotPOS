@@ -25,6 +25,7 @@
 
     // ── WebSocket Connection ─────────────────────────────────────────────────
     let socket: WebSocket | null = null;
+    let isDestroyed = false;
 
     onMount(() => {
         // Cargar mesas y configurar impresión (no bloquean el KDS)
@@ -35,18 +36,19 @@
 
         connectWebSocket();
         return () => {
+            isDestroyed = true;
             if (socket) socket.close();
         };
     });
 
     function connectWebSocket() {
-        if (typeof window === 'undefined') return;
+        if (typeof window === 'undefined' || isDestroyed) return;
 
         const token = localStorage.getItem('X-Omni-Token');
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
         // Importante: la ruta debe coincidir con el backend
-        const url = `${protocol}//${host}/api/v1/pos/ws/kitchen?token=${encodeURIComponent(token || '')}`;
+        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token || '')}`;
 
         console.log("🔌 Conectando a WebSocket cocina...");
         connectionStatus = 'connecting';
@@ -55,6 +57,7 @@
         socket.onopen = () => {
             console.log("🔌 WebSocket Cocina conectado");
             connectionStatus = 'open';
+            socket?.send(JSON.stringify({ action: "subscribe", topic: "kitchen_orders" }));
             isLoading = false;
         };
 
@@ -73,6 +76,7 @@
         };
 
         socket.onclose = () => {
+            if (isDestroyed) return;
             console.log("🔌 WebSocket Cocina desconectado");
             connectionStatus = 'closed';
             // Reintentar en 3 segundos

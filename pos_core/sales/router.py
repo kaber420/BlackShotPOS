@@ -32,11 +32,11 @@ class PaymentCreate(BaseModel):
     method: PaymentMethod
     amount: float
 
-@router.websocket("/ws/kitchen")
-async def kitchen_websocket(websocket: WebSocket):
+@router.websocket("/ws/pos")
+async def pos_websocket(websocket: WebSocket):
     """
-    WebSocket para la cocina.
-    En lugar de SSE, usamos una conexión persistente bidireccional.
+    WebSocket unificado para la aplicación POS.
+    Utiliza un patrón de suscripción basado en el comando 'subscribe'.
     """
     await websocket.accept()
     
@@ -44,36 +44,70 @@ async def kitchen_websocket(websocket: WebSocket):
     token = websocket.query_params.get("token")
     user_info = _auth_manager.verify_token(token) if token else None
     
-    if not user_info or (user_info.get("role") != "kitchen" and user_info.get("role") != "admin"):
-        await websocket.send_json({"error": "Unauthorized", "detail": "Token inválido o rol insuficiente"})
+    if not user_info:
+        await websocket.send_json({"error": "Unauthorized", "detail": "Token inválido o faltante"})
         await websocket.close(code=1008)
         return
 
-    print(f"🔌 WebSocket Cocina: Conectado usuario {user_info.get('username')}")
+    print(f"🔌 WebSocket POS Iniciado: Usuario {user_info.get('username')}")
+    topic = None
 
     try:
-        # 2. Enviar estado inicial
-        async for db in get_session():
-            orders = await service.get_kitchen_orders(db)
-            await websocket.send_json(orders)
-            break
-
-        # 3. Bucle de escucha
-        while True:
-            # Esperar notificación del Broadcaster
-            await broadcaster.wait_for_update()
+        # Esperamos el comando de suscripción: {"action": "subscribe", "topic": "lo_que_sea"}
+        data = await websocket.receive_json()
+        if data.get("action") == "subscribe" and data.get("topic"):
+            topic = data.get("topic")
+            broadcaster.connect(websocket, topic)
             
-            # Obtener datos frescos
+            # Enviar el estado inicial inmediatamente para que la UI no parpadee
             async for db in get_session():
-                orders = await service.get_kitchen_orders(db)
-                await websocket.send_json(orders)
+                if topic == "kitchen_orders":
+                    initial_data = await service.get_kitchen_orders(db)
+                    await websocket.send_json(initial_data)
+                elif topic == "dashboard_stats":
+                    initial_data = await service.get_dashboard_stats(db)
+                    await websocket.send_json(initial_data)
+                elif topic == "recent_orders":
+                    # Las órdenes pueden venir ordenadas, esto lo maneja el cliente o lo podemos hacer desde BD
+                    initial_data = await service.get_orders_json(db)
+                    # Sort desc by date roughly
+                    initial_data = sorted(initial_data, key=lambda x: x["created_at"], reverse=True)
+                    await websocket.send_json(initial_data)
                 break
+
+        # Bucle de escucha para mantener la conexión viva y por si mandan más cosas
+        while True:
+            msg = await websocket.receive_text()
+            # Podríamos soportar cambiar de topics aquí si fuera necesario
                 
     except WebSocketDisconnect:
-        print("🔌 WebSocket Cocina: Desconectado")
+        pass
     except Exception as e:
-        print(f"❌ Error en WebSocket Cocina: {e}")
-        await websocket.close(code=1011)
+        print(f"❌ Error en WebSocket POS: {e}")
+    finally:
+        broadcaster.disconnect(websocket, topic)
+        print(f"🔌 WebSocket POS: Desconectado")
+
+
+async def broadcast_updates():
+    """Calcula y despacha el estado fresco a todos los suscriptores activos."""
+    async for db in get_session():
+        # Si hay clientes en cocina, empujamos
+        if "kitchen_orders" in broadcaster.active_connections:
+            kitchen_orders = await service.get_kitchen_orders(db)
+            await broadcaster.broadcast("kitchen_orders", kitchen_orders)
+            
+        # Si hay clientes en dashboard, empujamos
+        if "dashboard_stats" in broadcaster.active_connections:
+            dashboard_stats = await service.get_dashboard_stats(db)
+            await broadcaster.broadcast("dashboard_stats", dashboard_stats)
+            
+        # Si hay clientes en recent_orders, empujamos
+        if "recent_orders" in broadcaster.active_connections:
+            recent_orders = await service.get_orders_json(db)
+            recent_orders = sorted(recent_orders, key=lambda x: x["created_at"], reverse=True)
+            await broadcaster.broadcast("recent_orders", recent_orders)
+        break
 
 
 @router.post("/orders", response_model=Order)
@@ -86,7 +120,8 @@ async def create_new_order(
     order = await service.create_order(
         db, order_in.type, order_in.table_id, order_in.external_reference
     )
-    await broadcaster.notify()
+    # Background push
+    asyncio.create_task(broadcast_updates())
     return order
 
 @router.get("/orders")
@@ -131,7 +166,7 @@ async def add_item(
             product_variant_id=item_in.product_variant_id,
             modifier_ids=item_in.modifier_ids
         )
-        await broadcaster.notify()
+        asyncio.create_task(broadcast_updates())
         return item
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -143,11 +178,11 @@ async def update_status(
     db: AsyncSession = Depends(get_session),
     user=Depends(require_role("kitchen")),
 ):
-    """Actualiza el estado de una orden y notifica a todos los listeners SSE."""
+    """Actualiza el estado de una orden y notifica a todos los listeners."""
     order = await service.update_order_status(db, order_id, status)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    await broadcaster.notify()
+    asyncio.create_task(broadcast_updates())
     return order
 
 @router.post("/orders/{order_id}/payments", response_model=Payment)
@@ -163,5 +198,5 @@ async def pay_order(
         raise HTTPException(status_code=404, detail="Order not found")
 
     payment = await service.add_payment(db, order_id, payment_in.method, payment_in.amount)
-    await broadcaster.notify()
+    asyncio.create_task(broadcast_updates())
     return payment

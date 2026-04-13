@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { fetchApi } from '$lib/api';
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
@@ -20,7 +20,8 @@
 	let starProductToday = $state("Cargando...");
 	let starProductWeek = $state("Cargando...");
 	let showWeeklyStar = $state(false);
-	let statsInterval: any;
+	let starInterval: any;
+	let ws: WebSocket | null = null;
 
 	// Modal State
 	let showCustomizer = $state(false);
@@ -44,12 +45,11 @@
                 loadOrderToCart(order);
             }
 
-            // Load Stats
-            await loadStats();
-            statsInterval = setInterval(loadStats, 30000); // Update every 30s
+            // Connect WebSocket for Pub/Sub stats
+            connectWebSocket();
             
             // Rotation for Star Product
-            setInterval(() => {
+            starInterval = setInterval(() => {
                 showWeeklyStar = !showWeeklyStar;
             }, 8000);
 
@@ -60,45 +60,50 @@
 		}
 	});
 
-    async function loadStats() {
-        try {
-            const allOrders = await OrderService.getAll();
-            
-            // 1. Filter counts
-            preparingCount = allOrders.filter(o => o.status === OrderStatus.PREPARING || o.status === OrderStatus.PENDING).length;
-            readyCount = allOrders.filter(o => o.status === OrderStatus.READY).length;
+    let isDestroyed = false;
 
-            // 2. Star Product Logic
-            const now = new Date();
-            const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            
-            // Start of week (Monday)
-            const today = now.getDay(); // 0 is Sunday, 1 is Monday...
-            const diff = now.getDate() - today + (today === 0 ? -6 : 1); 
-            const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff);
-            startOfWeek.setHours(0, 0, 0, 0);
+    onDestroy(() => {
+        isDestroyed = true;
+        if (starInterval) clearInterval(starInterval);
+        if (ws) ws.close();
+    });
 
-            const findBestProduct = (filteredOrders: any[]) => {
-                const productCounts: Record<string, number> = {};
-                filteredOrders.forEach(o => {
-                    o.items?.forEach((item: any) => {
-                        const name = item.product?.name || "Producto";
-                        productCounts[name] = (productCounts[name] || 0) + item.quantity;
-                    });
-                });
-                const entries = Object.entries(productCounts);
-                if (entries.length === 0) return "Ninguno aún";
-                return entries.sort((a, b) => b[1] - a[1])[0][0];
-            };
+    function connectWebSocket() {
+        if (typeof window === 'undefined' || isDestroyed) return;
 
-            const todayOrders = allOrders.filter(o => new Date(o.created_at) >= startOfToday);
-            const weekOrders = allOrders.filter(o => new Date(o.created_at) >= startOfWeek);
+        const token = localStorage.getItem('X-Omni-Token') || '';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
 
-            starProductToday = findBestProduct(todayOrders);
-            starProductWeek = findBestProduct(weekOrders);
-        } catch (e) {
-            console.error("Error loading stats", e);
-        }
+        ws = new WebSocket(url);
+
+        ws.onopen = () => {
+            console.log("🔌 Dashboard WS conectado");
+            ws?.send(JSON.stringify({ action: "subscribe", topic: "dashboard_stats" }));
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (data.error) {
+                    console.error("Error WS:", data.detail);
+                } else if (data.preparingCount !== undefined) {
+                    preparingCount = data.preparingCount;
+                    readyCount = data.readyCount;
+                    starProductToday = data.starProductToday;
+                    starProductWeek = data.starProductWeek;
+                }
+            } catch (e) {
+                console.error("Error parseando datos WebSocket", e);
+            }
+        };
+
+        ws.onclose = () => {
+            if (isDestroyed) return;
+            console.log("🔌 Dashboard WS desconectado. Reconectando en 5s...");
+            setTimeout(connectWebSocket, 5000);
+        };
     }
 
 	async function loadProducts(categoryId: number | null) {

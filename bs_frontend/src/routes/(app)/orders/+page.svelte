@@ -5,33 +5,53 @@
 
     let orders = $state<Order[]>([]);
     let isLoading = $state(true);
-    let interval: any;
     let printingOrderId = $state<number | null>(null);
     let selectedMethod = $state<PrintMethod>('download');
+    let ws: WebSocket | null = null;
+    let isDestroyed = false;
 
-    onMount(async () => {
-        await loadOrders();
-        interval = setInterval(loadOrders, 15000);
+    onMount(() => {
+        connectWebSocket();
         selectedMethod = getRecommendedMethod();
     });
 
     onDestroy(() => {
-        if (interval) clearInterval(interval);
+        isDestroyed = true;
+        if (ws) ws.close();
     });
 
-    async function loadOrders() {
-        try {
-            // Cargar todas las órdenes (paginación o filtros podrían agregarse luego)
-            orders = await OrderService.getAll();
-            // Ordenar por las más recientes primero
-            orders = orders.sort((a, b) => 
-                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            );
-        } catch (e) {
-            console.error("Error loading orders", e);
-        } finally {
-            isLoading = false;
-        }
+    function connectWebSocket() {
+        if (typeof window === 'undefined' || isDestroyed) return;
+
+        const token = localStorage.getItem('X-Omni-Token') || '';
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const host = window.location.host;
+        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
+
+        ws = new WebSocket(url);
+
+        ws.onopen = () => {
+            console.log("🔌 Lista de Órdenes WS conectado");
+            ws?.send(JSON.stringify({ action: "subscribe", topic: "recent_orders" }));
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                if (!data.error) {
+                    orders = data;
+                    isLoading = false;
+                }
+            } catch (e) {
+                console.error("Error parseando datos WebSocket", e);
+            }
+        };
+
+        ws.onclose = () => {
+            if (isDestroyed) return;
+            console.log("🔌 Lista de Órdenes WS desconectado. Reconectando en 5s...");
+            setTimeout(connectWebSocket, 5000);
+        };
     }
 
     let dineInOrders = $derived(orders.filter(o => o.type === 'DINE_IN'));
@@ -52,7 +72,7 @@
     async function handleComplete(orderId: number) {
         try {
             await OrderService.updateStatus(orderId, OrderStatus.DELIVERED);
-            await loadOrders();
+            // La BD notifica por WS automáticamente, no re-cargamos via HTTP
         } catch (e) {
             alert(`Error al entregar: ${e}`);
         }
