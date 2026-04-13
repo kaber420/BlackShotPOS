@@ -23,6 +23,14 @@ async def create_order(
         status=OrderStatus.PENDING
     )
     session.add(db_order)
+    
+    if table_id:
+        from pos_core.tables.models import Table
+        db_table = await session.get(Table, table_id)
+        if db_table:
+            db_table.status = "Occupied"
+            session.add(db_table)
+            
     await session.commit()
     await session.refresh(db_order)
     return db_order
@@ -109,6 +117,14 @@ async def add_payment(
     order = await session.get(Order, order_id)
     if order:
         order.is_paid = True
+        
+        # Liberamos la mesa si estaba asociada a una
+        if order.table_id:
+            from pos_core.tables.models import Table
+            db_table = await session.get(Table, order.table_id)
+            if db_table:
+                db_table.status = "Free"
+                session.add(db_table)
         
     await session.commit()
     await session.refresh(payment)
@@ -210,6 +226,16 @@ async def update_order_status(
     if order:
         old_status = order.status
         order.status = new_status
+        session.add(order)
+        
+        # SI SE CANCELA: Liberar mesa
+        if new_status == OrderStatus.CANCELLED and order.table_id:
+            from pos_core.tables.models import Table
+            db_table = await session.get(Table, order.table_id)
+            if db_table:
+                db_table.status = "Free"
+                session.add(db_table)
+
         await session.commit()
         await session.refresh(order)
         
@@ -225,6 +251,35 @@ async def update_order_status(
             await process_inventory_depletion(session, order_items)
             
     return order
+
+async def delete_order(session: AsyncSession, order_id: int) -> bool:
+    """
+    Elimina físicamente una orden si NO tiene artículos.
+    Si tiene artículos, libera la mesa pero no borra por auditoría.
+    """
+    from sqlalchemy.orm import selectinload
+    statement = select(Order).where(Order.id == order_id).options(selectinload(Order.items))
+    result = await session.execute(statement)
+    order = result.scalar_one_or_none()
+
+    if not order:
+        return False
+    
+    # Protección de auditoría: No borrar si tiene ítems
+    if len(order.items) > 0:
+        raise ValueError("No se puede eliminar una orden que ya contiene artículos. Use Cancelar para mantener auditoría.")
+
+    # Liberar mesa antes de borrar
+    if order.table_id:
+        from pos_core.tables.models import Table
+        db_table = await session.get(Table, order.table_id)
+        if db_table:
+            db_table.status = "Free"
+            session.add(db_table)
+
+    await session.delete(order)
+    await session.commit()
+    return True
 
 
 async def get_dashboard_stats(session: AsyncSession) -> dict:

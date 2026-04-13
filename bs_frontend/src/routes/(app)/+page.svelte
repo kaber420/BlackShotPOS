@@ -151,9 +151,13 @@
             if (appState.activeOrder) {
                 order = appState.activeOrder;
             } else {
+                const orderPayload = {
+                    type: appState.activeTable ? 'DINE_IN' : 'TAKEAWAY',
+                    table_id: appState.activeTable ? appState.activeTable.id : null
+                };
     			order = await fetchApi<any>('/api/v1/pos/orders', {
 	    			method: 'POST',
-		    		body: JSON.stringify({ type: 'TAKEAWAY' })
+		    		body: JSON.stringify(orderPayload)
 			    });
             }
 
@@ -177,11 +181,16 @@
 
 			alert("¡Venta realizada con éxito!");
 			clearCart();
+            
+            // Guardar referencia a la mesa para la redirección
+            const wasTable = appState.activeTable;
             setActiveTable(null);
             
             // Si veníamos de una orden específica, limpiar URL
             if (page.url.searchParams.has('order_id')) {
                 goto('/', { replaceState: true });
+            } else if (wasTable) {
+                goto('/tables');
             }
 		} catch (e) {
 			alert(`Error al procesar: ${e}`);
@@ -200,14 +209,20 @@
             if (appState.activeOrder) {
                 order = appState.activeOrder;
             } else {
+                const orderPayload = {
+                    type: appState.activeTable ? 'DINE_IN' : 'TAKEAWAY',
+                    table_id: appState.activeTable ? appState.activeTable.id : null
+                };
                 order = await fetchApi<any>('/api/v1/pos/orders', {
                     method: 'POST',
-                    body: JSON.stringify({ type: 'TAKEAWAY' })
+                    body: JSON.stringify(orderPayload)
                 });
             }
 
-            // 2. Añadir items al backend
+            // 2. Añadir SOLO items nuevos al backend
             for (const item of appState.cart) {
+                if (item.db_id) continue; // Saltar items que ya están en la base de datos
+                
                 await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -339,16 +354,23 @@
 					</div>
 				{:else}
 					{#each appState.cart as item (item.id)}
-						<div class="flex justify-between items-start bg-base-200/40 p-3 rounded-lg border border-base-200/50">
+						<div class="flex justify-between items-start {item.db_id ? 'bg-base-300/20 opacity-70' : 'bg-base-200/40'} p-3 rounded-lg border {item.db_id ? 'border-base-300' : 'border-base-200/50'}">
 							<div class="flex flex-col flex-1">
-								<span class="font-bold text-sm uppercase">{item.name}</span>
+                                <div class="flex items-center gap-2">
+    								<span class="font-bold text-sm uppercase">{item.name}</span>
+                                    {#if item.db_id}
+                                        <span class="badge badge-ghost badge-xs text-[8px] font-black tracking-tighter uppercase px-1">Enviado</span>
+                                    {/if}
+                                </div>
 								{#each item.modifiers as mod}
 									<span class="text-[10px] opacity-60 leading-none mt-1">+ {mod.name}</span>
 								{/each}
 							</div>
 							<div class="flex items-center gap-3">
-								<span class="font-bold text-sm text-primary">${item.total_price.toFixed(2)}</span>
-								<button class="btn btn-circle btn-xs btn-error btn-outline border-none" onclick={() => removeFromCart(item.id)}>×</button>
+								<span class="font-bold text-sm {item.db_id ? 'opacity-50' : 'text-primary'}">${item.total_price.toFixed(2)}</span>
+                                {#if !item.db_id}
+								    <button class="btn btn-circle btn-xs btn-error btn-outline border-none" onclick={() => removeFromCart(item.id)}>×</button>
+                                {/if}
 							</div>
 						</div>
 					{/each}

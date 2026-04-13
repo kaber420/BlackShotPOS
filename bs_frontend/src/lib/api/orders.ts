@@ -73,5 +73,10 @@ export const OrderService = {
         fetchApi<any>(`/api/v1/pos/orders/${orderId}/payments`, {
             method: 'POST',
             body: JSON.stringify({ method, amount })
+        }),
+
+    delete: (orderId: number) =>
+        fetchApi<any>(`/api/v1/pos/orders/${orderId}`, {
+            method: 'DELETE'
         })
 };

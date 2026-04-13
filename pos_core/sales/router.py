@@ -176,7 +176,7 @@ async def update_status(
     order_id: int,
     status: OrderStatus,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_role("kitchen")),
+    user=Depends(require_role(["kitchen", "waiter", "cashier"])),
 ):
     """Actualiza el estado de una orden y notifica a todos los listeners."""
     order = await service.update_order_status(db, order_id, status)
@@ -184,6 +184,26 @@ async def update_status(
         raise HTTPException(status_code=404, detail="Order not found")
     asyncio.create_task(broadcast_updates())
     return order
+
+@router.delete("/orders/{order_id}")
+async def delete_order(
+    order_id: int,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(require_role(["waiter", "cashier", "admin"]))
+):
+    """
+    Elimina físicamente una orden vacía. 
+    Lanza error 400 si tiene artículos para proteger auditoría.
+    """
+    try:
+        success = await service.delete_order(db, order_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Order not found")
+        
+        asyncio.create_task(broadcast_updates())
+        return {"status": "success", "message": "Orden eliminada y mesa liberada"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.post("/orders/{order_id}/payments", response_model=Payment)
 async def pay_order(

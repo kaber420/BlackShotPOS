@@ -4,8 +4,9 @@
     import { TableService, type Table } from '$lib/api/tables';
     import { OrderService, OrderType, OrderStatus } from '$lib/api/orders';
     import TableModal from '$lib/components/TableModal.svelte';
-    import { setActiveTable } from '$lib/app_state.svelte';
-
+    import TableSummaryModal from '$lib/components/TableSummaryModal.svelte';
+    import { setActiveTable, loadOrderToCart, appState } from '$lib/app_state.svelte';
+    
     let tables = $state<Table[]>([]);
     let isLoading = $state(true);
     let adminMode = $state(false);
@@ -13,6 +14,11 @@
     // Modal state
     let isModalOpen = $state(false);
     let editingTable = $state<Table | null>(null);
+
+    // Summary Modal state
+    let isSummaryOpen = $state(false);
+    let summaryTable = $state<Table | null>(null);
+    let summaryOrder = $state<any>(null);
 
     onMount(async () => {
         await refreshTables();
@@ -59,22 +65,8 @@
         }
 
         if (table.status === 'Free') {
-            try {
-                // 1. Create a new order for this table
-                const order = await OrderService.create({
-                    type: OrderType.DINE_IN,
-                    table_id: table.id
-                });
-                
-                // 2. Update table status to Occupied (The backend might do this automatically, but let's be sure or assume it does)
-                // Assuming backend handles status transition on order creation for a table.
-                
-                // 3. Set global state and redirect to POS
-                setActiveTable(table, order);
-                goto('/');
-            } catch (e) {
-                alert(`Error al abrir mesa: ${e}`);
-            }
+            setActiveTable(table, null);
+            goto('/');
         } else if (table.status === 'Occupied') {
             try {
                 // Find existing order for this table
@@ -82,15 +74,17 @@
                 const tableOrder = activeOrders.find(o => o.table_id === table.id);
                 
                 if (tableOrder) {
-                    setActiveTable(table, tableOrder);
-                    goto('/');
+                    summaryOrder = tableOrder;
+                    summaryTable = table;
+                    isSummaryOpen = true;
                 } else {
                     // Fallback: If occupied but no order found, maybe it's preparing?
                     const preparingOrders = await OrderService.getAll(OrderStatus.PREPARING);
                     const tableOrderPrep = preparingOrders.find(o => o.table_id === table.id);
                     if (tableOrderPrep) {
-                        setActiveTable(table, tableOrderPrep);
-                        goto('/');
+                        summaryOrder = tableOrderPrep;
+                        summaryTable = table;
+                        isSummaryOpen = true;
                     } else {
                         alert("Mesa ocupada pero no se encontró orden activa.");
                     }
@@ -98,6 +92,24 @@
             } catch (e) {
                 alert(`Error al cargar orden de la mesa: ${e}`);
             }
+        }
+    }
+
+    function handleSummaryCheckout() {
+        if (summaryOrder && summaryTable) {
+            loadOrderToCart(summaryOrder);
+            appState.activeTable = summaryTable;
+            isSummaryOpen = false;
+            goto('/');
+        }
+    }
+
+    function handleSummaryAddMore() {
+        if (summaryOrder && summaryTable) {
+            loadOrderToCart(summaryOrder);
+            appState.activeTable = summaryTable;
+            isSummaryOpen = false;
+            goto('/');
         }
     }
 </script>
@@ -196,4 +208,14 @@
     table={editingTable}
     onClose={() => isModalOpen = false}
     onSave={refreshTables}
+/>
+
+<TableSummaryModal
+    isOpen={isSummaryOpen}
+    table={summaryTable}
+    order={summaryOrder}
+    onClose={() => isSummaryOpen = false}
+    onAddMore={handleSummaryAddMore}
+    onCheckout={handleSummaryCheckout}
+    onActionComplete={refreshTables}
 />

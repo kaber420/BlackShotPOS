@@ -78,6 +78,26 @@
         }
     }
 
+    async function handleCancelOrDelete(order: Order) {
+        const hasItems = order.items && order.items.length > 0;
+        const msg = hasItems 
+            ? "¿Estás seguro de que deseas CANCELAR este pedido? (Mantiene registro para auditoría)"
+            : "¿Estás seguro de que deseas ELIMINAR definitivamente este pedido vacío?";
+            
+        if (!confirm(msg)) return;
+        
+        try {
+            if (hasItems) {
+                await OrderService.updateStatus(order.id, OrderStatus.CANCELLED);
+            } else {
+                await OrderService.delete(order.id);
+            }
+            // El refresh viene por WebSocket (recent_orders)
+        } catch (e) {
+            alert(`Error: ${e}`);
+        }
+    }
+
     async function handlePrintTicket(orderId: number) {
         printingOrderId = orderId;
         try {
@@ -181,9 +201,22 @@
                                     {#if printingOrderId === order.id}
                                         <span class="loading loading-spinner loading-xs"></span>
                                     {:else}
-                                        🖨️
+                                    🖨️
                                     {/if}
                                 </button>
+                                
+                                {#if order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
+                                    <button 
+                                        class="btn btn-ghost btn-sm text-error" 
+                                        onclick={() => handleCancelOrDelete(order)}
+                                        title={order.items && order.items.length > 0 ? "Cancelar Pedido" : "Eliminar Vaciado"}
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                {/if}
+
                                 <button class="btn btn-ghost btn-sm text-primary font-bold">Detalle</button>
                             </div>
                         </div>
