@@ -1,9 +1,38 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { appState, setTheme, setAuth } from '$lib/app_state.svelte';
+	import { appState, setTheme, setAuth, setActiveShift } from '$lib/app_state.svelte';
+	import { checkActiveShift, openShift } from '$lib/api/shifts';
+	import { onMount } from 'svelte';
 
 	let { children } = $props();
+
+	let isCheckingShift = $state(true);
+	let initialCash = $state(0);
+	let isOpeningShift = $state(false);
+	
+	onMount(async () => {
+		try {
+			const res = await checkActiveShift();
+			setActiveShift(res.shift);
+		} catch (e) {
+			console.error("Error checking shift", e);
+		} finally {
+			isCheckingShift = false;
+		}
+	});
+
+	async function handleOpenShift() {
+		isOpeningShift = true;
+		try {
+			const shift = await openShift(initialCash);
+			setActiveShift(shift);
+		} catch (e) {
+			alert("Error al abrir turno: " + e);
+		} finally {
+			isOpeningShift = false;
+		}
+	}
 
 	function handleLogout() {
 		localStorage.removeItem('X-Omni-Token');
@@ -20,9 +49,10 @@
 		{ name: 'POS', href: '/', icon: 'POS' },
 		{ name: 'Mesas', href: '/tables', icon: 'M' },
 		{ name: 'Órdenes', href: '/orders', icon: 'O' },
-		{ name: 'Inventario', href: '/admin/inventory/ingredients', icon: 'I' },
 		{ name: 'Cocina', href: '/kitchen', icon: 'C' },
-		{ name: 'Menú', href: '/menu', icon: 'M' }
+		{ name: 'Menú', href: '/menu', icon: 'M' },
+		{ name: 'Inventario', href: '/admin/inventory/ingredients', icon: 'I' },
+		{ name: 'Caja', href: '/admin/corte', icon: '💲' }
 	];
 
 	function isActive(href: string) {
@@ -61,7 +91,7 @@
 				{#each navLinks as link}
 					<a 
 						href={link.href} 
-						class="btn btn-ghost btn-md font-bold px-4 rounded-xl transition-all duration-200 hover:bg-primary/10 hover:text-primary {isActive(link.href) ? 'bg-primary/5 text-primary border-b-2 border-primary rounded-b-none' : 'opacity-80'}"
+						class="btn btn-ghost btn-md font-bold px-4 rounded-xl transition-all duration-200 hover:bg-primary/10 hover:text-primary {isActive(link.href) ? 'bg-primary/5 text-primary border-b-2 border-primary rounded-b-none' : 'opacity-80'} {link.name === 'Caja' ? 'text-secondary font-black bg-secondary/10' : ''}"
 					>
 						{link.name}
 					</a>
@@ -116,6 +146,42 @@
 	
 	<!-- Subtle Gradient for Depth (Optional) -->
 	<div class="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-base-200/50 to-transparent pointer-events-none"></div>
+
+	<!-- Open Shift Modal (Blocking) -->
+	{#if !isCheckingShift && !appState.activeShift}
+	<div class="modal modal-open bg-base-300/80 backdrop-blur-sm z-50">
+		<div class="modal-box shadow-2xl border border-base-content/10">
+			<h3 class="font-black text-2xl text-primary flex items-center gap-2 mb-2">
+				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+				</svg>
+				Apertura de Caja
+			</h3>
+			<p class="py-2 text-base-content/80 font-medium">No hay un turno activo. Para registrar ventas, necesitas iniciar la caja indicando el fondo inicial con el que cuentas.</p>
+			
+			<div class="form-control w-full mt-4">
+				<label class="label">
+					<span class="label-text font-bold">Fondo de Caja (Efectivo Inicial)</span>
+				</label>
+				<div class="join w-full shadow-sm">
+					<span class="join-item btn btn-active pointer-events-none font-black text-lg bg-base-200 border-base-300 text-base-content/50">$</span>
+					<input type="number" step="0.01" min="0" bind:value={initialCash} placeholder="0.00" class="input input-bordered join-item w-full text-lg font-bold text-right" />
+				</div>
+			</div>
+
+			<div class="modal-action mt-6 flex gap-3">
+				<!-- Opcionalmente podríamos permitir ir al Admin Panel (saltar el cierre si eres admin) -->
+				<button class="btn btn-primary btn-block text-lg font-bold" onclick={handleOpenShift} disabled={isOpeningShift || initialCash < 0}>
+					{#if isOpeningShift}
+						<span class="loading loading-spinner"></span> Abriendo...
+					{:else}
+						Abrir Turno de Caja
+					{/if}
+				</button>
+			</div>
+		</div>
+	</div>
+	{/if}
 </div>
 
 <style>

@@ -22,6 +22,22 @@ class PaymentMethod(str, Enum):
     CARD = "CARD"
     TRANSFER = "TRANSFER"
 
+class ShiftStatus(str, Enum):
+    OPEN = "OPEN"
+    CLOSED = "CLOSED"
+
+class Shift(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    start_time: datetime = Field(default_factory=datetime.utcnow)
+    end_time: Optional[datetime] = Field(default=None)
+    initial_cash: float
+    expected_cash: float = Field(default=0.0)
+    actual_cash: Optional[float] = Field(default=None)
+    difference: Optional[float] = Field(default=None)
+    status: ShiftStatus = Field(default=ShiftStatus.OPEN)
+    
+    orders: List["Order"] = Relationship(back_populates="shift")
+
 class OrderItemModifier(SQLModel, table=True):
     """Vínculo entre un item de la orden y los modificadores seleccionados en el POS."""
     order_item_id: int = Field(foreign_key="orderitem.id", primary_key=True)
@@ -60,9 +76,11 @@ class Order(SQLModel, table=True):
     status: OrderStatus = Field(default=OrderStatus.PENDING)
     is_paid: bool = Field(default=False)
     table_id: Optional[int] = Field(default=None, foreign_key="table.id")
+    shift_id: Optional[int] = Field(default=None, foreign_key="shift.id")
     external_reference: Optional[str] = Field(default=None, description="PIN de Uber, ID de Rappi, etc.")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     
     items: List[OrderItem] = Relationship(back_populates="order")
     payments: List[Payment] = Relationship(back_populates="order")
+    shift: Optional[Shift] = Relationship(back_populates="orders")

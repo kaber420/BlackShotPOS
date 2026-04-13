@@ -32,7 +32,7 @@ async def init_db():
         # Importamos los modelos aquí para asegurar que se registren en SQLModel.metadata
         from pos_core.inventory.models import Category, Product, Ingredient, RecipeItem, Measure, ProductVariant
         from pos_core.tables.models import Table
-        from pos_core.sales.models import Order, OrderItem, Payment
+        from pos_core.sales.models import Order, OrderItem, Payment, Shift
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncSession:

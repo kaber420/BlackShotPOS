@@ -6,6 +6,7 @@ export const appState = $state({
     cart: [] as any[],
     activeTable: null as any | null,
     activeOrder: null as any | null,
+    activeShift: null as any | null,
 });
 
 export function setTheme(theme: string) {
@@ -17,6 +18,10 @@ export function setTheme(theme: string) {
 
 export function setAuth(status: boolean) {
     appState.isLoggedIn = status;
+}
+
+export function setActiveShift(shift: any | null) {
+    appState.activeShift = shift;
 }
 
 export function addToCart(product: any, modifiers: any[] = [], variant?: any) {

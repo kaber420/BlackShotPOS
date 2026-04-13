@@ -4,6 +4,7 @@ from sqlmodel import select
 from .models import Order, OrderItem, Payment, OrderStatus, OrderType, PaymentMethod
 from pos_core.inventory.models import Product, Modifier, ProductVariant
 from pos_core.inventory.service import process_inventory_depletion
+from pos_core.sales.shifts_service import get_active_shift
 
 async def create_order(
     session: AsyncSession, 
@@ -11,9 +12,13 @@ async def create_order(
     table_id: Optional[int] = None, 
     external_reference: Optional[str] = None
 ) -> Order:
+    active_shift = await get_active_shift(session)
+    shift_id = active_shift.id if active_shift else None
+    
     db_order = Order(
         type=order_type,
         table_id=table_id,
+        shift_id=shift_id,
         external_reference=external_reference,
         status=OrderStatus.PENDING
     )
@@ -132,6 +137,7 @@ def format_order_json(order: Order) -> dict:
         "status": order.status,
         "is_paid": order.is_paid,
         "table_id": order.table_id,
+        "shift_id": order.shift_id,
         "external_reference": order.external_reference,
         "created_at": order.created_at.isoformat(),
         "updated_at": order.updated_at.isoformat(),
