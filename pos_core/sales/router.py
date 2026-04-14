@@ -185,6 +185,21 @@ async def update_status(
     asyncio.create_task(broadcast_updates())
     return order
 
+@router.patch("/orders/{order_id}/items/{item_id}/status", response_model=OrderItem)
+async def update_item_status(
+    order_id: int,
+    item_id: int,
+    status: OrderStatus,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(require_role(["kitchen", "waiter", "admin"])),
+):
+    """Actualiza el estado de un ítem individual de una orden y notifica a todos."""
+    item = await service.update_order_item_status(db, order_id, item_id, status)
+    if not item:
+        raise HTTPException(status_code=404, detail="OrderItem not found")
+    asyncio.create_task(broadcast_updates())
+    return item
+
 @router.delete("/orders/{order_id}")
 async def delete_order(
     order_id: int,

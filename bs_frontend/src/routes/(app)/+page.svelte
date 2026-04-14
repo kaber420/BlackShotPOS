@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import { fetchApi } from '$lib/api';
     import { goto } from '$app/navigation';
     import { page } from '$app/state';
@@ -20,7 +20,6 @@
 	let starProductToday = $state("Cargando...");
 	let starProductWeek = $state("Cargando...");
 	let showWeeklyStar = $state(false);
-	let starInterval: any;
 	let ws: WebSocket | null = null;
 
 	// Modal State
@@ -45,14 +44,6 @@
                 loadOrderToCart(order);
             }
 
-            // Connect WebSocket for Pub/Sub stats
-            connectWebSocket();
-            
-            // Rotation for Star Product
-            starInterval = setInterval(() => {
-                showWeeklyStar = !showWeeklyStar;
-            }, 8000);
-
 		} catch (e) {
 			console.error("Error loading initial data", e);
 		} finally {
@@ -60,51 +51,62 @@
 		}
 	});
 
-    let isDestroyed = false;
-
-    onDestroy(() => {
-        isDestroyed = true;
-        if (starInterval) clearInterval(starInterval);
-        if (ws) ws.close();
+    // Rotation for Star Product
+    $effect(() => {
+        const interval = setInterval(() => {
+            showWeeklyStar = !showWeeklyStar;
+        }, 8000);
+        return () => clearInterval(interval);
     });
 
-    function connectWebSocket() {
-        if (typeof window === 'undefined' || isDestroyed) return;
+    // Real-time stats via WebSocket
+    $effect(() => {
+        let socket: WebSocket | null = null;
+        let reconnectTimeout: any;
 
-        const token = localStorage.getItem('X-Omni-Token') || '';
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
+        function connect() {
+            const token = localStorage.getItem('X-Omni-Token') || '';
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const host = window.location.host;
+            const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
 
-        ws = new WebSocket(url);
+            socket = new WebSocket(url);
+            ws = socket; // Export for other functions if needed
 
-        ws.onopen = () => {
-            console.log("🔌 Dashboard WS conectado");
-            ws?.send(JSON.stringify({ action: "subscribe", topic: "dashboard_stats" }));
-        };
+            socket.onopen = () => {
+                console.log("🔌 Dashboard WS conectado");
+                socket?.send(JSON.stringify({ action: "subscribe", topic: "dashboard_stats" }));
+            };
 
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.error) {
-                    console.error("Error WS:", data.detail);
-                } else if (data.preparingCount !== undefined) {
-                    preparingCount = data.preparingCount;
-                    readyCount = data.readyCount;
-                    starProductToday = data.starProductToday;
-                    starProductWeek = data.starProductWeek;
+            socket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    if (data.preparingCount !== undefined) {
+                        preparingCount = data.preparingCount;
+                        readyCount = data.readyCount;
+                        starProductToday = data.starProductToday;
+                        starProductWeek = data.starProductWeek;
+                    }
+                } catch (e) {
+                    console.error("Error parsing WS data", e);
                 }
-            } catch (e) {
-                console.error("Error parseando datos WebSocket", e);
-            }
-        };
+            };
 
-        ws.onclose = () => {
-            if (isDestroyed) return;
-            console.log("🔌 Dashboard WS desconectado. Reconectando en 5s...");
-            setTimeout(connectWebSocket, 5000);
+            socket.onclose = () => {
+                console.log("🔌 Dashboard WS desconectado. Reconectando en 5s...");
+                reconnectTimeout = setTimeout(connect, 5000);
+            };
+        }
+
+        connect();
+
+        return () => {
+            socket?.close();
+            clearTimeout(reconnectTimeout);
         };
-    }
+    });
+
+
 
 	async function loadProducts(categoryId: number | null) {
 		isLoading = true;
@@ -234,12 +236,7 @@
                 });
             }
 
-            // 3. Pasar a PREPARING si es PENDING
-            if (order.status === 'PENDING') {
-                await fetchApi(`/api/v1/pos/orders/${order.id}/status?status=PREPARING`, {
-                    method: 'PATCH'
-                });
-            }
+            // 3. El estado se mantiene en PENDING para que cocina lo inicie manualmente
 
             alert("¡Comanda enviada a cocina!");
             clearCart();
@@ -335,12 +332,26 @@
 		<div class="w-full lg:w-1/3 bg-base-100 rounded-xl shadow-sm flex flex-col h-full border border-base-200">
 			<div class="p-4 border-b border-base-200 bg-base-200/30 rounded-t-xl">
 				<div class="flex justify-between items-center">
-					<h2 class="font-bold text-lg uppercase tracking-widest text-primary">Pedido</h2>
+					<div class="flex items-center gap-3">
+						<h2 class="font-bold text-lg uppercase tracking-widest text-primary">Pedido</h2>
+						{#if appState.activeTable}
+							<div class="badge badge-secondary badge-lg font-black px-4 py-4 h-auto shadow-sm">
+								<div class="flex flex-col items-start leading-tight">
+									<span class="text-[9px] opacity-80 uppercase tracking-tighter">Mesa</span>
+									<span class="text-base">{appState.activeTable.number}</span>
+								</div>
+							</div>
+						{:else}
+							<div class="badge badge-ghost badge-lg font-bold px-4 py-4 h-auto opacity-70">
+								<div class="flex flex-col items-start leading-tight">
+									<span class="text-[9px] opacity-60 uppercase tracking-tighter">Tipo</span>
+									<span class="text-sm">PARA LLEVAR</span>
+								</div>
+							</div>
+						{/if}
+					</div>
 					<button class="btn btn-ghost btn-xs text-error" onclick={() => { clearCart(); setActiveTable(null); }}>Limpiar</button>
 				</div>
-				<p class="text-[10px] opacity-70">
-                    {appState.activeTable ? `MESA ${appState.activeTable.number} - SERVICIO COMEDOR` : 'PARA LLEVAR - CLIENTE MOSTRADOR'}
-                </p>
 			</div>
 			
 			<!-- Items in Cart -->
@@ -357,9 +368,17 @@
 						<div class="flex justify-between items-start {item.db_id ? 'bg-base-300/20 opacity-70' : 'bg-base-200/40'} p-3 rounded-lg border {item.db_id ? 'border-base-300' : 'border-base-200/50'}">
 							<div class="flex flex-col flex-1">
                                 <div class="flex items-center gap-2">
-    								<span class="font-bold text-sm uppercase">{item.name}</span>
-                                    {#if item.db_id}
-                                        <span class="badge badge-ghost badge-xs text-[8px] font-black tracking-tighter uppercase px-1">Enviado</span>
+    								<span class="font-bold text-sm uppercase {item.status === 'CANCELLED' ? 'line-through text-error' : ''}">
+                                        {item.name}
+                                    </span>
+                                    {#if item.status === 'CANCELLED'}
+                                        <span class="badge badge-error badge-xs text-[8px] font-black tracking-tighter uppercase px-1">ANULADO</span>
+                                    {:else if item.status === 'READY'}
+                                        <span class="badge badge-success badge-xs text-[8px] font-black tracking-tighter uppercase px-1">LISTO</span>
+                                    {:else if item.status === 'PREPARANDO'}
+                                        <span class="badge badge-primary badge-xs text-[8px] font-black tracking-tighter uppercase px-1 animated-pulse">COCINANDO</span>
+                                    {:else if item.db_id}
+                                        <span class="badge badge-ghost badge-xs text-[8px] font-black tracking-tighter uppercase px-1">EN COLA</span>
                                     {/if}
                                 </div>
 								{#each item.modifiers as mod}

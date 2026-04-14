@@ -50,6 +50,7 @@ class OrderItem(SQLModel, table=True):
     product_variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id")
     quantity: int = Field(default=1)
     unit_price: float = Field(description="Precio unitario al momento de la venta")
+    status: OrderStatus = Field(default=OrderStatus.PENDING)
     
     order: "Order" = Relationship(back_populates="items")
     product: "Product" = Relationship()

@@ -81,7 +81,8 @@ export function loadOrderToCart(order: any) {
                 base_price: item.unit_price - (item.modifiers?.reduce((acc: number, m: any) => acc + (m.extra_price || 0), 0) || 0),
                 modifiers: item.modifiers || [],
                 quantity: item.quantity,
-                total_price: item.unit_price * item.quantity
+                total_price: item.unit_price * item.quantity,
+                status: item.status
             };
         });
     }

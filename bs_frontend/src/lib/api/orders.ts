@@ -29,6 +29,7 @@ export interface OrderItem {
     quantity: number;
     unit_price: number;
     subtotal: number;
+    status?: OrderStatus;
 }
 
 export interface Order {
@@ -66,6 +67,11 @@ export const OrderService = {
 
     updateStatus: (orderId: number, status: OrderStatus) =>
         fetchApi<Order>(`/api/v1/pos/orders/${orderId}/status?status=${status}`, {
+            method: 'PATCH'
+        }),
+
+    updateItemStatus: (orderId: number, itemId: number, status: OrderStatus) =>
+        fetchApi<OrderItem>(`/api/v1/pos/orders/${orderId}/items/${itemId}/status?status=${status}`, {
             method: 'PATCH'
         }),
 

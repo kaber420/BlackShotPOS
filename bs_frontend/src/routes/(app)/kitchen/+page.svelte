@@ -90,6 +90,30 @@
     }
 
     // ── Acciones de orden ────────────────────────────────────────────────────
+    async function handleItemComplete(order: any, item: any) {
+        try {
+            if (item.status === OrderStatus.PENDING) {
+                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.PREPARING);
+            } else if (item.status === OrderStatus.PREPARING) {
+                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.READY);
+            }
+            // La actualización llegará por WebSocket automáticamente
+        } catch (e) {
+            alert(`Error al actualizar platillo: ${e}`);
+        }
+    }
+
+    async function handleItemCancel(order: any, item: any) {
+        if (!confirm(`¿Estás seguro de que deseas ANULAR este platillo?`)) return;
+        
+        try {
+            await OrderService.updateItemStatus(order.id, item.id, OrderStatus.CANCELLED);
+            // La actualización llegará por WebSocket automáticamente
+        } catch (e) {
+            alert(`Error al anular platillo: ${e}`);
+        }
+    }
+
     async function handleComplete(order: any) {
         try {
             if (order.status === OrderStatus.PENDING) {
@@ -97,12 +121,20 @@
             } else if (order.status === OrderStatus.PREPARING) {
                 await OrderService.updateStatus(order.id, OrderStatus.READY);
             }
-            // La actualización llegará por WebSocket automáticamente
         } catch (e) {
-            alert(`Error al completar orden: ${e}`);
+            alert(`Error al completar orden completa: ${e}`);
         }
     }
 
+    async function handleCancel(order: any) {
+        if (!confirm(`¿Estás seguro de que deseas ANULAR la Orden #${order.id} completa?`)) return;
+        
+        try {
+            await OrderService.updateStatus(order.id, OrderStatus.CANCELLED);
+        } catch (e) {
+            alert(`Error al anular orden: ${e}`);
+        }
+    }
     // ── Acciones de impresión ─────────────────────────────────────────────────
     async function handlePrintComanda(orderId: number) {
         printError = null;
@@ -289,18 +321,43 @@
                         </div>
 
                         <!-- Items -->
-                        <div class="space-y-2 mb-6 flex-grow">
+                        <div class="space-y-3 mb-6 flex-grow">
                             {#if order.items}
                                 {#each order.items as item}
-                                    <div class="flex flex-col bg-base-200/50 p-3 rounded-lg border border-base-300/50">
-                                        <div class="flex justify-between items-center">
-                                            <span class="font-bold text-lg">
-                                                {item.quantity}x {item.product?.name ?? 'Producto'}
-                                            </span>
+                                    <div class="flex flex-col bg-base-200/50 p-3 rounded-lg border 
+                                        {item.status === 'CANCELLED' ? 'border-error/50 opacity-50 grayscale' : 
+                                         item.status === 'READY' ? 'border-success/50 opacity-50 bg-success/10' : 
+                                         'border-base-300/50'}">
+                                        
+                                        <div class="flex justify-between items-start gap-2">
+                                            <div class="flex flex-col">
+                                                <span class="font-bold text-lg {item.status === 'CANCELLED' ? 'line-through' : ''}">
+                                                    {item.quantity}x {item.product?.name ?? 'Producto'}
+                                                </span>
+                                                {#if item.status === 'CANCELLED'}
+                                                    <span class="text-error text-xs font-bold">ANULADO</span>
+                                                {:else if item.status === 'READY'}
+                                                    <span class="text-success text-xs font-bold">LISTO</span>
+                                                {:else if item.status === 'PREPARANDO'}
+                                                    <span class="text-primary text-xs font-bold animated-pulse">EN PREPARACIÓN</span>
+                                                {/if}
+                                            </div>
+                                            <div class="flex gap-2 min-w-max">
+                                                {#if item.status === 'PENDING'}
+                                                    <button class="btn btn-error btn-outline btn-sm btn-square" onclick={() => handleItemCancel(order, item)} title="Anular platillo">🗑️</button>
+                                                    <button class="btn btn-primary btn-outline btn-sm" onclick={() => handleItemComplete(order, item)}>Empezar</button>
+                                                {:else if item.status === 'PREPARANDO'}
+                                                    <button class="btn btn-primary btn-sm" onclick={() => handleItemComplete(order, item)}>✓ Listo</button>
+                                                {/if}
+                                            </div>
+                                        </div>
+
+                                        <div class="flex justify-between items-center mt-1">
                                             {#if item.variant}
                                                 <span class="badge badge-outline badge-sm">{item.variant.measure.name}</span>
                                             {/if}
                                         </div>
+
                                         {#if item.modifiers && item.modifiers.length > 0}
                                             <div class="flex flex-wrap gap-1 mt-1">
                                                 {#each item.modifiers as mod}
@@ -317,8 +374,21 @@
                             <p class="text-[10px] text-accent font-bold mb-4">REF: {order.external_reference}</p>
                         {/if}
 
-                        <!-- Acciones -->
+                        <!-- Acciones globales de la orden -->
                         <div class="card-actions flex gap-2 mt-auto pt-4 border-t border-base-200">
+                            <!-- Botón de anulación -->
+                            {#if order.status === 'PENDING'}
+                                <button
+                                    class="btn btn-outline btn-error btn-square"
+                                    onclick={() => handleCancel(order)}
+                                    title="Anular toda la orden"
+                                    id="cancel-order-{order.id}"
+                                    aria-label="Anular la orden completa {order.id}"
+                                >
+                                    🗑️
+                                </button>
+                            {/if}
+
                             <!-- Botón de impresión -->
                             <button
                                 class="btn btn-outline btn-square"
@@ -335,13 +405,13 @@
                                 {/if}
                             </button>
 
-                            <!-- Botón completar -->
+                            <!-- Botón completar toda la orden -->
                             <button
                                 class="btn {order.status === 'PENDING' ? 'btn-outline border-primary' : 'btn-primary'} flex-1 text-lg"
                                 onclick={() => handleComplete(order)}
                                 id="complete-order-{order.id}"
                             >
-                                {order.status === 'PENDING' ? 'Empezar' : '✓ Listo'}
+                                {order.status === 'PENDING' ? 'Empezar Toda la Orden' : '✓ Orden Lista'}
                             </button>
                         </div>
                     </div>

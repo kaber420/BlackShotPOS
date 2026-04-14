@@ -145,6 +145,7 @@ def format_order_json(order: Order) -> dict:
             } if item.variant else None,
             "quantity": item.quantity,
             "unit_price": item.unit_price,
+            "status": item.status,
             "modifiers": [{"id": m.id, "name": m.name, "extra_price": m.extra_price} for m in (item.modifiers or [])],
         })
     return {
@@ -248,9 +249,81 @@ async def update_order_status(
             items_result = await session.execute(items_statement)
             order_items = items_result.scalars().all()
             
-            await process_inventory_depletion(session, order_items)
+            items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
+            for i in items_to_deplete:
+                i.status = new_status
+                session.add(i)
+                
+            if items_to_deplete:
+                await process_inventory_depletion(session, items_to_deplete)
+                await session.commit()
             
     return order
+
+async def update_order_item_status(
+    session: AsyncSession,
+    order_id: int,
+    item_id: int,
+    new_status: OrderStatus
+) -> Optional[OrderItem]:
+    from sqlalchemy.orm import selectinload
+    statement = select(OrderItem).where(OrderItem.id == item_id, OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
+    result = await session.execute(statement)
+    item = result.scalar_one_or_none()
+    
+    if not item:
+        return None
+        
+    old_status = item.status
+    if old_status == new_status:
+        return item
+        
+    item.status = new_status
+    session.add(item)
+    
+    if old_status == OrderStatus.PENDING and new_status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
+        await process_inventory_depletion(session, [item])
+        
+    # Recalcular estado de la orden padre
+    order_stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.items))
+    order_result = await session.execute(order_stmt)
+    order = order_result.scalar_one_or_none()
+    
+    if order:
+        all_completed = True
+        all_cancelled = True
+        any_preparing = False
+        
+        for i in order.items:
+            status = new_status if i.id == item_id else i.status
+            if status == OrderStatus.PREPARING:
+                any_preparing = True
+            if status not in (OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.CANCELLED):
+                all_completed = False
+            if status != OrderStatus.CANCELLED:
+                all_cancelled = False
+                
+        new_order_status = None
+        if all_cancelled and len(order.items) > 0:
+            new_order_status = OrderStatus.CANCELLED
+            if order.table_id:
+                from pos_core.tables.models import Table
+                db_table = await session.get(Table, order.table_id)
+                if db_table:
+                    db_table.status = "Free"
+                    session.add(db_table)
+        elif all_completed and len(order.items) > 0:
+            new_order_status = OrderStatus.READY
+        elif any_preparing and order.status == OrderStatus.PENDING:
+            new_order_status = OrderStatus.PREPARING
+            
+        if new_order_status and new_order_status != order.status:
+            order.status = new_order_status
+            session.add(order)
+            
+    await session.commit()
+    await session.refresh(item)
+    return item
 
 async def delete_order(session: AsyncSession, order_id: int) -> bool:
     """
