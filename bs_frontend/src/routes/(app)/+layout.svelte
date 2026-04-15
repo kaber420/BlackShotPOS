@@ -61,6 +61,7 @@
 		{ name: 'Inventario', href: '/admin/inventory/ingredients',       perm: 'manageInventory' },
 		{ name: 'Caja',       href: '/admin/corte',                       perm: 'manageShifts' },
 		{ name: 'Usuarios',   href: '/admin/users',                       perm: 'manageUsers' },
+		{ name: 'Config',     href: '/admin/config',                      perm: 'manageSettings' },
 	] as const;
 
 	type PermKey = keyof typeof can;
@@ -145,6 +146,9 @@
 								{/if}
 								{#if can.manageShifts()}
 									<li><a href="/admin/corte">💵 Realizar Corte</a></li>
+								{/if}
+								{#if can.manageSettings()}
+									<li><a href="/admin/config">⚙️ Configuración</a></li>
 								{/if}
 							</ul>
 							<div class="card-actions pt-2 border-t border-base-200">

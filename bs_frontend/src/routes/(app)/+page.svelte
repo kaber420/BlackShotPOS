@@ -8,6 +8,7 @@
 	import { OrderService, OrderStatus } from '$lib/api/orders';
 	import { appState, addToCart, removeFromCart, clearCart, setActiveTable, loadOrderToCart } from '$lib/app_state.svelte';
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
+	import PaymentModal from '$lib/components/PaymentModal.svelte';
 
 	let categories = $state<Category[]>([]);
 	let products = $state<Product[]>([]);
@@ -24,6 +25,7 @@
 
 	// Modal State
 	let showCustomizer = $state(false);
+    let showPaymentModal = $state(false);
 	let activeProduct = $state<any>(null);
 
 	onMount(async () => {
@@ -140,10 +142,15 @@
 	}
 
 	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
-	let taxTotal = $derived(cartTotal * 0.16);
+	let taxTotal = $derived(cartTotal * (appState.settings.tax_rate || 0.16));
 	let finalTotal = $derived(cartTotal + taxTotal);
 
-	async function processCheckout() {
+    function openCheckout() {
+        if (appState.cart.length === 0) return;
+        showPaymentModal = true;
+    }
+
+	async function processCheckout(method: string, amount: number, shouldPrint: boolean) {
 		if (appState.cart.length === 0) return;
 		
 		try {
@@ -179,9 +186,19 @@
 			}
 
             // 3. Register payment (will set is_paid = true in backend)
-            await OrderService.pay(order.id, 'CASH', finalTotal);
+            await OrderService.pay(order.id, method, amount);
+
+            // 4. Print ticket if requested
+            if (shouldPrint) {
+                try {
+                    await fetchApi(`/api/v1/pos/print/ticket/${order.id}/network`, { method: 'POST' });
+                } catch (pe) {
+                    console.error("Error al imprimir ticket", pe);
+                }
+            }
 
 			alert("¡Venta realizada con éxito!");
+            showPaymentModal = false;
 			clearCart();
             
             // Guardar referencia a la mesa para la redirección
@@ -408,19 +425,19 @@
 				</div>
 				<div class="flex justify-between mb-4 items-end">
 					<span class="text-sm font-bold opacity-60 uppercase">Total Cobrar</span>
-					<span class="text-3xl font-black text-primary font-serif">${finalTotal.toFixed(2)}</span>
+					<span class="text-3xl font-black text-primary font-serif">{appState.settings.currency_symbol}{finalTotal.toFixed(2)}</span>
 				</div>
 				
 				<div class="flex flex-col gap-2">
                     <button 
                         class="btn btn-primary w-full shadow-lg shadow-primary/20" 
                         disabled={appState.cart.length === 0 || isLoading}
-                        onclick={processCheckout}
+                        onclick={openCheckout}
                     >
                         {#if isLoading}
                             <span class="loading loading-spinner loading-xs"></span>
                         {:else}
-                            Cobrar ${finalTotal.toFixed(2)}
+                            Cobrar {appState.settings.currency_symbol}{finalTotal.toFixed(2)}
                         {/if}
                     </button>
 
@@ -448,6 +465,13 @@
 	isOpen={showCustomizer} 
 	onClose={() => { showCustomizer = false; activeProduct = null; }}
 	onConfirm={onConfirmCustomization}
+/>
+
+<PaymentModal 
+    isOpen={showPaymentModal}
+    total={finalTotal}
+    onClose={() => showPaymentModal = false}
+    onConfirm={processCheckout}
 />
 
 <style>

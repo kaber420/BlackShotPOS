@@ -17,6 +17,7 @@ const ALL_TRUE: Record<string, boolean> = {
     can_manage_users: true,
     can_manage_shifts: true,
     can_view_reports: true,
+    can_manage_settings: true,
 };
 
 export const ROLE_PRESETS_JS: Record<string, Record<string, boolean>> = {
@@ -35,6 +36,7 @@ export const ROLE_PRESETS_JS: Record<string, Record<string, boolean>> = {
         can_manage_users: false,
         can_manage_shifts: true,
         can_view_reports: true,
+        can_manage_settings: true,
     },
     cashier: {
         can_take_orders: true,

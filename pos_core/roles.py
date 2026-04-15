@@ -20,6 +20,7 @@ class Permission:
     MANAGE_USERS         = "can_manage_users"
     MANAGE_SHIFTS        = "can_manage_shifts"
     VIEW_REPORTS         = "can_view_reports"
+    MANAGE_SETTINGS       = "can_manage_settings"
 
 _ALL_PERMISSIONS = [v for k, v in vars(Permission).items() if not k.startswith("_") and isinstance(v, str)]
 
@@ -38,6 +39,7 @@ ROLE_PRESETS: Dict[str, Dict[str, bool]] = {
         Permission.MANAGE_USERS: False,
         Permission.MANAGE_SHIFTS: True,
         Permission.VIEW_REPORTS: True,
+        Permission.MANAGE_SETTINGS: True,
     },
     PosRole.CASHIER: {
         Permission.TAKE_ORDERS: True,

@@ -1,5 +1,6 @@
 import { page } from '$app/state';
 import { ROLE_PRESETS_JS } from '$lib/roles';
+import { SettingsService } from './api/settings';
 
 export const appState = $state({
     currentTheme: 'corporate',
@@ -14,6 +15,12 @@ export const appState = $state({
     userUuid: null as string | null,
     permissions: {} as Record<string, boolean>,
     permissionsLoaded: false,  // true una vez que initAuth() terminó
+    settings: {
+        name: 'Blackshot Coffee',
+        tax_rate: 0.16,
+        currency_symbol: '$',
+        currency_code: 'MXN'
+    } as any,
 });
 
 export function setTheme(theme: string) {
@@ -92,6 +99,14 @@ export async function initAuth(): Promise<boolean> {
         // Actualizar caché con datos frescos
         ls?.setItem('X-Omni-Username', appState.userName ?? '');
         ls?.setItem('X-Omni-Role',     appState.userRole ?? '');
+        
+        // ── Paso 3: Cargar configuración del negocio ────────────────────────
+        try {
+            appState.settings = await SettingsService.get();
+        } catch (e) {
+            console.error("Error loading business settings", e);
+        }
+
         return true;
     } catch {
         // Sin red → seguimos con el preset ya aplicado en Paso 1
@@ -130,6 +145,7 @@ export const can = {
     manageUsers:         () => appState.permissions['can_manage_users']           ?? false,
     manageShifts:        () => appState.permissions['can_manage_shifts']          ?? false,
     viewReports:         () => appState.permissions['can_view_reports']           ?? false,
+    manageSettings:      () => appState.permissions['can_manage_settings']          ?? false,
 };
 
 export function setActiveShift(shift: any | null) {
