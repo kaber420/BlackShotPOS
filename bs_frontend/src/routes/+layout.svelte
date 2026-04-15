@@ -12,14 +12,14 @@
 		if (typeof window !== 'undefined') {
 			const token = localStorage.getItem('X-Omni-Token');
 			setAuth(!!token);
-			
+
 			const path = page.url.pathname;
 			const isPublicRoute = path.startsWith('/login') || path.startsWith('/carta');
-			
+
 			// Redirección si no está logueado
 			if (!appState.isLoggedIn && !isPublicRoute) {
 				goto('/login');
-			} 
+			}
 			// Redirección si ya está logueado y trata de ir a login
 			else if (appState.isLoggedIn && path.startsWith('/login')) {
 				goto('/');
@@ -29,16 +29,9 @@
 
 	onMount(() => {
 		checkAuth();
-		// Escuchar cambios en localStorage (opcional)
+		// Escuchar cambios en localStorage (otro tab cerró sesión, etc.)
 		window.addEventListener('storage', checkAuth);
 		return () => window.removeEventListener('storage', checkAuth);
-	});
-
-	// Re-verificar auth cuando cambia la ruta
-	$effect(() => {
-		// Accedemos a page.url.pathname para que el efecto dependa de la ruta
-		const _currentPath = page.url.pathname;
-		checkAuth();
 	});
 </script>
 

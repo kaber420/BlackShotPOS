@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { appState, setTheme, setAuth, setActiveShift } from '$lib/app_state.svelte';
+	import { appState, setTheme, setAuth, setActiveShift, initAuth, can, getRoleLabel } from '$lib/app_state.svelte';
 	import { checkActiveShift, openShift } from '$lib/api/shifts';
 	import { onMount } from 'svelte';
 
@@ -12,11 +12,17 @@
 	let isOpeningShift = $state(false);
 	
 	onMount(async () => {
+		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('X-Omni-Token') : null;
+		if (!token) {
+			goto('/login');
+			return;
+		}
 		try {
+			await initAuth();
 			const res = await checkActiveShift();
 			setActiveShift(res.shift);
 		} catch (e) {
-			console.error("Error checking shift", e);
+			console.error("Error en inicialización", e);
 		} finally {
 			isCheckingShift = false;
 		}
@@ -45,15 +51,26 @@
 		setTheme(select.value);
 	}
 
-	const navLinks = [
-		{ name: 'POS', href: '/', icon: 'POS' },
-		{ name: 'Mesas', href: '/tables', icon: 'M' },
-		{ name: 'Órdenes', href: '/orders', icon: 'O' },
-		{ name: 'Cocina', href: '/kitchen', icon: 'C' },
-		{ name: 'Menú', href: '/menu', icon: 'M' },
-		{ name: 'Inventario', href: '/admin/inventory/ingredients', icon: 'I' },
-		{ name: 'Caja', href: '/admin/corte', icon: '💲' }
-	];
+	// NavLinks — muestra todos mientras cargan los permisos, filtra una vez listos
+	const ALL_NAV = [
+		{ name: 'POS',        href: '/',                                  perm: 'takeOrders' },
+		{ name: 'Mesas',      href: '/tables',                            perm: 'manageTables' },
+		{ name: 'Órdenes',    href: '/orders',                            perm: 'viewOrders' },
+		{ name: 'Cocina',     href: '/kitchen',                           perm: 'viewKitchen' },
+		{ name: 'Menú',       href: '/menu',                              perm: 'manageMenu' },
+		{ name: 'Inventario', href: '/admin/inventory/ingredients',       perm: 'manageInventory' },
+		{ name: 'Caja',       href: '/admin/corte',                       perm: 'manageShifts' },
+		{ name: 'Usuarios',   href: '/admin/users',                       perm: 'manageUsers' },
+	] as const;
+
+	type PermKey = keyof typeof can;
+
+	let navLinks = $derived(
+		// Si está logueado pero no hay permisos (por algún edge case), mostrar todo
+		(appState.isLoggedIn && Object.keys(appState.permissions).length === 0)
+			? [...ALL_NAV]
+			: ALL_NAV.filter(l => can[l.perm as PermKey]?.())
+	);
 
 	function isActive(href: string) {
 		if (href === '/' && page.url.pathname === '/') return true;
@@ -113,19 +130,22 @@
 				<div class="dropdown dropdown-end">
 					<label tabindex="0" class="btn btn-ghost btn-circle avatar border-2 border-primary/20">
 						<div class="w-10 rounded-full">
-							<img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Admin" alt="Admin" />
+							<img src="https://api.dicebear.com/7.x/avataaars/svg?seed={appState.userName ?? 'Admin'}" alt="Avatar" />
 						</div>
 					</label>
 					<div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-64 bg-base-100 shadow-xl border border-base-300">
 						<div class="card-body">
 							<div class="flex flex-col gap-1 pb-2 border-b border-base-200">
-								<span class="font-black text-lg">Administrador</span>
-								<span class="text-xs opacity-50">admin@blackshot.pos</span>
+								<span class="font-black text-lg">{appState.userName ?? 'Usuario'}</span>
+								<span class="text-xs opacity-50 uppercase tracking-widest">{getRoleLabel(appState.userRole)}</span>
 							</div>
 							<ul class="menu p-0">
-								<li><a href="/admin">Panel Admin</a></li>
-								<li><a href="/admin/corte">Realizar Corte</a></li>
-								<li><a>Configuración</a></li>
+								{#if can.manageUsers()}
+									<li><a href="/admin/users" id="nav-usuarios">👥 Usuarios</a></li>
+								{/if}
+								{#if can.manageShifts()}
+									<li><a href="/admin/corte">💵 Realizar Corte</a></li>
+								{/if}
 							</ul>
 							<div class="card-actions pt-2 border-t border-base-200">
 								<button class="btn btn-error btn-sm btn-block text-white" onclick={handleLogout}>Cerrar Sesión</button>

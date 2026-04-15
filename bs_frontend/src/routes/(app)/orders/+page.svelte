@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from 'svelte';
     import { OrderService, type Order, OrderStatus } from '$lib/api/orders';
     import { printTicket, getRecommendedMethod, type PrintMethod } from '$lib/printer';
+    import { can } from '$lib/app_state.svelte';
 
     let orders = $state<Order[]>([]);
     let isLoading = $state(true);
@@ -132,6 +133,19 @@
     }
 
     // ── Acciones ─────────────────────────────────────────────────────────────────
+
+    /** Avanza el estado de un ítem individual (requiere permiso manageKitchenStatus) */
+    async function handleItemAdvance(order: Order, item: any) {
+        try {
+            if (item.status === 'PENDING') {
+                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.PREPARING);
+            } else if (item.status === 'PREPARING') {
+                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.READY);
+            }
+        } catch (e) {
+            alert(`Error al actualizar platillo: ${e}`);
+        }
+    }
 
     async function handleComplete(orderId: number) {
         try {
@@ -395,10 +409,23 @@
                                             {/if}
                                         </div>
 
-                                        <!-- Estado (solo lectura para meseros) -->
-                                        <span class="text-[10px] font-black uppercase tracking-tight shrink-0 {cfg.cls}">
-                                            {cfg.label}
-                                        </span>
+                                        <!-- Estado + botón de avance (solo si tiene permiso) -->
+                                        <div class="flex items-center gap-1 shrink-0">
+                                            <span class="text-[10px] font-black uppercase tracking-tight {cfg.cls}">
+                                                {cfg.label}
+                                            </span>
+                                            {#if can.manageKitchenStatus() && !isFinished && (item.status === 'PENDING' || item.status === 'PREPARING')}
+                                                <button
+                                                    class="btn btn-xs rounded-full px-2 h-5 min-h-0 leading-none
+                                                        {item.status === 'PENDING' ? 'btn-warning btn-outline' : 'btn-primary'}"
+                                                    onclick={() => handleItemAdvance(order, item)}
+                                                    title={item.status === 'PENDING' ? 'Empezar preparación' : 'Marcar como listo'}
+                                                    id="advance-item-{item.id}"
+                                                >
+                                                    {item.status === 'PENDING' ? '▶' : '✓'}
+                                                </button>
+                                            {/if}
+                                        </div>
                                     </div>
                                 {/each}
                             </div>
@@ -412,31 +439,33 @@
                                 ${calculateTotal(order).toFixed(2)}
                             </span>
                             <div class="flex gap-1 items-center flex-wrap justify-end">
-                                <!-- Cobrar y/o Entregar -->
-                                {#if order.status === 'READY' && order.is_paid}
-                                    <button
-                                        class="btn btn-success btn-sm font-bold shadow-sm"
-                                        onclick={() => handleComplete(order.id)}
-                                        id="deliver-order-{order.id}"
-                                    >
-                                        Entregar
-                                    </button>
-                                {:else if order.status === 'READY' && !order.is_paid}
-                                    <a
-                                        href="/?order_id={order.id}"
-                                        class="btn btn-primary btn-sm font-bold shadow-sm"
-                                        id="charge-order-{order.id}"
-                                    >
-                                        Cobrar y Entregar
-                                    </a>
-                                {:else if order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && !order.is_paid}
-                                    <a
-                                        href="/?order_id={order.id}"
-                                        class="btn btn-outline btn-primary btn-sm font-bold shadow-sm"
-                                        id="charge-order-{order.id}"
-                                    >
-                                        Cobrar
-                                    </a>
+                                <!-- Cobrar y/o Entregar (solo si tiene permiso can_charge) -->
+                                {#if can.charge()}
+                                    {#if order.status === 'READY' && order.is_paid}
+                                        <button
+                                            class="btn btn-success btn-sm font-bold shadow-sm"
+                                            onclick={() => handleComplete(order.id)}
+                                            id="deliver-order-{order.id}"
+                                        >
+                                            Entregar
+                                        </button>
+                                    {:else if order.status === 'READY' && !order.is_paid}
+                                        <a
+                                            href="/?order_id={order.id}"
+                                            class="btn btn-primary btn-sm font-bold shadow-sm"
+                                            id="charge-order-{order.id}"
+                                        >
+                                            Cobrar y Entregar
+                                        </a>
+                                    {:else if order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && !order.is_paid}
+                                        <a
+                                            href="/?order_id={order.id}"
+                                            class="btn btn-outline btn-primary btn-sm font-bold shadow-sm"
+                                            id="charge-order-{order.id}"
+                                        >
+                                            Cobrar
+                                        </a>
+                                    {/if}
                                 {/if}
 
                                 <!-- Imprimir ticket -->

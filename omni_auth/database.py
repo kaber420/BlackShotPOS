@@ -219,7 +219,7 @@ def validate_token(token):
         SELECT t.*, u.username 
         FROM tokens t
         JOIN users u ON t.user_uuid = u.uuid
-        WHERE t.token = ? AND t.status = 'active'
+        WHERE t.token = ? AND t.status = 'active' AND u.is_active = 1
     """, (hashed_token,))
     row = cursor.fetchone()
     conn.close()
@@ -284,6 +284,19 @@ def revoke_all_user_tokens(user_uuid):
     cursor.execute("DELETE FROM refresh_tokens WHERE user_uuid = ?", (user_uuid,))
     conn.commit()
     conn.close()
+
+def update_user_metadata(user_uuid: str, metadata_json: str) -> bool:
+    """Actualiza el campo metadata (JSON) de un usuario."""
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET metadata = ? WHERE uuid = ?",
+        (metadata_json, user_uuid)
+    )
+    conn.commit()
+    affected = cursor.rowcount
+    conn.close()
+    return affected > 0
 
 def insert_audit_log(user_uuid, username, action, detail=None, ip_address=None):
     conn = get_connection()

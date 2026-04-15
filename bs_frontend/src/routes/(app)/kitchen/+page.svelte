@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from 'svelte';
     import { OrderService, OrderStatus } from '$lib/api/orders';
     import { TableService, type Table } from '$lib/api/tables';
+    import { marked } from 'marked';
     import {
         printComanda,
         getAvailableMethods,
@@ -22,6 +23,9 @@
     let printingOrderId = $state<number | null>(null);
     let showMethodPicker = $state(false);
     let printError = $state<string | null>(null);
+
+    // ── Modal de receta ────────────────────────────────────────────────
+    let recipeModal = $state<{ name: string; markdown: string } | null>(null);
 
     // ── WebSocket Connection ─────────────────────────────────────────────────
     let socket: WebSocket | null = null;
@@ -330,10 +334,20 @@
                                          'border-base-300/50'}">
                                         
                                         <div class="flex justify-between items-start gap-2">
-                                            <div class="flex flex-col">
-                                                <span class="font-bold text-lg {item.status === 'CANCELLED' ? 'line-through' : ''}">
-                                                    {item.quantity}x {item.product?.name ?? 'Producto'}
-                                                </span>
+                                            <div class="flex flex-col gap-1">
+                                                <div class="flex items-center gap-2 flex-wrap">
+                                                    <span class="font-bold text-lg {item.status === 'CANCELLED' ? 'line-through' : ''}">
+                                                        {item.quantity}x {item.product?.name ?? 'Producto'}
+                                                    </span>
+                                                    {#if item.product?.recipe_markdown}
+                                                        <button
+                                                            class="btn btn-xs btn-ghost gap-1 opacity-60 hover:opacity-100 hover:btn-info"
+                                                            onclick={() => recipeModal = { name: item.product.name, markdown: item.product.recipe_markdown }}
+                                                            id="recipe-btn-{item.id}"
+                                                            title="Ver receta de preparación"
+                                                        >📖 Receta</button>
+                                                    {/if}
+                                                </div>
                                                 {#if item.status === 'CANCELLED'}
                                                     <span class="text-error text-xs font-bold">ANULADO</span>
                                                 {:else if item.status === 'READY'}
@@ -429,4 +443,31 @@
         class="fixed inset-0 z-40"
         onclick={() => (showMethodPicker = false)}
     ></div>
+{/if}
+
+<!-- ── Modal de Receta ──────────────────────────────────────────── -->
+{#if recipeModal}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <div class="modal modal-open z-50" onclick={() => recipeModal = null}>
+        <div
+            class="modal-box max-w-2xl max-h-[80vh] overflow-y-auto"
+            onclick={(e) => e.stopPropagation()}
+        >
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-base-200">
+                <h3 class="text-xl font-black flex items-center gap-2">
+                    📖 {recipeModal.name}
+                </h3>
+                <button
+                    class="btn btn-ghost btn-sm btn-circle"
+                    onclick={() => recipeModal = null}
+                    aria-label="Cerrar receta"
+                >✕</button>
+            </div>
+            <!-- Contenido Markdown renderizado -->
+            <div class="prose prose-sm max-w-none">
+                {@html marked(recipeModal.markdown)}
+            </div>
+        </div>
+    </div>
 {/if}

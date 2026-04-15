@@ -193,6 +193,10 @@ class ModifierQuantityUpdate(SQLModel):
 class ProductBase(SQLModel):
     name: str = Field(index=True)
     description: Optional[str] = None
+    recipe_markdown: Optional[str] = Field(
+        default=None,
+        description="Instrucciones de preparación en formato Markdown. Solo visible en cocina."
+    )
     price: float
     image_url: Optional[str] = None
     stock: Optional[int] = 0
@@ -217,6 +221,7 @@ class ProductCreate(ProductBase):
 class ProductUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
+    recipe_markdown: Optional[str] = None
     price: Optional[float] = None
     image_url: Optional[str] = None
     stock: Optional[int] = None
@@ -263,6 +268,7 @@ class ProductRead(ProductBase):
     category: Optional[CategoryBase] = None
     variants: List[ProductVariantRead] = []
     modifier_groups: List[ModifierGroupRead] = []
+    recipe_markdown: Optional[str] = None
 
 class CategoryRead(CategoryBase):
     id: int

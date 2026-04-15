@@ -31,12 +31,27 @@ async def get_auth_info():
 
 @router.get("/me")
 async def get_current_user(user_info: dict = Depends(verify_omni_token)):
-    """Retorna el perfil del usuario autenticado."""
+    """Retorna el perfil del usuario autenticado incluyendo permisos efectivos."""
+    import json
+    from pos_core.roles import resolve_permissions
+
+    user = database.get_user(user_uuid=user_info["user_uuid"])
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado en la base de datos.")
+
+    metadata = json.loads(user.get("metadata") or "{}") if user else {}
+    metadata_permissions = metadata.get("permissions", {})
+
+    effective_permissions = resolve_permissions(
+        user_info["role"], metadata_permissions
+    )
+
     return {
         "uuid": user_info["user_uuid"],
         "username": user_info["username"],
         "role": user_info["role"],
-        "is_elevated": user_info.get("is_elevated", False)
+        "is_elevated": user_info.get("is_elevated", False),
+        "permissions": effective_permissions,
     }
 
 @router.post("/elevate")
@@ -159,6 +174,57 @@ async def deactivate_user(
     database.update_user(user_uuid, is_active=0)
     database.revoke_all_user_tokens(user_uuid)
     return {"status": "ok", "message": "Usuario desactivado y sesiones revocadas."}
+
+@router.patch("/users/{user_uuid}/permissions")
+async def update_user_permissions(
+    user_uuid: str,
+    body: dict,
+    user_info: dict = Depends(verify_omni_token)
+):
+    """
+    Actualiza permisos individuales de un usuario sin cambiar su rol.
+    El body es un dict de {permiso: bool}, ej: {"can_charge": true}
+    Solo admin puede ejecutar esta acción.
+    """
+    if user_info["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins pueden editar permisos.")
+
+    import json
+    user = database.get_user(user_uuid=user_uuid)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    metadata = json.loads(user.get("metadata") or "{}")
+    if "permissions" not in metadata:
+        metadata["permissions"] = {}
+    metadata["permissions"].update(body)
+
+    database.update_user_metadata(user_uuid, json.dumps(metadata))
+    return {"status": "ok", "permissions": metadata["permissions"]}
+
+@router.delete("/users/{user_uuid}/permissions/{permission}")
+async def reset_user_permission(
+    user_uuid: str,
+    permission: str,
+    user_info: dict = Depends(verify_omni_token)
+):
+    """
+    Elimina un override de permiso específico (vuelve al default del rol).
+    Solo admin.
+    """
+    if user_info["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Solo admins pueden editar permisos.")
+
+    import json
+    user = database.get_user(user_uuid=user_uuid)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+    metadata = json.loads(user.get("metadata") or "{}")
+    metadata.get("permissions", {}).pop(permission, None)
+
+    database.update_user_metadata(user_uuid, json.dumps(metadata))
+    return {"status": "ok", "message": f"Permiso '{permission}' restablecido al default del rol."}
 
 @router.put("/users/{user_uuid}/password")
 async def change_password(

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { setAuth } from '$lib/app_state.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -23,6 +24,10 @@
 			if (res.ok) {
 				const data = await res.json();
 				localStorage.setItem('X-Omni-Token', data.token);
+				// Guardar info del usuario para display inmediato
+				localStorage.setItem('X-Omni-Username', data.username ?? username);
+				localStorage.setItem('X-Omni-Role', data.role ?? 'admin');
+				setAuth(true);
 				goto('/');
 			} else {
 				const data = await res.json();
@@ -35,12 +40,6 @@
 		}
 	}
 
-	// Función para usar el Master Token (Atajo para desarrollo)
-	function useMasterToken() {
-		const masterToken = 'tu-token-super-seguro-aqui'; // Valor del .env por defecto
-		localStorage.setItem('X-Omni-Token', masterToken);
-		goto('/');
-	}
 </script>
 
 <div class="min-h-screen bg-base-200 flex items-center justify-center p-4">
@@ -96,14 +95,6 @@
 					</button>
 				</div>
 			</form>
-
-			<div class="divider my-8 text-xs opacity-50 font-bold uppercase tracking-widest">Desarrollo</div>
-
-			<div class="text-center">
-				<button onclick={useMasterToken} class="btn btn-outline btn-ghost btn-xs opacity-60 hover:opacity-100 transition-all italic underline">
-					Usar Master Token de Emergencia
-				</button>
-			</div>
 		</div>
 	</div>
 </div>

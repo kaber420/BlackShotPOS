@@ -137,7 +137,12 @@ def format_order_json(order: Order) -> dict:
         items_data.append({
             "id": item.id,
             "product_id": item.product_id,
-            "product": {"id": item.product.id, "name": item.product.name} if item.product else None,
+            "product": {
+                "id": item.product.id,
+                "name": item.product.name,
+                "recipe_markdown": item.product.recipe_markdown,
+            } if item.product else None,
+
             "variant": {
                 "id": item.variant.id, 
                 "measure": {"id": item.variant.measure.id, "name": item.variant.measure.name} if item.variant and item.variant.measure else (item.variant.measure if item.variant else None),
