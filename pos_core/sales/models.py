@@ -85,3 +85,17 @@ class Order(SQLModel, table=True):
     items: List[OrderItem] = Relationship(back_populates="order")
     payments: List[Payment] = Relationship(back_populates="order")
     shift: Optional[Shift] = Relationship(back_populates="orders")
+
+class AuditAction(str, Enum):
+    ORDER_CANCELLED = "ORDER_CANCELLED"
+    ITEM_CANCELLED = "ITEM_CANCELLED"
+
+class AuditLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    action: AuditAction
+    reason: str
+    actor_uuid: str
+    actor_name: str
+    order_id: Optional[int] = Field(default=None, foreign_key="order.id")
+    order_item_id: Optional[int] = Field(default=None, foreign_key="orderitem.id")
+    timestamp: datetime = Field(default_factory=datetime.utcnow)

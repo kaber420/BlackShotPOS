@@ -11,6 +11,11 @@
     let ws: WebSocket | null = null;
     let isDestroyed = false;
 
+    // Estado del modal de cancelación
+    let cancellingOrder = $state<Order | null>(null);
+    let cancelReason = $state("");
+    let isCancelling = $state(false);
+
     // ── Filtros ──────────────────────────────────────────────────────────────────
     // 'active' = órdenes que requieren atención (por defecto)
     // Un string de OrderStatus = filtrar por ese estado específico
@@ -157,20 +162,30 @@
 
     async function handleCancelOrDelete(order: Order) {
         const hasItems = order.items && order.items.length > 0;
-        const msg = hasItems
-            ? "¿Estás seguro de que deseas CANCELAR este pedido? (Mantiene registro para auditoría)"
-            : "¿Estás seguro de que deseas ELIMINAR definitivamente este pedido vacío?";
-
-        if (!confirm(msg)) return;
-
-        try {
-            if (hasItems) {
-                await OrderService.updateStatus(order.id, OrderStatus.CANCELLED);
-            } else {
+        
+        if (hasItems) {
+            cancellingOrder = order;
+            cancelReason = "";
+        } else {
+            if (!confirm("¿Estás seguro de que deseas ELIMINAR definitivamente este pedido vacío?")) return;
+            try {
                 await OrderService.delete(order.id);
+            } catch (e) {
+                alert(`Error: ${e}`);
             }
-        } catch (e) {
-            alert(`Error: ${e}`);
+        }
+    }
+
+    async function confirmCancel() {
+        if (!cancellingOrder || !cancelReason.trim()) return;
+        isCancelling = true;
+        try {
+            await OrderService.cancelWithReason(cancellingOrder.id, cancelReason);
+            cancellingOrder = null;
+        } catch (e: any) {
+            alert(`Error cancelando: ${e?.message ?? e}`);
+        } finally {
+            isCancelling = false;
         }
     }
 
@@ -506,3 +521,41 @@
         </div>
     {/if}
 </div>
+
+{#if cancellingOrder}
+<div class="modal modal-open bg-base-300/80 backdrop-blur-sm z-50">
+    <div class="modal-box shadow-2xl border border-error/20">
+        <h3 class="font-black text-2xl text-error flex items-center gap-2 mb-2">
+            Cancelar Pedido #{cancellingOrder.id}
+        </h3>
+        <p class="py-2 text-base-content/80 font-medium leading-tight">
+            Estás a punto de cancelar un pedido con artículos cargados. Para completar la cancelación, es obligatorio escribir un motivo que será guardado en el <strong>registro de auditoría</strong>.
+        </p>
+
+        <div class="form-control w-full mt-4">
+            <label class="label">
+                <span class="label-text font-bold text-sm">Motivo exacto de la cancelación</span>
+            </label>
+            <textarea
+                class="textarea textarea-bordered textarea-error w-full text-base"
+                rows="3"
+                placeholder="Ej. El cliente se retiró antes de pagar, Error al tomar la orden, etc."
+                bind:value={cancelReason}
+            ></textarea>
+        </div>
+
+        <div class="modal-action mt-6 flex justify-end gap-3">
+            <button class="btn border border-base-300 btn-ghost text-base-content/70" onclick={() => cancellingOrder = null} disabled={isCancelling}>
+                Volver
+            </button>
+            <button class="btn btn-error text-white shadow-xl" onclick={confirmCancel} disabled={!cancelReason.trim() || isCancelling}>
+                {#if isCancelling}
+                    <span class="loading loading-spinner"></span>
+                {:else}
+                    Confirmar Cancelación
+                {/if}
+            </button>
+        </div>
+    </div>
+</div>
+{/if}

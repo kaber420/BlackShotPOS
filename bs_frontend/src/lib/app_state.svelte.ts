@@ -146,6 +146,7 @@ export const can = {
     manageShifts:        () => appState.permissions['can_manage_shifts']          ?? false,
     viewReports:         () => appState.permissions['can_view_reports']           ?? false,
     manageSettings:      () => appState.permissions['can_manage_settings']          ?? false,
+    viewAudits:          () => appState.permissions['can_view_audits']          ?? false,
 };
 
 export function setActiveShift(shift: any | null) {

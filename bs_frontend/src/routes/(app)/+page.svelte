@@ -141,6 +141,24 @@
 		activeProduct = null;
 	}
 
+    function getInitials(name: string | undefined) {
+        if (!name) return '';
+        if (name.length <= 2) return name.toUpperCase();
+        
+        const lower = name.toLowerCase();
+        if (lower.startsWith('chi')) return 'CH';
+        if (lower.startsWith('med')) return 'ME';
+        if (lower.startsWith('gra')) return 'GR';
+        if (lower.startsWith('ext')) return 'EX';
+        
+        // Fallback: first 2 letters or first letter of each word
+        const words = name.split(' ');
+        if (words.length > 1) {
+            return words.map((w: string) => w[0]).join('').toUpperCase().substring(0, 2);
+        }
+        return name.substring(0, 2).toUpperCase();
+    }
+
 	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
 	let taxTotal = $derived(cartTotal * (appState.settings.tax_rate || 0.16));
 	let finalTotal = $derived(cartTotal + taxTotal);
@@ -322,22 +340,50 @@
 				{:else}
 					{#each products as prod}
 						<button 
-							class="card bg-base-100 shadow-sm transition-all border border-base-200 h-40 flex flex-col group overflow-hidden {prod.is_active ? 'hover:shadow-md active:scale-95 hover:border-primary cursor-pointer' : 'opacity-60 grayscale cursor-not-allowed'}"
+							class="card group relative bg-base-100 border border-base-200 rounded-3xl overflow-hidden transition-all duration-500 text-left h-auto {prod.is_active ? 'hover:shadow-2xl hover:shadow-primary/5 hover:-translate-y-1 cursor-pointer active:scale-95' : 'opacity-70 grayscale-[0.5] cursor-not-allowed'}"
 							onclick={() => prod.is_active && handleProductClick(prod)}
 						>
-							<div class="h-24 w-full bg-base-200 relative">
+							<div class="aspect-[4/3] w-full relative overflow-hidden bg-base-200">
 								{#if prod.image_url}
-									<img src={prod.image_url} alt={prod.name} class="w-full h-full object-cover {prod.is_active ? 'group-hover:scale-105' : ''} transition-transform" />
+									<img src={prod.image_url} alt={prod.name} class="w-full h-full object-cover transition-transform duration-700 {prod.is_active ? 'group-hover:scale-110' : ''}" />
+                                {:else}
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
+                                        <span class="text-5xl font-black text-primary/20 opacity-30 select-none">
+                                            {prod.name.charAt(0).toUpperCase()}
+                                        </span>
+                                    </div>
 								{/if}
+
 								{#if !prod.is_active}
-									<div class="absolute inset-0 bg-black/40 flex items-center justify-center p-2">
-										<span class="text-[10px] bg-error text-white font-black px-2 py-1 rounded uppercase tracking-tighter">No Disponible</span>
-									</div>
+                                    <div class="absolute inset-0 bg-base-300/60 backdrop-blur-[2px] flex items-center justify-center p-6">
+                                        <div class="bg-base-100/90 text-base-content px-4 py-2 rounded-xl shadow-xl border border-base-300 transform -rotate-3 font-black uppercase tracking-tighter text-xs">
+                                            No Disponible
+                                        </div>
+                                    </div>
 								{/if}
-								<div class="absolute top-2 right-2 badge badge-ghost">${prod.price}</div>
 							</div>
-							<div class="p-3 flex-1 flex flex-col justify-center">
-								<h3 class="font-bold text-xs uppercase tracking-tight leading-tight line-clamp-2">{prod.name}</h3>
+							<div class="p-4 flex-1 flex flex-col justify-start">
+								<h3 class="text-lg font-bold leading-tight group-hover:text-primary transition-colors mb-2 line-clamp-2">{prod.name}</h3>
+                                <div class="flex flex-wrap items-center gap-2 mt-auto">
+                                    {#if prod.variants && prod.variants.length > 0}
+                                        {#each prod.variants as variant}
+                                            {#if variant.price > 0}
+                                                <div class="flex items-center gap-1.5 bg-base-200/50 px-2 py-1 rounded-lg border border-base-300/30">
+                                                    <span class="text-[9px] font-black opacity-40 uppercase tracking-tighter">
+                                                        {getInitials(variant.measure?.name)}
+                                                    </span>
+                                                    <span class="font-mono font-bold text-sm">
+                                                        ${variant.price.toFixed(0)}
+                                                    </span>
+                                                </div>
+                                            {/if}
+                                        {/each}
+                                    {:else if prod.price && prod.price >= 0}
+                                        <span class="text-xl font-black text-base-content/90 font-mono tracking-tighter">
+                                            ${prod.price.toFixed(0)}
+                                        </span>
+                                    {/if}
+                                </div>
 							</div>
 						</button>
 					{/each}

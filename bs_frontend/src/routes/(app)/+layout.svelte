@@ -59,9 +59,6 @@
 		{ name: 'Cocina',     href: '/kitchen',                           perm: 'viewKitchen' },
 		{ name: 'Menú',       href: '/menu',                              perm: 'manageMenu' },
 		{ name: 'Inventario', href: '/admin/inventory/ingredients',       perm: 'manageInventory' },
-		{ name: 'Caja',       href: '/admin/corte',                       perm: 'manageShifts' },
-		{ name: 'Usuarios',   href: '/admin/users',                       perm: 'manageUsers' },
-		{ name: 'Config',     href: '/admin/config',                      perm: 'manageSettings' },
 	] as const;
 
 	type PermKey = keyof typeof can;
@@ -93,8 +90,6 @@
 					{#each navLinks as link}
 						<li><a href={link.href} class={isActive(link.href) ? 'active font-bold' : ''}>{link.name}</a></li>
 					{/each}
-					<div class="divider"></div>
-					<li><a href="/admin/corte" class="text-error font-semibold">Corte de Caja</a></li>
 				</ul>
 			</div>
 
@@ -149,6 +144,12 @@
 								{/if}
 								{#if can.manageSettings()}
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
+								{/if}
+								{#if can.viewReports()}
+									<li><a href="/admin/analytics">📈 Analíticas</a></li>
+								{/if}
+								{#if can.viewAudits()}
+									<li><a href="/admin/audits">🛡️ Auditoría</a></li>
 								{/if}
 							</ul>
 							<div class="card-actions pt-2 border-t border-base-200">

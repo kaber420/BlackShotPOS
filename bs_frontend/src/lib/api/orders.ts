@@ -84,5 +84,11 @@ export const OrderService = {
     delete: (orderId: number) =>
         fetchApi<any>(`/api/v1/pos/orders/${orderId}`, {
             method: 'DELETE'
+        }),
+
+    cancelWithReason: (orderId: number, reason: string) =>
+        fetchApi<any>(`/api/v1/pos/audits/orders/${orderId}/cancel`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
         })
 };

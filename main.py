@@ -9,6 +9,8 @@ from pos_core.sales.router import router as sales_router
 from pos_core.printing.router import router as printing_router
 from pos_core.sales.shifts_router import router as shifts_router
 from pos_core.settings.router import router as settings_router
+from pos_core.sales.analytics_router import router as analytics_router
+from pos_core.sales.audits_router import router as audits_router
 from omni_auth.api import router as auth_router
 
 @asynccontextmanager
@@ -37,6 +39,8 @@ app.include_router(sales_router, prefix="/api/v1/pos", tags=["Ventas"])
 app.include_router(shifts_router, prefix="/api/v1/pos/shifts", tags=["Cortes de Caja"])
 app.include_router(printing_router, prefix="/api/v1/pos", tags=["Impresión"])
 app.include_router(settings_router, prefix="/api/v1/pos/settings", tags=["Configuración"])
+app.include_router(analytics_router, prefix="/api/v1/pos/analytics", tags=["Analíticas"])
+app.include_router(audits_router, prefix="/api/v1/pos/audits", tags=["Auditoría"])
 app.include_router(auth_router, prefix="/api", tags=["Auth"])
 
 @app.get("/")
