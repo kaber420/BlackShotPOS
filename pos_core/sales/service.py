@@ -240,20 +240,30 @@ async def update_order_status(
         await session.commit()
         await session.refresh(order)
         
-        # Deplete inventory when transitioning from PENDING to PREPARING
-        # O si movemos a READY/DELIVERED directamente (casos especiales)
-        if old_status == OrderStatus.PENDING and new_status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
-            # Fetch order items WITH modifiers explicitly
-            from sqlalchemy.orm import selectinload
-            items_statement = select(OrderItem).where(OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
-            items_result = await session.execute(items_statement)
-            order_items = items_result.scalars().all()
-            
+        # Cargar ítems con modificadores para descuento de inventario
+        from sqlalchemy.orm import selectinload
+        items_statement = select(OrderItem).where(OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
+        items_result = await session.execute(items_statement)
+        order_items = items_result.scalars().all()
+
+        if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
+            # Avanzar TODOS los ítems activos (PENDING y PREPARING) al nuevo estado
             items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-            for i in items_to_deplete:
+            items_to_advance = [i for i in order_items if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING)]
+            for i in items_to_advance:
                 i.status = new_status
                 session.add(i)
-                
+            if items_to_deplete:
+                await process_inventory_depletion(session, items_to_deplete)
+            if items_to_advance:
+                await session.commit()
+
+        elif old_status == OrderStatus.PENDING and new_status == OrderStatus.PREPARING:
+            # Avanzar solo ítems PENDING → PREPARING y descontar inventario
+            items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
+            for i in items_to_deplete:
+                i.status = OrderStatus.PREPARING
+                session.add(i)
             if items_to_deplete:
                 await process_inventory_depletion(session, items_to_deplete)
                 await session.commit()

@@ -338,7 +338,7 @@
                                                     <span class="text-error text-xs font-bold">ANULADO</span>
                                                 {:else if item.status === 'READY'}
                                                     <span class="text-success text-xs font-bold">LISTO</span>
-                                                {:else if item.status === 'PREPARANDO'}
+                                                {:else if item.status === 'PREPARING'}
                                                     <span class="text-primary text-xs font-bold animated-pulse">EN PREPARACIÓN</span>
                                                 {/if}
                                             </div>
@@ -346,7 +346,7 @@
                                                 {#if item.status === 'PENDING'}
                                                     <button class="btn btn-error btn-outline btn-sm btn-square" onclick={() => handleItemCancel(order, item)} title="Anular platillo">🗑️</button>
                                                     <button class="btn btn-primary btn-outline btn-sm" onclick={() => handleItemComplete(order, item)}>Empezar</button>
-                                                {:else if item.status === 'PREPARANDO'}
+                                                {:else if item.status === 'PREPARING'}
                                                     <button class="btn btn-primary btn-sm" onclick={() => handleItemComplete(order, item)}>✓ Listo</button>
                                                 {/if}
                                             </div>
