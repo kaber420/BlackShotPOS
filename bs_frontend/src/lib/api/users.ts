@@ -1,4 +1,4 @@
-const BASE = '/_auth';
+const BASE = '/api/_auth';
 
 function authHeaders() {
     const token = localStorage.getItem('X-Omni-Token') ?? '';
