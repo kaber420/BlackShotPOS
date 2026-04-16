@@ -103,7 +103,7 @@
     });
 </script>
 
-<div class="px-4 py-8 max-w-6xl mx-auto">
+<div class="px-4 py-8 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full w-full">
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
             <h1 class="text-3xl font-bold text-base-content">Catálogo de Productos</h1>

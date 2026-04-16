@@ -154,7 +154,7 @@
     }
 </script>
 
-<div class="p-6 max-w-6xl mx-auto">
+<div class="p-6 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full">
 
     <!-- Encabezado -->
     <div class="flex items-center justify-between mb-8 flex-wrap gap-4">

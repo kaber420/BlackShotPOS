@@ -1,7 +1,13 @@
 <script lang="ts">
+    /**
+     * Blackshot POS - Business Settings & Toast Customization
+     * -----------------------------------------------------
+     * A clean administrative interface for managing system-wide settings.
+     */
     import { onMount } from 'svelte';
     import { appState } from '$lib/app_state.svelte';
     import { SettingsService, type BusinessSettings } from '$lib/api/settings';
+    import { toastConfig, saveToastConfig, addToast } from '$lib/toast.svelte.js';
 
     let settings = $state<BusinessSettings>({ ...appState.settings });
     let isLoading = $state(false);
@@ -13,7 +19,13 @@
         try {
             const updated = await SettingsService.update(settings);
             appState.settings = updated;
+            
+            // Perist local toast settings
+            saveToastConfig();
+            
+            addToast("¡Configuración guardada!", "success", 2500);
             message = { text: 'Configuración guardada con éxito', type: 'success' };
+            
             setTimeout(() => { message = { text: '', type: '' } }, 3000);
         } catch (e) {
             message = { text: 'Error al ahorrar: ' + e, type: 'error' };
@@ -23,7 +35,7 @@
     }
 </script>
 
-<div class="p-6 lg:p-10 max-w-4xl mx-auto">
+<div class="p-6 lg:p-10 max-w-4xl mx-auto flex-1 min-h-0 overflow-y-auto w-full">
     <div class="flex flex-col gap-1 mb-10">
         <h1 class="text-4xl font-black tracking-tight flex items-center gap-3 uppercase">
             <div class="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center text-primary-content shadow-lg shadow-primary/20">
@@ -33,76 +45,121 @@
             </div>
             Configuración del Sistema
         </h1>
-        <p class="text-base-content/60 font-medium ml-1">Personaliza los datos de tu negocio, impuestos y tickets.</p>
+        <p class="text-base-content/60 font-medium ml-1">Gestiona los datos de tu negocio y la apariencia de la aplicación.</p>
     </div>
 
     {#if message.text}
-        <div class="alert alert-{message.type} mb-6 shadow-lg animate-in fade-in slide-in-from-top-4">
-            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <span class="font-bold">{message.text}</span>
+        <div class="alert alert-{message.type} mb-6 shadow-md animate-in fade-in slide-in-from-top-4">
+            <span>{message.text}</span>
         </div>
     {/if}
 
     <div class="card bg-base-100 shadow-xl border border-base-200">
         <div class="card-body gap-8">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
-                <!-- Business Info -->
+            <!-- Section: Business Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div class="flex flex-col gap-6">
-                    <h3 class="font-black text-sm uppercase tracking-widest opacity-40">Datos Generales</h3>
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-primary opacity-60">Datos del Establecimiento</h3>
                     
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold opacity-70">Nombre del Negocio</span></label>
+                        <label class="label"><span class="label-text font-bold">Nombre del Negocio</span></label>
                         <input type="text" bind:value={settings.name} class="input input-bordered font-bold focus:border-primary" />
                     </div>
 
                     <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold opacity-70">Dirección</span></label>
+                        <label class="label"><span class="label-text font-bold">Dirección Ticket</span></label>
                         <textarea bind:value={settings.address} class="textarea textarea-bordered font-bold h-24 focus:border-primary"></textarea>
-                    </div>
-
-                    <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold opacity-70">Teléfono</span></label>
-                        <input type="text" bind:value={settings.phone} class="input input-bordered font-bold focus:border-primary" />
                     </div>
                 </div>
 
-                <!-- Financial Info -->
                 <div class="flex flex-col gap-6">
-                    <h3 class="font-black text-sm uppercase tracking-widest opacity-40">Finanzas e Impuestos</h3>
-
+                    <h3 class="text-xs font-black uppercase tracking-[0.2em] text-primary opacity-60">Finanzas</h3>
+                    
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-control w-full">
-                            <label class="label"><span class="label-text font-bold opacity-70">Símbolo Moneda</span></label>
+                            <label class="label"><span class="label-text font-bold">Moneda</span></label>
                             <input type="text" bind:value={settings.currency_symbol} class="input input-bordered font-bold text-center focus:border-primary" />
                         </div>
                         <div class="form-control w-full">
-                            <label class="label"><span class="label-text font-bold opacity-70">Código Moneda</span></label>
-                            <input type="text" bind:value={settings.currency_code} class="input input-bordered font-bold text-center focus:border-primary" />
+                            <label class="label"><span class="label-text font-bold">IVA (%)</span></label>
+                            <input type="number" step="0.01" bind:value={settings.tax_rate} class="input input-bordered font-bold text-center focus:border-primary" />
                         </div>
                     </div>
 
                     <div class="form-control w-full">
-                        <label class="label">
-                            <span class="label-text font-bold opacity-70">Tasa de Impuesto (IVA)</span>
-                            <span class="label-text-alt font-black text-primary">{(settings.tax_rate * 100).toFixed(0)}%</span>
-                        </label>
-                        <div class="join w-full">
-                           <input type="number" step="0.01" bind:value={settings.tax_rate} class="input input-bordered join-item w-full font-bold focus:border-primary" />
-                           <span class="join-item btn btn-active pointer-events-none">%</span>
-                        </div>
-                        <label class="label"><span class="label-text-alt opacity-50">Usa formato decimal (ej. 0.16 para 16%)</span></label>
-                    </div>
-
-                    <div class="form-control w-full">
-                        <label class="label"><span class="label-text font-bold opacity-70">Pie de Página Ticket</span></label>
+                        <label class="label"><span class="label-text font-bold">Pie de Página Ticket</span></label>
                         <input type="text" bind:value={settings.ticket_footer} class="input input-bordered font-bold focus:border-primary" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Section: Toast Configuration (Simplified) -->
+            <div class="flex flex-col gap-6">
+                <h3 class="text-xs font-black uppercase tracking-[0.2em] text-secondary">Ajustes Visuales (Notificaciones)</h3>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Forma de la Notificación</span></label>
+                        <select bind:value={toastConfig.shape} class="select select-bordered font-bold focus:border-primary" onchange={() => addToast("¡Estilo actualizado!", "info", 1500)}>
+                            <option value="bean">Semilla (Clásico Blackshot)</option>
+                            <option value="square">Rectangular (Moderno)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Posición en Pantalla</span></label>
+                        <select bind:value={toastConfig.position} class="select select-bordered font-bold focus:border-primary" onchange={() => addToast("Posición de notificaciones", "info", 1500)}>
+                            <option value="bottom-right">Abajo - Derecha</option>
+                            <option value="bottom-center">Abajo - Centro</option>
+                            <option value="bottom-left">Abajo - Izquierda</option>
+                            <option value="top-right">Arriba - Derecha</option>
+                            <option value="top-center">Arriba - Centro</option>
+                            <option value="top-left">Arriba - Izquierda</option>
+                        </select>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Tamaño de Fuente</span></label>
+                        <select bind:value={toastConfig.fontSize} class="select select-bordered font-bold focus:border-primary" onchange={() => addToast("Tamaño de texto", "info", 1500)}>
+                            <option value="0.75rem">Pequeño</option>
+                            <option value="0.9rem">Estándar</option>
+                            <option value="1.1rem">Grande</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 bg-base-200/50 p-6 rounded-2xl border border-base-200">
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold">Color Fondo</span></label>
+                        <input type="color" bind:value={toastConfig.backgroundColor} class="w-full h-10 rounded-lg cursor-pointer p-0 border-0" oninput={() => addToast("Tono actualizado", "info", 500)} />
+                    </div>
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold">Color Texto</span></label>
+                        <input type="color" bind:value={toastConfig.textColor} class="w-full h-10 rounded-lg cursor-pointer p-0 border-0" oninput={() => addToast("Tono actualizado", "info", 500)} />
+                    </div>
+                    <div class="form-control col-span-2">
+                        <label class="label">
+                            <span class="label-text font-bold">Efectos Especiales</span>
+                        </label>
+                        <div class="flex items-center gap-6 mt-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <span class="text-xs font-black opacity-60">Sombra</span>
+                                <input type="checkbox" bind:checked={toastConfig.hasShadow} class="toggle toggle-primary toggle-sm" onchange={() => addToast("Sombra controlada", "info", 1000)} />
+                            </label>
+                            <label class="flex flex-col gap-1 flex-1">
+                                <span class="text-[10px] font-black uppercase opacity-40">Vidrio (Blur: {toastConfig.blur}px)</span>
+                                <input type="range" min="0" max="25" bind:value={toastConfig.blur} class="range range-xs range-secondary" oninput={() => addToast("Efecto de cristal", "info", 500)} />
+                            </label>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card-actions justify-end mt-4 pt-6 border-t border-base-200">
                 <button 
-                    class="btn btn-primary px-10 shadow-lg shadow-primary/20 font-black uppercase tracking-widest" 
+                    class="btn btn-primary btn-lg px-12 shadow-xl shadow-primary/30 font-black uppercase tracking-widest text-sm" 
                     onclick={handleSave}
                     disabled={isLoading}
                 >

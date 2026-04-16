@@ -4,6 +4,7 @@
 	import { appState, setTheme, setAuth, setActiveShift, initAuth, can, getRoleLabel } from '$lib/app_state.svelte';
 	import { checkActiveShift, openShift } from '$lib/api/shifts';
 	import { onMount } from 'svelte';
+	import Toast from '$lib/components/Toast.svelte';
 
 	let { children } = $props();
 
@@ -77,7 +78,7 @@
 	}
 </script>
 
-<div class="min-h-screen flex flex-col bg-base-200">
+<div class="h-screen flex flex-col bg-base-200 overflow-hidden">
 	<!-- Navbar Premium -->
 	<header class="navbar bg-base-100 border-b border-base-200 sticky top-0 z-30 shadow-sm px-4 lg:px-8 h-20">
 		<div class="navbar-start gap-4">
@@ -165,7 +166,7 @@
 	</header>
 
 	<!-- Main Content Area -->
-	<main class="flex-1 overflow-y-auto relative">
+	<main class="flex-1 flex flex-col min-h-0 relative">
 		{@render children()}
 	</main>
 	
@@ -207,6 +208,8 @@
 		</div>
 	</div>
 	{/if}
+	
+	<Toast />
 </div>
 
 <style>

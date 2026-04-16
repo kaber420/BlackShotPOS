@@ -21,7 +21,7 @@
     }
 </script>
 
-<div class="p-4 lg:p-8 max-w-7xl mx-auto space-y-8">
+<div class="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 flex-1 min-h-0 overflow-y-auto w-full w-full">
     <div class="flex items-center justify-between">
         <h1 class="text-4xl font-black text-primary flex items-center gap-3 tracking-tighter">
             📈 Panel de Analíticas

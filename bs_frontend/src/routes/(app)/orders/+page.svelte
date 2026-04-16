@@ -212,7 +212,7 @@
     }
 </script>
 
-<div class="p-6 md:p-8 lg:p-12 max-w-7xl mx-auto flex flex-col gap-8">
+<div class="p-6 md:p-8 lg:p-12 max-w-7xl mx-auto flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto w-full">
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div class="flex flex-col gap-1">

@@ -9,6 +9,7 @@
 	import { appState, addToCart, removeFromCart, clearCart, setActiveTable, loadOrderToCart } from '$lib/app_state.svelte';
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
 	import PaymentModal from '$lib/components/PaymentModal.svelte';
+	import { addToast } from '$lib/toast.svelte.js';
 
 	let categories = $state<Category[]>([]);
 	let products = $state<Product[]>([]);
@@ -215,7 +216,7 @@
                 }
             }
 
-			alert("¡Venta realizada con éxito!");
+			addToast("¡Venta realizada con éxito!", "success");
             showPaymentModal = false;
 			clearCart();
             
@@ -230,7 +231,7 @@
                 goto('/tables');
             }
 		} catch (e) {
-			alert(`Error al procesar: ${e}`);
+			addToast(`Error al procesar: ${e}`, "error");
 		} finally {
             isLoading = false;
         }
@@ -273,7 +274,7 @@
 
             // 3. El estado se mantiene en PENDING para que cocina lo inicie manualmente
 
-            alert("¡Comanda enviada a cocina!");
+            addToast("¡Comanda enviada a cocina!", "success");
             clearCart();
             
             // Si era una mesa, volver al tablero de mesas
@@ -282,7 +283,7 @@
                 goto('/tables');
             }
         } catch (e) {
-            alert(`Error al enviar a cocina: ${e}`);
+            addToast(`Error al enviar a cocina: ${e}`, "error");
         } finally {
             isLoading = false;
         }
@@ -314,10 +315,10 @@
 	</div>
 
 	<!-- Main POS View Layout -->
-	<div class="flex flex-col lg:flex-row gap-6 h-[72vh]">
+	<div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
 		
 		<!-- Left: Categories & Products (70%) -->
-		<div class="w-full lg:w-2/3 flex flex-col gap-4">
+		<div class="w-full lg:w-2/3 flex flex-col gap-4 h-full min-h-0">
 			<!-- Categories Tabs -->
 			<div class="tabs tabs-box bg-base-100 shadow-sm p-1 rounded-lg border border-base-200 overflow-x-auto whitespace-nowrap">
 				{#each categories as cat}
@@ -332,7 +333,7 @@
 			</div>
 			
 			<!-- Product Grid -->
-			<div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pb-4 pr-2">
+			<div class="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pb-4 pr-2 min-h-0">
 				{#if isLoading}
 					<div class="col-span-full flex justify-center py-20">
 						<span class="loading loading-spinner loading-lg text-primary"></span>

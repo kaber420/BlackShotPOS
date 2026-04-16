@@ -157,7 +157,7 @@
 	}
 </script>
 
-<div class="px-4 py-8 max-w-6xl mx-auto min-h-screen">
+<div class="px-4 py-8 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full w-full">
 	<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
 		<div>
 			<h1 class="text-4xl font-black text-base-content tracking-tighter">Inventario Maestros</h1>
