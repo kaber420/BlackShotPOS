@@ -7,7 +7,7 @@ name = "blackshot-pos"
 version = "0.1.0"
 description = "Backend y API para el sistema de Punto de Venta Blackshot"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = {text = "AGPL-3.0-or-later"}
 authors = [
     {name = "Blackshot Team"}
 ]

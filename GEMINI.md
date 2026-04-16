@@ -70,5 +70,5 @@ El `ROADMAP_V2.md` define las siguientes fases clave:
 2.  Configurar las variables de entorno en un archivo `.env`.
 3.  Ejecutar las migraciones de la base de datos si es necesario (ej. `scripts/migrate_add_recipe.py`).
 4.  Poblar la base de datos con datos de prueba usando `scripts/seed_data.py`.
-5.  Iniciar el backend de FastAPI a través del CLI: `python -m pos_core.cli`.
-6.  Navegar al directorio `bs_frontend` e iniciar el servidor de desarrollo de SvelteKit.
+5.  Iniciar el backend de FastAPI a activar entorno venv y ejecutar a través del CLI: `blackshot`.
+6.  Navegar al directorio `bs_frontend` e iniciar el servidor de desarrollo de SvelteKit: `npm run dev`.    
