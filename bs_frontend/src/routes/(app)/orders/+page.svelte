@@ -2,7 +2,7 @@
     import { onMount, onDestroy } from 'svelte';
     import { OrderService, type Order, OrderStatus } from '$lib/api/orders';
     import { printTicket, getRecommendedMethod, type PrintMethod } from '$lib/printer';
-    import { can } from '$lib/app_state.svelte';
+    import { can, appState, loadOrderToCart } from '$lib/app_state.svelte';
 
     let orders = $state<Order[]>([]);
     let isLoading = $state(true);
@@ -198,6 +198,11 @@
         } finally {
             printingOrderId = null;
         }
+    }
+
+    function openCartForCharge(order: Order) {
+        loadOrderToCart(order);
+        appState.cartVisible = true;
     }
 
     function calculateTotal(order: Order) {
@@ -465,21 +470,21 @@
                                             Entregar
                                         </button>
                                     {:else if order.status === 'READY' && !order.is_paid}
-                                        <a
-                                            href="/?order_id={order.id}"
+                                        <button
+                                            onclick={() => openCartForCharge(order)}
                                             class="btn btn-primary btn-sm font-bold shadow-sm"
                                             id="charge-order-{order.id}"
                                         >
                                             Cobrar y Entregar
-                                        </a>
+                                        </button>
                                     {:else if order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && !order.is_paid}
-                                        <a
-                                            href="/?order_id={order.id}"
+                                        <button
+                                            onclick={() => openCartForCharge(order)}
                                             class="btn btn-outline btn-primary btn-sm font-bold shadow-sm"
                                             id="charge-order-{order.id}"
                                         >
                                             Cobrar
-                                        </a>
+                                        </button>
                                     {/if}
                                 {/if}
 

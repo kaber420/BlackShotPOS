@@ -9,7 +9,6 @@
 	import { goto } from '$app/navigation';
     import { page } from '$app/state';
 
-	let isExpanded = $state(false);
 	let showPaymentModal = $state(false);
 	let isLoading = $state(false);
 
@@ -21,13 +20,13 @@
 	let previousItemCount = $state(0);
 	$effect(() => {
 		if (itemCount > previousItemCount) {
-			isExpanded = true;
+			appState.cartVisible = true;
 		}
 		previousItemCount = itemCount;
 	});
 
 	function toggleCart() {
-		isExpanded = !isExpanded;
+		appState.cartVisible = !appState.cartVisible;
 	}
 
 	function openCheckout() {
@@ -84,15 +83,17 @@
 
 			addToast("¡Venta realizada con éxito!", "success");
             showPaymentModal = false;
-            isExpanded = false;
+            appState.cartVisible = false;
 			clearCart();
             
             const wasTable = appState.activeTable;
             setActiveTable(null);
             
-            if (page.url.searchParams.has('order_id')) {
+            if (page.url.pathname === '/orders') {
+                // Do nothing, stay on orders page
+            } else if (page.url.searchParams.has('order_id')) {
                 goto('/', { replaceState: true });
-            } else if (wasTable) {
+            } else if (wasTable && page.url.pathname !== '/tables') {
                 goto('/tables');
             }
 		} catch (e) {
@@ -137,7 +138,7 @@
 
             addToast("¡Comanda enviada a cocina!", "success");
             clearCart();
-            isExpanded = false;
+            appState.cartVisible = false;
             
             if (appState.activeTable) {
                 setActiveTable(null);
@@ -153,7 +154,7 @@
 
 {#if itemCount > 0}
 	<!-- Collapsed Floating Button / Bar -->
-	{#if !isExpanded}
+	{#if !appState.cartVisible}
 		<div
 			class="fixed bottom-4 right-4 z-40"
 			in:fly={{ y: 50, duration: 300 }}
@@ -180,7 +181,7 @@
 	{/if}
 
 	<!-- Expanded Floating Panel -->
-	{#if isExpanded}
+	{#if appState.cartVisible}
         <!-- Backdrop for mobile overlay, clicking it closes the cart -->
         <div 
             class="fixed inset-0 bg-base-300/40 backdrop-blur-sm z-40 lg:hidden" 
@@ -224,7 +225,7 @@
 			<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-bold opacity-50 uppercase">{itemCount} items</span>
-                    <button class="btn btn-ghost btn-xs text-error" onclick={() => { clearCart(); setActiveTable(null); isExpanded = false; }}>Vaciar Todo</button>
+                    <button class="btn btn-ghost btn-xs text-error" onclick={() => { clearCart(); setActiveTable(null); appState.cartVisible = false; }}>Vaciar Todo</button>
                 </div>
 					{#each appState.cart as item (item.id)}
 						<div class="flex justify-between items-start {item.db_id ? 'bg-base-300/20 opacity-70' : 'bg-base-200/40'} p-3 rounded-lg border {item.db_id ? 'border-base-300' : 'border-base-200/50'}">

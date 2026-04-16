@@ -21,6 +21,7 @@ export const appState = $state({
         currency_symbol: '$',
         currency_code: 'MXN'
     } as any,
+    cartVisible: false,
 });
 
 export function setTheme(theme: string) {

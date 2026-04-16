@@ -100,7 +100,7 @@
             loadOrderToCart(summaryOrder);
             appState.activeTable = summaryTable;
             isSummaryOpen = false;
-            goto('/');
+            appState.cartVisible = true;
         }
     }
 
