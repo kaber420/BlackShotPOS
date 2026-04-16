@@ -304,8 +304,10 @@
     {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {#each orders as order (order.id)}
-                <div class="card bg-base-100 shadow-xl border-l-4 {order.status === 'PENDING' ? 'border-warning' : 'border-primary'} flex flex-col">
-                    <div class="card-body p-6 flex flex-col h-full">
+                {@const glow = order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : order.status === 'PREPARING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-primary/40 border-primary/30' : order.status === 'READY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-success/40 border-success/30' : 'shadow-sm border-base-content/5'}
+                <div class="card bg-base-100/60 backdrop-blur-xl hover:-translate-y-1 transition-all duration-300 flex flex-col rounded-3xl border relative overflow-hidden group {glow}">
+                    <div class="absolute inset-0 bg-gradient-to-br from-base-content/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+                    <div class="card-body p-6 flex flex-col h-full z-10">
                         <!-- Cabecera de la comanda -->
                         <div class="flex justify-between items-start mb-4">
                             <div>

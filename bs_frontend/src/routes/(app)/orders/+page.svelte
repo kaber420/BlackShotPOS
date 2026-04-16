@@ -104,17 +104,7 @@
         CANCELLED: { label: 'Anulado',       cls: 'text-error',    dotCls: 'bg-error' },
     };
 
-    function getOrderBorderClass(status: string) {
-        switch (status) {
-            case 'PENDING':   return 'border-l-warning';
-            case 'PREPARING': return 'border-l-primary';
-            case 'READY':     return 'border-l-success';
-            case 'PAID':
-            case 'DELIVERED': return 'border-l-neutral';
-            case 'CANCELLED': return 'border-l-error';
-            default:          return 'border-l-base-300';
-        }
-    }
+
 
     function getStatusBadgeClass(status: string) {
         switch (status) {
@@ -357,8 +347,10 @@
                 {@const progress = getOrderProgress(order)}
                 {@const isFinished = order.status === 'PAID' || order.status === 'DELIVERED' || order.status === 'CANCELLED'}
 
-                <div class="card bg-base-100 shadow-md hover:shadow-xl transition-shadow flex flex-col border-l-4 {getOrderBorderClass(order.status)}">
-                    <div class="card-body p-5 flex flex-col gap-0">
+                {@const glow = order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : order.status === 'PREPARING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-primary/40 border-primary/30' : order.status === 'READY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-success/40 border-success/30' : order.status === 'CANCELLED' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-error/40 border-error/30' : 'shadow-sm border-base-content/5'}
+                <div class="card bg-base-100/60 backdrop-blur-xl hover:-translate-y-1 transition-all duration-300 flex flex-col rounded-3xl border relative overflow-hidden group {glow}">
+                    <div class="absolute inset-0 bg-gradient-to-br from-base-content/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div class="card-body p-6 flex flex-col gap-0 z-10">
 
                         <!-- ── Cabecera de la tarjeta ──────────────────────── -->
                         <div class="flex justify-between items-start mb-3">
