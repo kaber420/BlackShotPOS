@@ -5,6 +5,7 @@
 	import { checkActiveShift, openShift } from '$lib/api/shifts';
 	import { onMount } from 'svelte';
 	import Toast from '$lib/components/Toast.svelte';
+	import FloatingCart from '$lib/components/FloatingCart.svelte';
 
 	let { children } = $props();
 
@@ -209,6 +210,9 @@
 	</div>
 	{/if}
 	
+	{#if appState.isLoggedIn && can.takeOrders?.()}
+		<FloatingCart />
+	{/if}
 	<Toast />
 </div>
 

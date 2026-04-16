@@ -7,9 +7,8 @@
 	import { ProductService, type Product } from '$lib/api/products';
 	import { CategoryService, type Category } from '$lib/api/categories';
 	import { OrderService, OrderStatus } from '$lib/api/orders';
-	import { appState, addToCart, removeFromCart, clearCart, setActiveTable, loadOrderToCart } from '$lib/app_state.svelte';
+	import { appState, addToCart, loadOrderToCart } from '$lib/app_state.svelte';
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
-	import PaymentModal from '$lib/components/PaymentModal.svelte';
 	import { addToast } from '$lib/toast.svelte.js';
 
 	let categories = $state<Category[]>([]);
@@ -27,7 +26,6 @@
 
 	// Modal State
 	let showCustomizer = $state(false);
-    let showPaymentModal = $state(false);
 	let activeProduct = $state<any>(null);
 	let infoProductId = $state<number | null>(null);
 
@@ -162,134 +160,6 @@
         return name.substring(0, 2).toUpperCase();
     }
 
-	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
-	let taxTotal = $derived(cartTotal * (appState.settings.tax_rate || 0.16));
-	let finalTotal = $derived(cartTotal + taxTotal);
-
-    function openCheckout() {
-        if (appState.cart.length === 0) return;
-        showPaymentModal = true;
-    }
-
-	async function processCheckout(method: string, amount: number, shouldPrint: boolean) {
-		if (appState.cart.length === 0) return;
-		
-		try {
-            isLoading = true;
-			// 1. Get or Create order
-            let order;
-            if (appState.activeOrder) {
-                order = appState.activeOrder;
-            } else {
-                const orderPayload = {
-                    type: appState.activeTable ? 'DINE_IN' : 'TAKEAWAY',
-                    table_id: appState.activeTable ? appState.activeTable.id : null
-                };
-    			order = await fetchApi<any>('/api/v1/pos/orders', {
-	    			method: 'POST',
-		    		body: JSON.stringify(orderPayload)
-			    });
-            }
-
-			// 2. Add New items only (those without db_id)
-			for (const item of appState.cart) {
-                if (!item.db_id) {
-    				await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
-	    				method: 'POST',
-		    			body: JSON.stringify({
-			    			product_id: item.product_id,
-				    		product_variant_id: item.product_variant_id,
-					    	quantity: item.quantity,
-						    modifier_ids: item.modifiers.map((m: any) => m.id)
-    					})
-	    			});
-                }
-			}
-
-            // 3. Register payment (will set is_paid = true in backend)
-            await OrderService.pay(order.id, method, amount);
-
-            // 4. Print ticket if requested
-            if (shouldPrint) {
-                try {
-                    await fetchApi(`/api/v1/pos/print/ticket/${order.id}/network`, { method: 'POST' });
-                } catch (pe) {
-                    console.error("Error al imprimir ticket", pe);
-                }
-            }
-
-			addToast("¡Venta realizada con éxito!", "success");
-            showPaymentModal = false;
-			clearCart();
-            
-            // Guardar referencia a la mesa para la redirección
-            const wasTable = appState.activeTable;
-            setActiveTable(null);
-            
-            // Si veníamos de una orden específica, limpiar URL
-            if (page.url.searchParams.has('order_id')) {
-                goto('/', { replaceState: true });
-            } else if (wasTable) {
-                goto('/tables');
-            }
-		} catch (e) {
-			addToast(`Error al procesar: ${e}`, "error");
-		} finally {
-            isLoading = false;
-        }
-	}
-
-    async function sendToKitchen() {
-        if (appState.cart.length === 0) return;
-        
-        try {
-            isLoading = true;
-            // 1. Obtener o crear orden
-            let order;
-            if (appState.activeOrder) {
-                order = appState.activeOrder;
-            } else {
-                const orderPayload = {
-                    type: appState.activeTable ? 'DINE_IN' : 'TAKEAWAY',
-                    table_id: appState.activeTable ? appState.activeTable.id : null
-                };
-                order = await fetchApi<any>('/api/v1/pos/orders', {
-                    method: 'POST',
-                    body: JSON.stringify(orderPayload)
-                });
-            }
-
-            // 2. Añadir SOLO items nuevos al backend
-            for (const item of appState.cart) {
-                if (item.db_id) continue; // Saltar items que ya están en la base de datos
-                
-                await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        product_id: item.product_id,
-                        product_variant_id: item.product_variant_id,
-                        quantity: item.quantity,
-                        modifier_ids: item.modifiers.map((m: any) => m.id)
-                    })
-                });
-            }
-
-            // 3. El estado se mantiene en PENDING para que cocina lo inicie manualmente
-
-            addToast("¡Comanda enviada a cocina!", "success");
-            clearCart();
-            
-            // Si era una mesa, volver al tablero de mesas
-            if (appState.activeTable) {
-                setActiveTable(null);
-                goto('/tables');
-            }
-        } catch (e) {
-            addToast(`Error al enviar a cocina: ${e}`, "error");
-        } finally {
-            isLoading = false;
-        }
-    }
 </script>
 
 <div class="p-4 md:p-6 lg:p-8 flex flex-col gap-6 h-full">
@@ -319,8 +189,8 @@
 	<!-- Main POS View Layout -->
 	<div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
 		
-		<!-- Left: Categories & Products (70%) -->
-		<div class="w-full lg:w-2/3 flex flex-col gap-4 h-full min-h-0">
+		<!-- Left: Categories & Products (100%) -->
+		<div class="w-full flex flex-col gap-4 h-full min-h-0">
 			<!-- Categories Tabs -->
 			<div class="tabs tabs-box bg-base-100 shadow-sm p-1 rounded-lg border border-base-200 overflow-x-auto whitespace-nowrap">
 				{#each categories as cat}
@@ -439,118 +309,6 @@
 			</div>
 		</div>
 
-		<!-- Right: Current Pedido (30%) -->
-		<div class="w-full lg:w-1/3 bg-base-100 rounded-xl shadow-sm flex flex-col h-full border border-base-200">
-			<div class="p-4 border-b border-base-200 bg-base-200/30 rounded-t-xl">
-				<div class="flex justify-between items-center">
-					<div class="flex items-center gap-3">
-						<h2 class="font-bold text-lg uppercase tracking-widest text-primary">Pedido</h2>
-						{#if appState.activeTable}
-							<div class="badge badge-secondary badge-lg font-black px-4 py-4 h-auto shadow-sm">
-								<div class="flex flex-col items-start leading-tight">
-									<span class="text-[9px] opacity-80 uppercase tracking-tighter">Mesa</span>
-									<span class="text-base">{appState.activeTable.number}</span>
-								</div>
-							</div>
-						{:else}
-							<div class="badge badge-ghost badge-lg font-bold px-4 py-4 h-auto opacity-70">
-								<div class="flex flex-col items-start leading-tight">
-									<span class="text-[9px] opacity-60 uppercase tracking-tighter">Tipo</span>
-									<span class="text-sm">PARA LLEVAR</span>
-								</div>
-							</div>
-						{/if}
-					</div>
-					<button class="btn btn-ghost btn-xs text-error" onclick={() => { clearCart(); setActiveTable(null); }}>Limpiar</button>
-				</div>
-			</div>
-			
-			<!-- Items in Cart -->
-			<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-				{#if appState.cart.length === 0}
-					<div class="flex flex-col items-center justify-center h-full opacity-20 py-10">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-						</svg>
-						<p class="mt-2 font-bold">Pedido Vacío</p>
-					</div>
-				{:else}
-					{#each appState.cart as item (item.id)}
-						<div class="flex justify-between items-start {item.db_id ? 'bg-base-300/20 opacity-70' : 'bg-base-200/40'} p-3 rounded-lg border {item.db_id ? 'border-base-300' : 'border-base-200/50'}">
-							<div class="flex flex-col flex-1">
-                                <div class="flex items-center gap-2">
-    								<span class="font-bold text-sm uppercase {item.status === 'CANCELLED' ? 'line-through text-error' : ''}">
-                                        {item.name}
-                                    </span>
-                                    {#if item.status === 'CANCELLED'}
-                                        <span class="badge badge-error badge-xs text-[8px] font-black tracking-tighter uppercase px-1">ANULADO</span>
-                                    {:else if item.status === 'READY'}
-                                        <span class="badge badge-success badge-xs text-[8px] font-black tracking-tighter uppercase px-1">LISTO</span>
-                                    {:else if item.status === 'PREPARANDO'}
-                                        <span class="badge badge-primary badge-xs text-[8px] font-black tracking-tighter uppercase px-1 animated-pulse">COCINANDO</span>
-                                    {:else if item.db_id}
-                                        <span class="badge badge-ghost badge-xs text-[8px] font-black tracking-tighter uppercase px-1">EN COLA</span>
-                                    {/if}
-                                </div>
-								{#each item.modifiers as mod}
-									<span class="text-[10px] opacity-60 leading-none mt-1">+ {mod.name}</span>
-								{/each}
-							</div>
-							<div class="flex items-center gap-3">
-								<span class="font-bold text-sm {item.db_id ? 'opacity-50' : 'text-primary'}">${item.total_price.toFixed(2)}</span>
-                                {#if !item.db_id}
-								    <button class="btn btn-circle btn-xs btn-error btn-outline border-none" onclick={() => removeFromCart(item.id)}>×</button>
-                                {/if}
-							</div>
-						</div>
-					{/each}
-				{/if}
-			</div>
-
-			<!-- Cart Totals & Pay Button -->
-			<div class="p-4 border-t border-base-200 bg-base-200/20 rounded-b-xl">
-				<div class="flex justify-between mb-1 text-xs opacity-70 uppercase font-medium">
-					<span>Subtotal</span>
-					<span>${cartTotal.toFixed(2)}</span>
-				</div>
-				<div class="flex justify-between mb-3 text-xs opacity-70 uppercase font-medium">
-					<span>IVA (16%)</span>
-					<span>${taxTotal.toFixed(2)}</span>
-				</div>
-				<div class="flex justify-between mb-4 items-end">
-					<span class="text-sm font-bold opacity-60 uppercase">Total Cobrar</span>
-					<span class="text-3xl font-black text-primary font-serif">{appState.settings.currency_symbol}{finalTotal.toFixed(2)}</span>
-				</div>
-				
-				<div class="flex flex-col gap-2">
-                    <button 
-                        class="btn btn-primary w-full shadow-lg shadow-primary/20" 
-                        disabled={appState.cart.length === 0 || isLoading}
-                        onclick={openCheckout}
-                    >
-                        {#if isLoading}
-                            <span class="loading loading-spinner loading-xs"></span>
-                        {:else}
-                            Cobrar {appState.settings.currency_symbol}{finalTotal.toFixed(2)}
-                        {/if}
-                    </button>
-
-                    <button 
-                        class="btn btn-outline btn-secondary w-full" 
-                        disabled={appState.cart.length === 0 || isLoading}
-                        onclick={sendToKitchen}
-                    >
-                        {#if isLoading}
-                            <span class="loading loading-spinner loading-xs"></span>
-                        {:else}
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-1.333-1.756A3.75 3.75 0 0012 18z" /></svg>
-                            Enviar a Cocina
-                        {/if}
-                    </button>
-                </div>
-			</div>
-		</div>
-
 	</div>
 </div>
 
@@ -561,12 +319,6 @@
 	onConfirm={onConfirmCustomization}
 />
 
-<PaymentModal 
-    isOpen={showPaymentModal}
-    total={finalTotal}
-    onClose={() => showPaymentModal = false}
-    onConfirm={processCheckout}
-/>
 
 <style>
 	.tabs-box::-webkit-scrollbar {
