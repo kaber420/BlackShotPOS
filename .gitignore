@@ -60,3 +60,6 @@ Thumbs.db
 bs_frontend/.npmrc
 omni_auth/PLAN_OMNI_AUTH_V2.md
 data/
+bs_frontend/src/lib/mockups/orders_waiter_mockup.html
+bs_frontend/src/lib/mockups/kds_mockup.html
+bs_frontend/src/lib/mockups/orders_waiter_4styles.html
