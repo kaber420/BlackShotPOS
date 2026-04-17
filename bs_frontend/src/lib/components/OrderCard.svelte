@@ -2,6 +2,7 @@
     import { OrderStatus } from '$lib/api/orders';
     import type { Order } from '$lib/api/orders';
     import Button from '$lib/components/ui/Button.svelte';
+    import { appState } from '$lib/app_state.svelte';
 
     // ── Props ─────────────────────────────────────────────────────────────
     interface Props {
@@ -88,6 +89,11 @@
 
     let progress = $derived(getOrderProgress(order));
     let isFinished = $derived(order.status === 'PAID' || order.status === 'DELIVERED' || order.status === 'CANCELLED');
+
+    let subtotal = $derived(calculateTotal(order));
+    let taxRate = $derived(appState.settings?.tax_rate || 0.16);
+    let taxAmount = $derived(subtotal * taxRate);
+    let finalTotal = $derived(subtotal + taxAmount);
 
     let glow = $derived(
         order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : 
@@ -250,44 +256,63 @@
         <!-- ── Footer: Total + Aciones Globales ────────────────────────────── -->
         {#if view === 'orders'}
             <!-- FOOTER DE ORDENES -->
-            <div class="pt-3 border-t border-base-200 flex justify-between items-center gap-2 mt-auto">
-                <span class="font-mono text-lg font-black text-primary">
-                    ${calculateTotal(order).toFixed(2)}
-                </span>
-                <div class="flex gap-1 items-center flex-wrap justify-end">
-                    <!-- Botón de Cobrar (Solo si no está pagado, y no está cancelado) -->
-                    {#if onCharge && !order.is_paid && order.status !== 'CANCELLED'}
-                        <Button variant="primary" size="sm" class="shadow-sm font-bold" onclick={() => onCharge(order)}>
-                            Cobrar
+            <div class="pt-3 border-t border-base-200 flex flex-col mt-auto shrink-0 gap-3">
+                <div class="flex flex-col px-1 w-full gap-0.5">
+                    <div class="flex justify-between items-center text-[10px] font-bold uppercase opacity-50 tracking-wider">
+                        <span>Subtotal</span>
+                        <span>${subtotal.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] font-bold uppercase opacity-50 tracking-wider pb-1.5 border-b border-base-content/5">
+                        <span>IVA ({(taxRate * 100).toFixed(0)}%)</span>
+                        <span>${taxAmount.toFixed(2)}</span>
+                    </div>
+                    <div class="flex justify-between items-end pt-1.5">
+                        <span class="text-[12px] font-bold uppercase opacity-70 tracking-wider mb-0.5">Total</span>
+                        <span class="font-mono text-2xl font-black text-primary leading-none">
+                            ${finalTotal.toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="flex justify-between items-center gap-2">
+                    <!-- Text Buttons (Cobrar / Entregar) -->
+                    <div class="flex gap-2 items-center flex-wrap">
+                        <!-- Botón de Cobrar (Solo si no está pagado, y no está cancelado) -->
+                        {#if onCharge && !order.is_paid && order.status !== 'CANCELLED'}
+                            <Button variant="primary" size="sm" class="shadow-sm font-bold" onclick={() => onCharge(order)}>
+                                Cobrar
+                            </Button>
+                        {/if}
+
+                        <!-- Botón de Entregar (Siempre visible si se puede entregar, pero deshabilitado si no está READY) -->
+                        {#if onDeliver && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
+                            <Button 
+                                variant="success" 
+                                size="sm" 
+                                class="shadow-sm font-bold" 
+                                disabled={order.status === 'PENDING' || order.status === 'PREPARING'}
+                                title={(order.status === 'PENDING' || order.status === 'PREPARING') ? 'La orden debe estar lista para entregar' : 'Entregar orden'}
+                                onclick={() => onDeliver(order.id)}
+                            >
+                                Entregar
+                            </Button>
+                        {/if}
+                    </div>
+
+                    <!-- Icon Buttons (Imprimir / Cancelar) forced to stay in one line -->
+                    <div class="flex gap-1.5 items-center shrink-0 flex-nowrap ml-auto">
+                        <Button variant="ghost" size="sm" square onclick={() => onPrint?.(order.id)} isLoading={printingOrderId === order.id} title="Imprimir Ticket">
+                            🖨️
                         </Button>
-                    {/if}
 
-                    <!-- Botón de Entregar (Siempre visible si se puede entregar, pero deshabilitado si no está READY) -->
-                    {#if onDeliver && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
-                        <Button 
-                            variant="success" 
-                            size="sm" 
-                            class="shadow-sm font-bold" 
-                            disabled={order.status === 'PENDING' || order.status === 'PREPARING'}
-                            title={(order.status === 'PENDING' || order.status === 'PREPARING') ? 'La orden debe estar lista para entregar' : 'Entregar orden'}
-                            onclick={() => onDeliver(order.id)}
-                        >
-                            Entregar
-                        </Button>
-                    {/if}
-
-
-                    <Button variant="ghost" size="sm" square onclick={() => onPrint?.(order.id)} isLoading={printingOrderId === order.id} title="Imprimir Ticket">
-                        🖨️
-                    </Button>
-
-                    {#if onCancelOrder && order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
-                        <Button variant="ghost" size="sm" danger square onclick={() => onCancelOrder(order)} title={order.items && order.items.length > 0 ? "Cancelar Pedido" : "Eliminar Pedido Vacío"}>
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                        </Button>
-                    {/if}
+                        {#if onCancelOrder && order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
+                            <Button variant="ghost" size="sm" danger square onclick={() => onCancelOrder(order)} title={order.items && order.items.length > 0 ? "Cancelar Pedido" : "Eliminar Pedido Vacío"}>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </Button>
+                        {/if}
+                    </div>
                 </div>
             </div>
         {:else}
