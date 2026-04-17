@@ -1,6 +1,7 @@
 <script lang="ts">
     import { ProductService, type Product } from '$lib/api/products';
     import { CategoryService, type Category } from '$lib/api/categories';
+    import Button from '$lib/components/ui/Button.svelte';
     import { onMount } from 'svelte';
 
     let products = $state<Product[]>([]);
@@ -116,12 +117,14 @@
                     <option value={cat.id}>{cat.name}</option>
                 {/each}
             </select>
-            <button class="btn btn-primary" onclick={() => openModal()}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
+            <Button variant="primary" onclick={() => openModal()}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                </svelte:fragment>
                 Nuevo Producto
-            </button>
+            </Button>
         </div>
     </div>
 
@@ -141,7 +144,9 @@
         {:else if products.length === 0}
             <div class="col-span-full text-center py-20 bg-base-200/30 rounded-2xl border-2 border-dashed border-base-300">
                 <p class="opacity-60 italic text-lg">No hay productos en esta categoría.</p>
-                <button class="btn btn-link no-underline" onclick={() => openModal()}>Crear el primero</button>
+                <div class="mt-4">
+                    <Button variant="ghost" onclick={() => openModal()}>Crear el primero</Button>
+                </div>
             </div>
         {:else}
             {#each products as prod}
@@ -174,13 +179,13 @@
                             </div>
                         </div>
                         <div class="card-actions justify-end mt-4">
-                            <button class="btn btn-ghost btn-sm" onclick={() => openModal(prod)}>
+                            <Button variant="ghost" size="sm" onclick={() => openModal(prod)}>
                                 Editar
-                            </button>
+                            </Button>
                             {#if prod.is_active}
-                                <button class="btn btn-error btn-outline btn-sm" onclick={() => prod.id && handleDelete(prod.id)}>
+                                <Button variant="outline" danger size="sm" onclick={() => prod.id && handleDelete(prod.id)}>
                                     Desactivar
-                                </button>
+                                </Button>
                             {/if}
                         </div>
                     </div>
@@ -247,15 +252,12 @@
             </div>
 
             <div class="modal-action gap-2">
-                <button type="button" class="btn btn-ghost" onclick={() => (document.getElementById('modal_producto') as HTMLDialogElement).close()}>
+                <Button variant="ghost" onclick={() => (document.getElementById('modal_producto') as HTMLDialogElement).close()}>
                     Cancelar
-                </button>
-                <button type="submit" class="btn btn-primary px-10" disabled={isSubmitting}>
-                    {#if isSubmitting}
-                        <span class="loading loading-spinner loading-sm"></span>
-                    {/if}
+                </Button>
+                <Button type="submit" variant="primary" class="px-10" isLoading={isSubmitting}>
                     {editingId ? 'Actualizar Producto' : 'Crear Producto'}
-                </button>
+                </Button>
             </div>
         </form>
     </div>

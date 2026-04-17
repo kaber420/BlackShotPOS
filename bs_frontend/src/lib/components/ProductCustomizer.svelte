@@ -9,6 +9,7 @@
 		onConfirm: (modifiers: any[], variant?: ProductVariant) => void;
 		onClose: () => void;
 	}>();
+    import Button from '$lib/components/ui/Button.svelte';
 
 	let selectedVariant = $state<ProductVariant | null>(null);
 	let selectedModifiers = $state<any[]>([]);
@@ -119,7 +120,13 @@
 					<h2 class="text-3xl font-black uppercase tracking-tighter">{product?.name}</h2>
 					<p class="text-sm opacity-90 max-w-lg line-clamp-2">{product?.description || 'Personaliza tu pedido a tu gusto.'}</p>
 				</div>
-				<button class="btn btn-circle btn-sm absolute top-4 right-4 bg-black/20 border-none text-white hover:bg-black/40" onclick={onClose}>✕</button>
+				<Button 
+                    variant="ghost"
+                    circle
+                    size="sm"
+                    class="absolute top-4 right-4 bg-black/20 border-none text-white hover:bg-black/40" 
+                    onclick={onClose}
+                >✕</Button>
 			</div>
 
 			<div class="p-8 overflow-y-auto max-h-[55vh] grid grid-cols-1 md:grid-cols-5 gap-8">
@@ -136,13 +143,15 @@
 							</h3>
 							<div class="flex flex-wrap gap-3">
 								{#each variants as v}
-									<button 
-										class="btn btn-lg h-auto py-4 px-6 flex flex-col gap-1 items-center {selectedVariant?.id === v.id ? 'btn-primary shadow-lg shadow-primary/20 scale-105' : 'btn-outline border-base-300'}"
+									<Button 
+										variant={selectedVariant?.id === v.id ? 'primary' : 'outline'}
+                                        size="lg"
+										class="h-auto py-4 px-6 flex flex-col gap-1 items-center {selectedVariant?.id === v.id ? 'scale-105' : ''}"
 										onclick={() => selectedVariant = v}
 									>
 										<span class="text-lg font-bold uppercase">{v.measure?.name}</span>
 										<span class="text-[10px] opacity-70">+{v.measure?.value}{v.measure?.unit}</span>
-									</button>
+									</Button>
 								{/each}
 							</div>
 						</div>
@@ -162,15 +171,16 @@
 							</div>
 							<div class="grid grid-cols-2 gap-3">
 								{#each group.modifiers as mod}
-									<button 
-										class="btn btn-outline h-auto py-4 px-4 justify-between font-bold border-base-300 {isSelected(mod.id) ? 'btn-secondary bg-secondary/10 border-secondary scale-[1.02]' : ''}"
+									<Button 
+										variant={isSelected(mod.id) ? 'secondary' : 'outline'}
+                                        class="h-auto py-4 px-4 justify-between font-bold {isSelected(mod.id) ? 'scale-[1.02]' : ''}"
 										onclick={() => toggleModifier(mod, group)}
 									>
 										<span class="text-sm uppercase">{mod.name}</span>
 										{#if mod.extra_price > 0}
 											<span class="badge badge-sm bg-base-200 border-none font-mono">+${mod.extra_price}</span>
 										{/if}
-									</button>
+									</Button>
 								{/each}
 							</div>
 						</div>
@@ -211,10 +221,10 @@
 							<h3 class="text-[10px] font-black uppercase tracking-widest opacity-40 mb-3">Tus Favoritos</h3>
 							<div class="flex flex-col gap-2">
 								{#each presets as preset}
-									<button class="btn btn-outline btn-sm btn-accent justify-between font-bold" onclick={() => applyPreset(preset)}>
+									<Button variant="outline" size="sm" class="justify-between font-bold" onclick={() => applyPreset(preset)}>
 										{preset.name}
 										<span>✨</span>
-									</button>
+									</Button>
 								{/each}
 							</div>
 						</div>
@@ -227,8 +237,8 @@
 				{#if showSavePreset}
 					<div class="flex gap-2 animate-in slide-in-from-bottom-4">
 						<input type="text" placeholder="Nombre favorito (ej: Mid Vainilla)" class="input input-bordered flex-1 font-bold" bind:value={presetName} />
-						<button class="btn btn-success px-6 font-bold" onclick={saveCurrentAsPreset}>Guardar</button>
-						<button class="btn btn-ghost" onclick={() => showSavePreset = false}>×</button>
+						<Button variant="success" class="px-6 font-bold" onclick={saveCurrentAsPreset}>Guardar</Button>
+						<Button variant="ghost" onclick={() => showSavePreset = false}>×</Button>
 					</div>
 				{:else}
 					<div class="flex justify-between items-center">
@@ -246,14 +256,16 @@
 				{/if}
 
 				<div class="flex gap-4">
-					<button class="btn btn-ghost flex-1 font-bold uppercase" onclick={onClose}>Cancelar</button>
-					<button 
-						class="btn btn-primary flex-[2] btn-lg shadow-xl shadow-primary/30 font-black uppercase tracking-widest" 
+					<Button variant="ghost" class="flex-1 font-bold uppercase" onclick={onClose}>Cancelar</Button>
+					<Button 
+						variant="primary" 
+                        size="lg"
+                        class="flex-[2] shadow-xl shadow-primary/30 font-black uppercase tracking-widest" 
 						onclick={handleConfirm}
 						disabled={variants.length > 0 && !selectedVariant}
 					>
 						Añadir al Carrito
-					</button>
+					</Button>
 				</div>
 			</div>
 		</div>

@@ -8,6 +8,7 @@
     import { appState } from '$lib/app_state.svelte';
     import { SettingsService, type BusinessSettings } from '$lib/api/settings';
     import { toastConfig, saveToastConfig, addToast } from '$lib/toast.svelte.js';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let settings = $state<BusinessSettings>({ ...appState.settings });
     let isLoading = $state(false);
@@ -158,17 +159,15 @@
             </div>
 
             <div class="card-actions justify-end mt-4 pt-6 border-t border-base-200">
-                <button 
-                    class="btn btn-primary btn-lg px-12 shadow-xl shadow-primary/30 font-black uppercase tracking-widest text-sm" 
+                <Button 
+                    variant="primary"
+                    size="lg" 
+                    class="px-12 font-black uppercase tracking-widest text-sm" 
                     onclick={handleSave}
-                    disabled={isLoading}
+                    {isLoading}
                 >
-                    {#if isLoading}
-                        <span class="loading loading-spinner"></span> Guardando...
-                    {:else}
-                        Guardar Cambios
-                    {/if}
-                </button>
+                    Guardar Cambios
+                </Button>
             </div>
         </div>
     </div>

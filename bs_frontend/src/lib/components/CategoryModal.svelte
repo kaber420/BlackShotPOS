@@ -2,6 +2,7 @@
     import { CategoryService } from '$lib/api/categories';
     import type { Category } from '$lib/api/categories';
     import { onMount } from 'svelte';
+    import Button from './ui/Button.svelte';
 
     let { isOpen, onClose, onRefresh } = $props<{
         isOpen: boolean;
@@ -89,21 +90,18 @@
                         />
                         <div class="flex gap-2">
                             <input 
-                                type="text" 
-                                placeholder="Descripción (opcional)" 
                                 class="input input-bordered flex-1 input-sm focus:input-primary" 
                                 bind:value={newCategory.description} 
                             />
-                            <button 
-                                class="btn btn-primary btn-sm px-6" 
+                            <Button 
+                                size="sm" 
                                 onclick={handleAdd} 
-                                disabled={!newCategory.name || isSaving}
+                                isLoading={isSaving}
+                                disabled={!newCategory.name}
+                                class="px-6"
                             >
-                                {#if isSaving}
-                                    <span class="loading loading-spinner loading-xs"></span>
-                                {/if}
                                 Añadir
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>
@@ -122,28 +120,32 @@
                             {#each categories as cat}
                                 <div class="flex items-center justify-between p-3 bg-base-100 rounded-lg border border-base-200 hover:border-primary/30 transition-all group">
                                     <div class="flex flex-col">
-                                        <span class="font-bold">{cat.name}</span>
-                                        {#if cat.description}
-                                            <span class="text-xs opacity-50">{cat.description}</span>
-                                        {/if}
+                                            <span class="font-bold">{cat.name}</span>
+                                            {#if cat.description}
+                                                <span class="text-xs opacity-50">{cat.description}</span>
+                                            {/if}
+                                        </div>
+                                        <Button 
+                                            variant="ghost" 
+                                            size="sm" 
+                                            danger 
+                                            circle 
+                                            class="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            onclick={() => handleDelete(cat.id!)}
+                                            aria-label="Eliminar categoría"
+                                            title="Eliminar categoría"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                        </Button>
                                     </div>
-                                    <button 
-                                        class="btn btn-circle btn-ghost btn-sm text-error opacity-0 group-hover:opacity-100 transition-opacity"
-                                        onclick={() => handleDelete(cat.id!)}
-                                        aria-label="Eliminar categoría"
-                                        title="Eliminar categoría"
-                                    >
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                    </button>
-                                </div>
-                            {/each}
-                        </div>
+                                {/each}
+                            </div>
                     {/if}
                 </div>
             </div>
 
             <div class="p-6 bg-base-200/50 flex justify-end border-t border-base-300">
-                <button class="btn btn-ghost" onclick={onClose}>Cerrar Panel</button>
+                <Button variant="ghost" onclick={onClose}>Cerrar Panel</Button>
             </div>
         </div>
         <button 

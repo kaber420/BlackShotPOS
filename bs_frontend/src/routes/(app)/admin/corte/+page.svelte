@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
-    import { appState, setActiveShift } from '$lib/app_state.svelte';
     import { checkActiveShift, closeShift, getShiftReport } from '$lib/api/shifts';
+    import Button from '$lib/components/ui/Button.svelte';
     
     let isChecking = $state(true);
     let shiftReport = $state<any>(null);
@@ -89,8 +89,8 @@
                     <div class="flex justify-between mb-1 font-bold"><span>TOTAL VENTAS:</span> <span>${closedShiftData.sales.total.toFixed(2)}</span></div>
                 </div>
                 <div class="card-actions mt-6">
-                    <button class="btn btn-outline" onclick={() => window.print()}>Imprimir Reporte</button>
-                    <a href="/" class="btn btn-primary">Volver al Dashboard</a>
+                    <Button variant="outline" onclick={() => window.print()}>Imprimir Reporte</Button>
+                    <Button variant="primary" onclick={() => window.location.href = '/'}>Volver al Dashboard</Button>
                 </div>
             </div>
         </div>
@@ -157,13 +157,16 @@
                     </div>
 
                     <div class="card-actions mt-auto pt-6">
-                        <button class="btn btn-primary btn-block btn-lg" onclick={handleCloseShift} disabled={isClosing || actualCash === 0}>
-                            {#if isClosing}
-                                <span class="loading loading-spinner"></span> Procesando Cierre...
-                            {:else}
-                                Cerrar Caja y Generar Reporte
-                            {/if}
-                        </button>
+                        <Button 
+                            variant="primary" 
+                            size="lg" 
+                            class="btn-block font-black" 
+                            onclick={handleCloseShift} 
+                            disabled={actualCash === 0}
+                            isLoading={isClosing}
+                        >
+                            Cerrar Caja y Generar Reporte
+                        </Button>
                     </div>
                 </div>
             </div>

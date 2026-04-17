@@ -5,9 +5,10 @@
 	import { fetchApi } from '$lib/api';
 	import { OrderService } from '$lib/api/orders';
 	import { addToast } from '$lib/toast.svelte.js';
-	import PaymentModal from '$lib/components/PaymentModal.svelte';
-	import { goto } from '$app/navigation';
+    import PaymentModal from '$lib/components/PaymentModal.svelte';
+    import { goto } from '$app/navigation';
     import { page } from '$app/state';
+    import Button from '$lib/components/ui/Button.svelte';
 
 	let showPaymentModal = $state(false);
 	let isLoading = $state(false);
@@ -160,8 +161,10 @@
 			in:fly={{ y: 50, duration: 300 }}
 			out:fade={{ duration: 150 }}
 		>
-			<button
-				class="btn btn-primary shadow-xl shadow-primary/30 flex items-center gap-3 rounded-full pl-4 pr-6 sm:btn-lg"
+			<Button
+				variant="primary"
+				size="lg"
+				class="shadow-xl shadow-primary/30 flex items-center gap-3 rounded-full pl-4 pr-6"
 				onclick={toggleCart}
 			>
                 <div class="indicator">
@@ -176,7 +179,7 @@
 					<span class="font-bold text-xs uppercase tracking-wider opacity-90 hidden md:block">Ver Pedido</span>
 					<span class="font-black text-lg md:text-xl">{appState.settings?.currency_symbol}{finalTotal.toFixed(2)}</span>
 				</div>
-			</button>
+			</Button>
 		</div>
 	{/if}
 
@@ -214,18 +217,20 @@
                         </div>
                     {/if}
                 </div>
-				<button class="btn btn-ghost btn-circle btn-sm" onclick={toggleCart} aria-label="Cerrar pedido">
+				<Button variant="ghost" circle size="sm" onclick={toggleCart} aria-label="Cerrar pedido">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                </button>
+                </Button>
 			</div>
 			
 			<!-- Items in Cart -->
 			<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
                 <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-bold opacity-50 uppercase">{itemCount} items</span>
-                    <button class="btn btn-ghost btn-xs text-error" onclick={() => { clearCart(); setActiveTable(null); appState.cartVisible = false; }}>Vaciar Todo</button>
+                    <Button variant="ghost" size="xs" danger onclick={() => { clearCart(); setActiveTable(null); appState.cartVisible = false; }}>
+                        Vaciar Todo
+                    </Button>
                 </div>
 					{#each appState.cart as item (item.id)}
 						<div class="flex justify-between items-start {item.db_id ? 'bg-base-300/20 opacity-70' : 'bg-base-200/40'} p-3 rounded-lg border {item.db_id ? 'border-base-300' : 'border-base-200/50'}">
@@ -251,7 +256,7 @@
 							<div class="flex flex-col items-end gap-1">
 								<span class="font-bold text-sm {item.db_id ? 'opacity-50' : 'text-primary'}">${item.total_price.toFixed(2)}</span>
                                 {#if !item.db_id}
-								    <button class="btn btn-circle btn-xs btn-error btn-outline border-none" onclick={() => removeFromCart(item.id)}>×</button>
+								    <Button variant="ghost" size="xs" danger circle onclick={() => removeFromCart(item.id)}>×</Button>
                                 {/if}
 							</div>
 						</div>
@@ -274,30 +279,30 @@
 				</div>
 				
 				<div class="flex flex-col gap-2 relative">
-                    <button 
-                        class="btn btn-primary btn-lg w-full shadow-lg shadow-primary/20" 
-                        disabled={appState.cart.length === 0 || isLoading}
+                    <Button 
+                        variant="primary" 
+                        size="lg" 
+                        class="w-full shadow-lg shadow-primary/20" 
+                        disabled={appState.cart.length === 0}
+                        {isLoading}
                         onclick={openCheckout}
                     >
-                        {#if isLoading}
-                            <span class="loading loading-spinner loading-xs"></span>
-                        {:else}
-                            Cobrar {appState.settings?.currency_symbol}{finalTotal.toFixed(2)}
-                        {/if}
-                    </button>
+                        Cobrar {appState.settings?.currency_symbol}{finalTotal.toFixed(2)}
+                    </Button>
 
-                    <button 
-                        class="btn btn-outline btn-secondary btn-lg w-full" 
-                        disabled={appState.cart.length === 0 || isLoading}
+                    <Button 
+                        variant="outline"
+                        size="lg" 
+                        class="w-full" 
+                        disabled={appState.cart.length === 0}
+                        {isLoading}
                         onclick={sendToKitchen}
                     >
-                        {#if isLoading}
-                            <span class="loading loading-spinner loading-xs"></span>
-                        {:else}
+                        <svelte:fragment slot="icon">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-1.333-1.756A3.75 3.75 0 0012 18z" /></svg>
-                            Enviar a Cocina
-                        {/if}
-                    </button>
+                        </svelte:fragment>
+                        Enviar a Cocina
+                    </Button>
                 </div>
 			</div>
 		</div>

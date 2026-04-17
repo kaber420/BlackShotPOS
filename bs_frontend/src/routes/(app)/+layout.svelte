@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import Toast from '$lib/components/Toast.svelte';
 	import FloatingCart from '$lib/components/FloatingCart.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
 	let { children } = $props();
 
@@ -155,13 +156,13 @@
 								{/if}
 							</ul>
 							<div class="card-actions pt-2 border-t border-base-200">
-								<button class="btn btn-error btn-sm btn-block text-white" onclick={handleLogout}>Cerrar Sesión</button>
+								<Button variant="danger" size="sm" class="btn-block" onclick={handleLogout}>Cerrar Sesión</Button>
 							</div>
 						</div>
 					</div>
 				</div>
 			{:else}
-				<a href="/login" class="btn btn-primary btn-sm rounded-xl font-bold shadow-lg shadow-primary/20">Acceder</a>
+				<Button variant="primary" size="sm" class="font-bold" onclick={() => goto('/login')}>Acceder</Button>
 			{/if}
 		</div>
 	</header>
@@ -197,14 +198,16 @@
 			</div>
 
 			<div class="modal-action mt-6 flex gap-3">
-				<!-- Opcionalmente podríamos permitir ir al Admin Panel (saltar el cierre si eres admin) -->
-				<button class="btn btn-primary btn-block text-lg font-bold" onclick={handleOpenShift} disabled={isOpeningShift || initialCash < 0}>
-					{#if isOpeningShift}
-						<span class="loading loading-spinner"></span> Abriendo...
-					{:else}
-						Abrir Turno de Caja
-					{/if}
-				</button>
+				<Button 
+                    variant="primary" 
+                    size="lg" 
+                    class="btn-block font-bold" 
+                    onclick={handleOpenShift} 
+                    disabled={initialCash < 0}
+                    {isLoading}
+                >
+					Abrir Turno de Caja
+				</Button>
 			</div>
 		</div>
 	</div>

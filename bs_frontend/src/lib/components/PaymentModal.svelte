@@ -1,5 +1,6 @@
 <script lang="ts">
     import { appState } from '$lib/app_state.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let { isOpen, total, onConfirm, onClose } = $props();
 
@@ -62,27 +63,30 @@
                 <div>
                     <span class="text-[10px] font-black uppercase tracking-widest opacity-60 mb-3 block">Método de Pago</span>
                     <div class="grid grid-cols-3 gap-2">
-                        <button 
-                            class="btn btn-outline h-20 flex flex-col gap-1 {paymentMethod === 'CASH' ? 'btn-primary bg-primary/10' : ''}" 
+                        <Button 
+                            variant={paymentMethod === 'CASH' ? 'primary' : 'outline'}
+                            class="h-20 flex flex-col gap-1 items-center justify-center {paymentMethod === 'CASH' ? 'shadow-inner' : ''}" 
                             onclick={() => selectMethod('CASH')}
                         >
                             <span class="text-xl">💵</span>
                             <span class="text-[10px] font-black">EFECTIVO</span>
-                        </button>
-                        <button 
-                            class="btn btn-outline h-20 flex flex-col gap-1 {paymentMethod === 'CARD' ? 'btn-primary bg-primary/10' : ''}" 
+                        </Button>
+                        <Button 
+                            variant={paymentMethod === 'CARD' ? 'primary' : 'outline'}
+                            class="h-20 flex flex-col gap-1 items-center justify-center {paymentMethod === 'CARD' ? 'shadow-inner' : ''}" 
                             onclick={() => selectMethod('CARD')}
                         >
                             <span class="text-xl">💳</span>
                             <span class="text-[10px] font-black">TARJETA</span>
-                        </button>
-                        <button 
-                            class="btn btn-outline h-20 flex flex-col gap-1 {paymentMethod === 'TRANSFER' ? 'btn-primary bg-primary/10' : ''}" 
+                        </Button>
+                        <Button 
+                            variant={paymentMethod === 'TRANSFER' ? 'primary' : 'outline'}
+                            class="h-20 flex flex-col gap-1 items-center justify-center {paymentMethod === 'TRANSFER' ? 'shadow-inner' : ''}" 
                             onclick={() => selectMethod('TRANSFER')}
                         >
                             <span class="text-xl">📲</span>
                             <span class="text-[10px] font-black">TRANSF.</span>
-                        </button>
+                        </Button>
                     </div>
                 </div>
 
@@ -103,13 +107,13 @@
                     </div>
                     
                     <div class="grid grid-cols-4 gap-2 mt-3">
-                        <button class="btn btn-sm font-bold" onclick={() => addCash(20)}>+20</button>
-                        <button class="btn btn-sm font-bold" onclick={() => addCash(50)}>+50</button>
-                        <button class="btn btn-sm font-bold" onclick={() => addCash(100)}>+100</button>
-                        <button class="btn btn-sm font-bold" onclick={() => addCash(200)}>+200</button>
-                        <button class="btn btn-sm font-bold" onclick={() => addCash(500)}>+500</button>
-                        <button class="btn btn-sm font-bold btn-outline btn-primary col-span-2" onclick={setExact}>Exacto</button>
-                        <button class="btn btn-sm font-bold btn-ghost text-error" onclick={() => addCash(0)}>Cero</button>
+                        <Button size="sm" class="font-bold" onclick={() => addCash(20)}>+20</Button>
+                        <Button size="sm" class="font-bold" onclick={() => addCash(50)}>+50</Button>
+                        <Button size="sm" class="font-bold" onclick={() => addCash(100)}>+100</Button>
+                        <Button size="sm" class="font-bold" onclick={() => addCash(200)}>+200</Button>
+                        <Button size="sm" class="font-bold" onclick={() => addCash(500)}>+500</Button>
+                        <Button variant="outline" size="sm" class="font-bold col-span-2" onclick={setExact}>Exacto</Button>
+                        <Button variant="ghost" size="sm" danger class="font-bold" onclick={() => addCash(0)}>Cero</Button>
                     </div>
                 </div>
                 {/if}
@@ -152,18 +156,17 @@
                 </div>
 
                 <div class="flex flex-col gap-3 mt-8">
-                    <button 
-                        class="btn btn-primary btn-lg shadow-xl shadow-primary/20 text-white font-black uppercase tracking-widest" 
-                        disabled={!isAmountSufficient || isLoading} 
+                    <Button 
+                        variant="primary" 
+                        size="lg" 
+                        class="shadow-xl shadow-primary/20 text-white font-black uppercase tracking-widest" 
+                        disabled={!isAmountSufficient} 
+                        {isLoading}
                         onclick={handleProcess}
                     >
-                        {#if isLoading}
-                            <span class="loading loading-spinner"></span> Procesando...
-                        {:else}
-                            Confirmar Cobro
-                        {/if}
-                    </button>
-                    <button class="btn btn-ghost btn-sm opacity-60" onclick={onClose}>Cancelar</button>
+                        Confirmar Cobro
+                    </Button>
+                    <Button variant="ghost" size="sm" class="opacity-60" onclick={onClose}>Cancelar</Button>
                 </div>
             </div>
         </div>

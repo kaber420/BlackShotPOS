@@ -2,3 +2,70 @@
 @plugin "daisyui" {
   themes: light, dark, corporate, coffee, dim, bumblebee;
 }
+
+@layer utilities {
+  .elegant-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
+  }
+
+  .elegant-scroll::-webkit-scrollbar {
+    width: 3px;
+    height: 3px;
+  }
+
+  .elegant-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .elegant-scroll::-webkit-scrollbar-thumb {
+    background: rgba(128, 128, 128, 0.2);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+  }
+
+  .elegant-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(128, 128, 128, 0.5);
+  }
+
+  /* Blackshot Button System */
+  .btn {
+    @apply transition-all duration-300 active:scale-95 font-bold uppercase tracking-wide;
+    border-radius: 0.75rem; /* rounded-xl */
+  }
+
+  .btn-primary {
+    @apply shadow-lg shadow-primary/20 border-none text-white;
+    background: linear-gradient(135deg, var(--color-primary) 0%, oklch(from var(--color-primary) l c h / 0.8) 100%);
+  }
+
+  .btn-primary:hover {
+    @apply shadow-xl shadow-primary/30 -translate-y-0.5;
+    background: linear-gradient(135deg, oklch(from var(--color-primary) l c h / 0.9) 0%, var(--color-primary) 100%);
+  }
+
+  .btn-outline {
+    @apply border-2 border-primary/30 text-primary transition-all duration-200 bg-primary/5;
+  }
+
+  .btn-outline:hover {
+    @apply bg-primary text-white border-primary shadow-lg shadow-primary/20 -translate-y-0.5;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary/10 border-none text-secondary shadow-sm;
+  }
+
+  .btn-secondary:hover {
+    @apply bg-secondary text-secondary-content shadow-md;
+  }
+
+  .btn-ghost:hover {
+    @apply bg-base-content/5;
+  }
+
+  /* Fix for "deformed" buttons seen in screenshots */
+  .btn-square, .btn-circle {
+    @apply p-0 flex items-center justify-center min-h-0 min-w-0;
+  }
+}

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { setAuth } from '$lib/app_state.svelte';
+	import Button from '$lib/components/ui/Button.svelte';
 
 	let username = $state('');
 	let password = $state('');
@@ -87,12 +88,16 @@
 				</div>
 
 				<div class="form-control mt-8">
-					<button class="btn btn-primary btn-block text-lg shadow-md" disabled={loading}>
-						{#if loading}
-							<span class="loading loading-spinner"></span>
-						{/if}
+					<Button 
+						variant="primary" 
+						size="lg" 
+						class="w-full text-lg shadow-md" 
+						disabled={loading}
+						isLoading={loading}
+						type="submit"
+					>
 						Entrar al Sistema
-					</button>
+					</Button>
 				</div>
 			</form>
 		</div>

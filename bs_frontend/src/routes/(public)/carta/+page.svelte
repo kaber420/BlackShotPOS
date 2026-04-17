@@ -5,6 +5,7 @@
     import { CategoryService } from '$lib/api/categories';
     import type { Category } from '$lib/api/categories';
     import { fade, fly } from 'svelte/transition';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let products = $state<Product[]>([]);
     let categories = $state<Category[]>([]);
@@ -104,19 +105,23 @@
     <!-- Category Tabs -->
     <div class="sticky top-20 z-40 bg-base-100/95 backdrop-blur-md py-4 mb-8 -mx-4 px-4 overflow-x-auto no-scrollbar">
         <div class="flex gap-2 justify-start md:justify-center min-w-max">
-            <button 
-                class="btn btn-sm md:btn-md rounded-full px-6 transition-all {selectedCategory === null ? 'btn-primary' : 'btn-ghost'}"
+            <Button 
+                variant={selectedCategory === null ? 'primary' : 'outline'}
+                size="sm"
+                class="rounded-full px-6 transition-all {selectedCategory === null ? 'shadow-lg shadow-primary/20' : 'border-base-300'}"
                 onclick={() => selectedCategory = null}
             >
                 Todos
-            </button>
+            </Button>
             {#each categories as category}
-                <button 
-                    class="btn btn-sm md:btn-md rounded-full px-6 transition-all {selectedCategory === category.id ? 'btn-primary' : 'btn-ghost bg-base-200/50'}"
+                <Button 
+                    variant={selectedCategory === category.id ? 'primary' : 'outline'}
+                    size="sm"
+                    class="rounded-full px-6 transition-all {selectedCategory === category.id ? 'shadow-lg shadow-primary/20' : 'border-base-300 bg-base-200/5'}"
                     onclick={() => selectedCategory = category.id || null}
                 >
                     {category.name}
-                </button>
+                </Button>
             {/each}
         </div>
     </div>
@@ -126,7 +131,7 @@
             <div class="alert alert-error shadow-inner rounded-2xl mb-4">
                 <span>{errorMessage}</span>
             </div>
-            <button class="btn btn-primary" onclick={loadData}>Reintentar</button>
+            <Button variant="primary" onclick={loadData}>Reintentar</Button>
         </div>
     {/if}
 

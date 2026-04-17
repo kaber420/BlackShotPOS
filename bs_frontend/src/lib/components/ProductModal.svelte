@@ -3,6 +3,7 @@
     import { IngredientService, type Ingredient } from '$lib/api/ingredients';
     import type { Category } from '$lib/api/categories';
     import { onMount } from 'svelte';
+    import Button from './ui/Button.svelte';
 
     let { isOpen, product, categories, onClose, onSave } = $props<{
         isOpen: boolean;
@@ -363,10 +364,10 @@
                                         <div class="relative group w-full aspect-video rounded-2xl overflow-hidden border border-base-300 bg-base-200">
                                             <img src={formData.image_url} alt={formData.name} class="w-full h-full object-cover" />
                                             <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                                <button class="btn btn-circle btn-error btn-sm" onclick={removeImage} title="Eliminar Imagen">
+                                                <Button variant="ghost" danger circle size="sm" onclick={removeImage} title="Eliminar Imagen">
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                </button>
-                                                <label class="btn btn-circle btn-primary btn-sm cursor-pointer" title="Cambiar Imagen">
+                                                </Button>
+                                                <label class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:shadow-primary/40 hover:-translate-y-0.5 transition-all duration-200" title="Cambiar Imagen">
                                                     <input type="file" class="hidden" accept="image/*" onchange={handleImageUpload} />
                                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                                 </label>
@@ -431,13 +432,15 @@
                             <span class="text-sm font-bold opacity-70">Añadir Talla:</span>
                             <div class="flex flex-wrap gap-2">
                                 {#each availableMeasures as m}
-                                    <button 
-                                        class="btn btn-sm {selectedVariants.some(v => v.measure_id === m.id) ? 'btn-disabled opacity-30' : 'btn-outline btn-primary'}" 
+                                    <Button 
+                                        variant="outline"
+                                        size="sm"
                                         onclick={() => addVariant(m.id!)}
                                         disabled={selectedVariants.some(v => v.measure_id === m.id)}
+                                        class={selectedVariants.some(v => v.measure_id === m.id) ? 'opacity-30' : ''}
                                     >
                                         + {m.name}
-                                    </button>
+                                    </Button>
                                 {/each}
                                 {#if availableMeasures.length === 0}
                                     <span class="text-[10px] opacity-40 italic">Cargando medidas...</span>
@@ -462,7 +465,7 @@
                                         <div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
                                         <div class="flex justify-between items-center">
                                             <h5 class="font-black text-xl text-primary uppercase tracking-tighter">{variant.measure?.name}</h5>
-                                            <button class="btn btn-ghost btn-sm text-error font-bold" onclick={() => removeVariant(i)}>Eliminar Talla</button>
+                                            <Button variant="ghost" size="sm" danger onclick={() => removeVariant(i)}>Eliminar Talla</Button>
                                         </div>
                                                             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                                             <div class="form-control">
@@ -475,15 +478,15 @@
                                                     {#if variant.image_url}
                                                         <div class="relative group w-12 h-12 rounded-lg overflow-hidden border border-base-300">
                                                             <img src={variant.image_url} alt={variant.measure?.name} class="w-full h-full object-cover" />
-                                                            <button class="absolute inset-0 bg-error/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white" onclick={() => removeVariantImage(i)}>
+                                                            <Button variant="ghost" size="xs" danger circle class="absolute inset-0 bg-error/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white" onclick={() => removeVariantImage(i)}>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                            </button>
+                                                            </Button>
                                                         </div>
                                                     {/if}
                                                     <div class="flex-1 flex flex-col gap-1">
                                                         <div class="flex gap-1">
                                                             <input type="text" class="input input-bordered input-xs flex-1 text-[10px]" bind:value={variant.image_url} placeholder="URL externa o selecciona archivo..." />
-                                                            <label class="btn btn-square btn-xs btn-primary cursor-pointer">
+                                                            <label class="w-6 h-6 bg-primary text-white rounded flex items-center justify-center cursor-pointer shadow-sm hover:bg-primary/90 transition-all">
                                                                 <input type="file" class="hidden" accept="image/*" onchange={(e) => handleVariantImageUpload(i, e)} />
                                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                                                             </label>
@@ -502,8 +505,8 @@
                                                     Receta del Tamaño
                                                 </h6>
                                                 <div class="flex gap-2">
-                                                    <button class="btn btn-xs btn-primary btn-outline" onclick={() => addIngredientToVariant(i)}>+ Fijo</button>
-                                                    <button class="btn btn-xs btn-secondary btn-outline" onclick={() => addModifierGroupToVariantRecipe(i)}>+ Opcional</button>
+                                                    <Button variant="outline" size="xs" onclick={() => addIngredientToVariant(i)}>+ Fijo</Button>
+                                                    <Button variant="outline" size="xs" onclick={() => addModifierGroupToVariantRecipe(i)}>+ Opcional</Button>
                                                 </div>
                                             </div>
 
@@ -540,7 +543,7 @@
                                                                 </label>
                                                                 <input id="v-{i}-ri-{riIndex}-qty" type="number" step="0.001" class="input input-bordered input-xs text-center font-bold" bind:value={ri.quantity} />
                                                             </div>
-                                                            <button class="btn btn-square btn-xs btn-ghost text-error" onclick={() => removeIngredientFromVariant(i, riIndex)} title="Eliminar Componente">×</button>
+                                                            <Button variant="ghost" size="sm" danger square onclick={() => removeIngredientFromVariant(i, riIndex)} title="Eliminar Componente">✕</Button>
                                                         </div>
                                                     {/each}
                                                 </div>
@@ -578,8 +581,10 @@
                             <div class="flex flex-wrap gap-2">
                                 {#each availableModifierGroups as group}
                                     {@const isLinked = formData.modifier_groups?.some(g => g.id === group.id)}
-                                    <button 
-                                        class="btn btn-sm {isLinked ? 'btn-primary shadow-lg shadow-primary/20' : 'btn-outline border-base-300'}"
+                                    <Button 
+                                        variant={isLinked ? 'primary' : 'outline'}
+                                        size="sm"
+                                        class={isLinked ? 'shadow-lg shadow-primary/20' : 'border-base-300'}
                                         onclick={() => {
                                             if (isLinked) {
                                                 formData.modifier_groups = formData.modifier_groups?.filter(g => g.id !== group.id);
@@ -589,7 +594,7 @@
                                         }}
                                     >
                                         {isLinked ? '✓' : '+'} {group.name}
-                                    </button>
+                                    </Button>
                                 {/each}
                                 {#if availableModifierGroups.length === 0}
                                     <div class="alert alert-warning text-xs py-2 rounded-xl">
@@ -640,13 +645,10 @@
 
             <!-- Footer -->
             <div class="bg-base-200/50 p-6 border-t border-base-300 flex justify-end gap-3">
-                <button class="btn btn-ghost rounded-xl font-bold" onclick={onClose}>Cancelar</button>
-                <button class="btn btn-primary px-10 gap-2 shadow-lg shadow-primary/20 rounded-xl font-black uppercase tracking-widest text-xs" onclick={handleSave} disabled={isSaving}>
-                    {#if isSaving}
-                        <span class="loading loading-spinner"></span>
-                    {/if}
+                <Button variant="ghost" class="font-bold" onclick={onClose}>Cancelar</Button>
+                <Button variant="primary" size="md" class="px-10 gap-2 shadow-lg shadow-primary/20 rounded-xl font-black uppercase tracking-widest text-xs" onclick={handleSave} isLoading={isSaving}>
                     {product?.id ? 'Guardar Cambios' : 'Crear Producto'}
-                </button>
+                </Button>
             </div>
         </div>
         <button class="modal-backdrop bg-black/60" onclick={onClose}></button>

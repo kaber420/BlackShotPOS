@@ -2,6 +2,7 @@
 	import { IngredientService, type Ingredient } from '$lib/api/ingredients';
 	import { ProductService, type ModifierGroup, type Modifier } from '$lib/api/products';
 	import { onMount } from 'svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
 	let ingredients = $state<Ingredient[]>([]);
 	let modifierGroups = $state<ModifierGroup[]>([]);
@@ -181,9 +182,9 @@
 				<div class="w-2 h-8 bg-primary rounded-full"></div>
 				Insumos Base
 			</h2>
-			<button class="btn btn-primary shadow-lg shadow-primary/20" onclick={() => openIngredientModal()}>
+			<Button variant="primary" onclick={() => openIngredientModal()}>
 				+ Insumo
-			</button>
+			</Button>
 		</div>
 
 		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -200,8 +201,8 @@
 								<span class="text-[10px] uppercase font-bold opacity-40">{ing.unit}</span>
 							</div>
 							<div class="flex gap-1">
-								<button class="btn btn-square btn-ghost btn-xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</button>
-								<button class="btn btn-square btn-ghost btn-xs text-error" onclick={() => ing.id && handleDeleteIngredient(ing.id)} title="Eliminar">×</button>
+								<Button variant="ghost" square size="xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</Button>
+								<Button variant="ghost" square size="xs" danger onclick={() => ing.id && handleDeleteIngredient(ing.id)} title="Eliminar">×</Button>
 							</div>
 						</div>
 						
@@ -228,9 +229,9 @@
 				<div class="w-2 h-8 bg-secondary rounded-full"></div>
 				Agrupaciones (Leches, Jarabes, etc.)
 			</h2>
-			<button class="btn btn-secondary shadow-lg shadow-secondary/20" onclick={() => openGroupModal()}>
+			<Button variant="secondary" onclick={() => openGroupModal()}>
 				+ Nuevo Grupo
-			</button>
+			</Button>
 		</div>
 
 		<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -244,8 +245,8 @@
 							</p>
 						</div>
 						<div class="flex gap-2">
-							<button class="btn btn-circle btn-ghost btn-sm" onclick={() => openModifierModal(group.id!)}>+</button>
-							<button class="btn btn-circle btn-ghost btn-sm text-error" onclick={() => handleDeleteGroup(group.id!)}>×</button>
+							<Button variant="ghost" circle size="sm" onclick={() => openModifierModal(group.id!)}>+</Button>
+							<Button variant="ghost" circle size="sm" danger onclick={() => handleDeleteGroup(group.id!)}>×</Button>
 						</div>
 					</div>
 					
@@ -271,7 +272,7 @@
 											<span class="text-xs font-black opacity-60">
 												{mod.extra_price > 0 ? `+$${mod.extra_price}` : 'Incluido'}
 											</span>
-											<button class="btn btn-square btn-ghost btn-xs text-error opacity-0 group-hover/item:opacity-100" onclick={() => handleDeleteModifier(mod.id!)}>×</button>
+											<Button variant="ghost" square size="xs" danger class="opacity-0 group-hover/item:opacity-100" onclick={() => handleDeleteModifier(mod.id!)}>×</Button>
 										</div>
 									</div>
 								{/each}
@@ -306,7 +307,7 @@
 				</div>
 			</div>
 			<div class="modal-action">
-				<button type="submit" class="btn btn-primary rounded-xl px-10" disabled={isSubmitting}>Guardar</button>
+				<Button type="submit" variant="primary" class="px-10" isLoading={isSubmitting}>Guardar</Button>
 			</div>
 		</form>
 	</div>
@@ -323,7 +324,7 @@
 				<input type="text" id="g_name" bind:value={groupForm.name} class="input input-bordered focus:input-secondary rounded-xl font-bold" required />
 			</div>
 			<div class="modal-action">
-				<button type="submit" class="btn btn-secondary rounded-xl px-10" disabled={isSubmitting}>Crear Grupo</button>
+				<Button type="submit" variant="secondary" class="px-10" isLoading={isSubmitting}>Crear Grupo</Button>
 			</div>
 		</form>
 	</div>
@@ -350,7 +351,7 @@
 				<input type="number" bind:value={modifierForm.extra_price} class="input input-bordered rounded-xl font-bold" />
 			</div>
 			<div class="modal-action">
-				<button type="submit" class="btn btn-secondary rounded-xl px-10" disabled={isSubmitting}>Guardar Opción</button>
+				<Button type="submit" variant="secondary" class="px-10" isLoading={isSubmitting}>Guardar Opción</Button>
 			</div>
 		</form>
 	</div>

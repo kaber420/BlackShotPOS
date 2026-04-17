@@ -6,6 +6,7 @@
     import TableModal from '$lib/components/TableModal.svelte';
     import TableSummaryModal from '$lib/components/TableSummaryModal.svelte';
     import { setActiveTable, loadOrderToCart, appState } from '$lib/app_state.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
     
     let tables = $state<Table[]>([]);
     let isLoading = $state(true);
@@ -114,7 +115,7 @@
     }
 </script>
 
-<div class="p-6 md:p-8 lg:p-12 max-w-7xl mx-auto flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto w-full">
+<div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
     <header class="flex flex-col gap-2">
         <div class="flex justify-between items-center">
             <div>
@@ -122,31 +123,37 @@
                 <p class="text-lg opacity-70">Monitorea la ocupación y gestiona la asignación de mesas.</p>
             </div>
             <div class="flex items-center gap-3">
-                <button 
-                    class="btn {adminMode ? 'btn-primary' : 'btn-outline'} btn-md gap-2" 
+                <Button 
+                    variant={adminMode ? 'primary' : 'outline'}
+                    size="md"
+                    class="gap-2" 
                     onclick={() => { adminMode = !adminMode; refreshTables(); }}
                 >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
+                    <svelte:fragment slot="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </svelte:fragment>
                     {adminMode ? 'Salir Configuración' : 'Configurar Salón'}
-                </button>
+                </Button>
 
                 {#if adminMode}
-                    <button class="btn btn-primary btn-md gap-2" onclick={openCreateModal}>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
+                    <Button variant="primary" size="md" class="gap-2" onclick={openCreateModal}>
+                        <svelte:fragment slot="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </svelte:fragment>
                         Nueva Mesa
-                    </button>
+                    </Button>
                 {/if}
 
-                <button class="btn btn-ghost btn-circle" onclick={refreshTables} aria-label="Actualizar mesas">
+                <Button variant="ghost" circle size="md" onclick={refreshTables} aria-label="Actualizar mesas">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                </button>
+                </Button>
             </div>
         </div>
     </header>
@@ -161,7 +168,7 @@
             <p class="text-sm opacity-20">Ve al panel de administración para añadir mesas.</p>
         </div>
     {:else}
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-6">
             {#each tables as table}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <div 
@@ -176,10 +183,10 @@
                         
                         {#if adminMode}
                             <div class="flex gap-1 mt-4">
-                                <button class="btn btn-xs btn-ghost text-primary" onclick={(e) => { e.stopPropagation(); openEditModal(table); }}>Editar</button>
-                                <button class="btn btn-xs btn-ghost text-error" onclick={(e) => { e.stopPropagation(); toggleTableActive(table); }}>
+                                <Button variant="ghost" size="xs" class="text-primary" onclick={(e) => { e.stopPropagation(); openEditModal(table); }}>Editar</Button>
+                                <Button variant="ghost" size="xs" danger onclick={(e) => { e.stopPropagation(); toggleTableActive(table); }}>
                                     {table.is_active ? 'Eliminar' : 'Activar'}
-                                </button>
+                                </Button>
                             </div>
                         {:else}
                             {#if !table.is_active}

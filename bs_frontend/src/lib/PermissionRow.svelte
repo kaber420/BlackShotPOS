@@ -1,6 +1,7 @@
 <script lang="ts">
     import { UserService } from '$lib/api/users';
     import { ROLE_PRESETS_JS } from '$lib/roles';
+    import Button from '$lib/components/ui/Button.svelte';
 
     interface Props {
         permission: { key: string; label: string; desc: string };
@@ -52,16 +53,14 @@
             <span class="badge badge-warning badge-xs mt-1">override</span>
         {/if}
     </div>
-    <button
-        class="btn btn-sm ml-3 {effective ? 'btn-success' : 'btn-ghost opacity-40'}"
+    <Button
+        variant={effective ? 'success' : 'ghost'}
+        size="sm"
+        class="ml-3 {effective ? '' : 'opacity-40'}"
         onclick={toggle}
-        disabled={saving}
+        isLoading={saving}
         title="{effective ? 'Activo — click para desactivar' : 'Inactivo — click para activar'}"
     >
-        {#if saving}
-            <span class="loading loading-spinner loading-xs"></span>
-        {:else}
-            {effective ? '✓' : '✕'}
-        {/if}
-    </button>
+        {effective ? '✓' : '✕'}
+    </Button>
 </div>

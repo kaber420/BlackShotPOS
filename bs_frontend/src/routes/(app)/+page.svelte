@@ -10,6 +10,7 @@
 	import { appState, addToCart, loadOrderToCart } from '$lib/app_state.svelte';
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
 	import { addToast } from '$lib/toast.svelte.js';
+    import Button from '$lib/components/ui/Button.svelte';
 
 	let categories = $state<Category[]>([]);
 	let products = $state<Product[]>([]);
@@ -192,15 +193,16 @@
 		<!-- Left: Categories & Products (100%) -->
 		<div class="w-full flex flex-col gap-4 h-full min-h-0">
 			<!-- Categories Tabs -->
-			<div class="tabs tabs-box bg-base-100 shadow-sm p-1 rounded-lg border border-base-200 overflow-x-auto whitespace-nowrap">
+			<div class="flex gap-2 bg-base-100 shadow-sm p-2 rounded-xl border border-base-200 overflow-x-auto whitespace-nowrap elegant-scroll">
 				{#each categories as cat}
-					<button 
-						role="tab" 
-						class="tab {selectedCategory === (cat.id ?? null) ? 'tab-active' : ''}"
+					<Button 
+						variant={selectedCategory === (cat.id ?? null) ? 'primary' : 'ghost'}
+                        size="sm"
+                        class="rounded-lg transition-all"
 						onclick={() => loadProducts(cat.id ?? null)}
 					>
 						{cat.name}
-					</button>
+					</Button>
 				{/each}
 			</div>
 			
@@ -266,12 +268,17 @@
 											</div>
 											
 											{#if prod.description}
-												<button 
-													class="btn btn-circle btn-ghost btn-xs text-primary/40 hover:text-primary hover:bg-primary/10"
+												<Button 
+                                                    variant="ghost"
+                                                    circle
+                                                    size="xs"
+													class="text-primary/40 hover:text-primary hover:bg-primary/10"
 													onclick={(e) => { e.stopPropagation(); infoProductId = prod.id; }}
 												>
-													<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
-												</button>
+                                                    <svelte:fragment slot="icon">
+													    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                                                    </svelte:fragment>
+												</Button>
 											{/if}
 										</div>
 									</div>
@@ -279,9 +286,10 @@
 							</button>
 
 							{#if infoProductId === prod.id}
-								<button 
-									class="absolute inset-0 z-10 bg-base-100/95 backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-2xl border-2 border-primary/20"
+								<div 
+									class="absolute inset-0 z-10 bg-base-100/95 backdrop-blur-md rounded-2xl p-4 flex flex-col items-center justify-center text-center shadow-2xl border-2 border-primary/20 pointer-events-auto"
 									onclick={(e) => { e.stopPropagation(); infoProductId = null; }}
+                                    aria-hidden="true"
 									transition:fade={{ duration: 150 }}
 								>
 									<div 
@@ -289,19 +297,19 @@
 										in:scale={{ duration: 200, start: 0.95 }}
 									>
 										<div class="absolute top-2 right-2">
-											<div class="btn btn-circle btn-ghost btn-xs text-base-content/40">
+											<Button variant="ghost" circle size="xs" class="text-base-content/40">
 												<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-											</div>
+											</Button>
 										</div>
 										<h4 class="font-black text-xs uppercase tracking-widest text-primary mb-2 line-clamp-1">{prod.name}</h4>
-										<div class="flex-1 overflow-y-auto w-full px-2 custom-scrollbar">
+										<div class="flex-1 overflow-y-auto w-full px-2 elegant-scroll">
 											<p class="text-[11px] leading-relaxed opacity-90 text-left">
 												{prod.description}
 											</p>
 										</div>
 										<div class="mt-3 text-[9px] font-bold uppercase tracking-tighter opacity-30 animate-pulse">Tocar para cerrar</div>
 									</div>
-								</button>
+								</div>
 							{/if}
 						</div>
 					{/each}

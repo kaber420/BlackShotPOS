@@ -10,6 +10,8 @@
         type PrintMethod,
         type PrintMethodInfo,
     } from '$lib/printer';
+    import Button from '$lib/components/ui/Button.svelte';
+    import OrderCard from '$lib/components/OrderCard.svelte';
 
     // ── Estado de la aplicación ──────────────────────────────────────────────
     let orders = $state<any[]>([]);
@@ -161,16 +163,7 @@
     }
 
     // ── Helpers de UI ─────────────────────────────────────────────────────────
-    function getTableNumber(tableId?: number) {
-        if (!tableId) return 'MOSTRADOR';
-        const table = tables.find(t => t.id === tableId);
-        return table ? `MESA ${table.number}` : `ID: ${tableId}`;
-    }
 
-    function getTimeAgo(dateStr: string) {
-        const diffMins = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000);
-        return diffMins < 1 ? 'ahora' : `${diffMins} min`;
-    }
 
     const statusColors: Record<string, string> = {
         connecting: 'badge-warning',
@@ -184,7 +177,7 @@
     };
 </script>
 
-<div class="p-6 md:p-8 lg:p-12 max-w-7xl mx-auto flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto w-full">
+<div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
     <!-- ── Header ──────────────────────────────────────────────────────────── -->
     <header class="flex flex-col gap-3">
         <div class="flex justify-between items-center flex-wrap gap-4">
@@ -207,18 +200,21 @@
 
                 <!-- Selector de método de impresión -->
                 <div class="relative">
-                    <button
-                        class="btn btn-outline btn-sm gap-2"
+                    <Button
+                        variant="outline"
+                        size="sm"
                         onclick={() => (showMethodPicker = !showMethodPicker)}
                         title="Cambiar método de impresión"
                         id="print-method-btn"
                     >
-                        🖨️
-                        {printMethods.find(m => m.id === selectedMethod)?.label ?? 'Impresión'}
-                        <svg class="h-3 w-3 opacity-60" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                        </svg>
-                    </button>
+                        <span class="flex items-center gap-2">
+                            🖨️
+                            {printMethods.find(m => m.id === selectedMethod)?.label ?? 'Impresión'}
+                            <svg class="h-3 w-3 opacity-60" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            </svg>
+                        </span>
+                    </Button>
 
                     {#if showMethodPicker}
                         <div
@@ -266,8 +262,10 @@
                 </div>
 
                 <!-- Botón reconexión manual -->
-                <button
-                    class="btn btn-ghost btn-circle btn-sm"
+                <Button
+                    variant="ghost"
+                    circle
+                    size="sm"
                     onclick={() => { socket?.close(); connectWebSocket(); }}
                     aria-label="Reconectar WebSocket"
                     title="Reconectar"
@@ -275,7 +273,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                </button>
+                </Button>
             </div>
         </div>
 
@@ -286,7 +284,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <span>Error de impresión: {printError}</span>
-                <button class="btn btn-ghost btn-sm" onclick={() => (printError = null)}>✕</button>
+                <Button variant="ghost" size="sm" onclick={() => (printError = null)}>✕</Button>
             </div>
         {/if}
     </header>
@@ -302,136 +300,19 @@
             <p class="text-sm opacity-10 mt-2">Los pedidos aparecerán aquí automáticamente.</p>
         </div>
     {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
             {#each orders as order (order.id)}
-                {@const glow = order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : order.status === 'PREPARING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-primary/40 border-primary/30' : order.status === 'READY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-success/40 border-success/30' : 'shadow-sm border-base-content/5'}
-                <div class="card bg-base-100/60 backdrop-blur-xl hover:-translate-y-1 transition-all duration-300 flex flex-col rounded-3xl border relative overflow-hidden group {glow}">
-                    <div class="absolute inset-0 bg-gradient-to-br from-base-content/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
-                    <div class="card-body p-6 flex flex-col h-full z-10">
-                        <!-- Cabecera de la comanda -->
-                        <div class="flex justify-between items-start mb-4">
-                            <div>
-                                <h2 class="card-title text-2xl font-bold">Orden #{order.id}</h2>
-                                <p class="text-xs font-bold uppercase tracking-widest opacity-60">
-                                    {getTableNumber(order.table_id)} • {getTimeAgo(order.created_at)}
-                                </p>
-                            </div>
-                            <div class="flex flex-col items-end gap-1">
-                                <div class="badge {order.status === 'PENDING' ? 'badge-warning' : 'badge-primary'} font-bold p-3">
-                                    {order.status === 'PENDING' ? 'PENDIENTE' : 'PREPARANDO'}
-                                </div>
-                                {#if order.is_paid}
-                                    <div class="badge badge-success badge-sm font-black text-[10px] py-1 px-2 border-none">PAGADO</div>
-                                {/if}
-                            </div>
-                        </div>
-
-                        <!-- Items -->
-                        <div class="space-y-3 mb-6 flex-grow">
-                            {#if order.items}
-                                {#each order.items as item}
-                                    <div class="flex flex-col bg-base-200/50 p-3 rounded-lg border 
-                                        {item.status === 'CANCELLED' ? 'border-error/50 opacity-50 grayscale' : 
-                                         item.status === 'READY' ? 'border-success/50 opacity-50 bg-success/10' : 
-                                         'border-base-300/50'}">
-                                        
-                                        <div class="flex justify-between items-start gap-2">
-                                            <div class="flex flex-col gap-1">
-                                                <div class="flex items-center gap-2 flex-wrap">
-                                                    <span class="font-bold text-lg {item.status === 'CANCELLED' ? 'line-through' : ''}">
-                                                        {item.quantity}x {item.product?.name ?? 'Producto'}
-                                                    </span>
-                                                    {#if item.product?.recipe_markdown}
-                                                        <button
-                                                            class="btn btn-xs btn-ghost gap-1 opacity-60 hover:opacity-100 hover:btn-info"
-                                                            onclick={() => recipeModal = { name: item.product.name, markdown: item.product.recipe_markdown }}
-                                                            id="recipe-btn-{item.id}"
-                                                            title="Ver receta de preparación"
-                                                        >📖 Receta</button>
-                                                    {/if}
-                                                </div>
-                                                {#if item.status === 'CANCELLED'}
-                                                    <span class="text-error text-xs font-bold">ANULADO</span>
-                                                {:else if item.status === 'READY'}
-                                                    <span class="text-success text-xs font-bold">LISTO</span>
-                                                {:else if item.status === 'PREPARING'}
-                                                    <span class="text-primary text-xs font-bold animated-pulse">EN PREPARACIÓN</span>
-                                                {/if}
-                                            </div>
-                                            <div class="flex gap-2 min-w-max">
-                                                {#if item.status === 'PENDING'}
-                                                    <button class="btn btn-error btn-outline btn-sm btn-square" onclick={() => handleItemCancel(order, item)} title="Anular platillo">🗑️</button>
-                                                    <button class="btn btn-primary btn-outline btn-sm" onclick={() => handleItemComplete(order, item)}>Empezar</button>
-                                                {:else if item.status === 'PREPARING'}
-                                                    <button class="btn btn-primary btn-sm" onclick={() => handleItemComplete(order, item)}>✓ Listo</button>
-                                                {/if}
-                                            </div>
-                                        </div>
-
-                                        <div class="flex justify-between items-center mt-1">
-                                            {#if item.variant}
-                                                <span class="badge badge-outline badge-sm">{item.variant.measure.name}</span>
-                                            {/if}
-                                        </div>
-
-                                        {#if item.modifiers && item.modifiers.length > 0}
-                                            <div class="flex flex-wrap gap-1 mt-1">
-                                                {#each item.modifiers as mod}
-                                                    <span class="badge badge-sm badge-outline opacity-70">+ {mod.name}</span>
-                                                {/each}
-                                            </div>
-                                        {/if}
-                                    </div>
-                                {/each}
-                            {/if}
-                        </div>
-
-                        {#if order.external_reference}
-                            <p class="text-[10px] text-accent font-bold mb-4">REF: {order.external_reference}</p>
-                        {/if}
-
-                        <!-- Acciones globales de la orden -->
-                        <div class="card-actions flex gap-2 mt-auto pt-4 border-t border-base-200">
-                            <!-- Botón de anulación -->
-                            {#if order.status === 'PENDING'}
-                                <button
-                                    class="btn btn-outline btn-error btn-square"
-                                    onclick={() => handleCancel(order)}
-                                    title="Anular toda la orden"
-                                    id="cancel-order-{order.id}"
-                                    aria-label="Anular la orden completa {order.id}"
-                                >
-                                    🗑️
-                                </button>
-                            {/if}
-
-                            <!-- Botón de impresión -->
-                            <button
-                                class="btn btn-outline btn-square"
-                                onclick={() => handlePrintComanda(order.id)}
-                                disabled={printingOrderId === order.id}
-                                title="Imprimir comanda ({printMethods.find(m=>m.id===selectedMethod)?.label})"
-                                id="print-comanda-{order.id}"
-                                aria-label="Imprimir comanda de la orden {order.id}"
-                            >
-                                {#if printingOrderId === order.id}
-                                    <span class="loading loading-spinner loading-sm"></span>
-                                {:else}
-                                    🖨️
-                                {/if}
-                            </button>
-
-                            <!-- Botón completar toda la orden -->
-                            <button
-                                class="btn {order.status === 'PENDING' ? 'btn-outline border-primary' : 'btn-primary'} flex-1 text-lg"
-                                onclick={() => handleComplete(order)}
-                                id="complete-order-{order.id}"
-                            >
-                                {order.status === 'PENDING' ? 'Empezar Toda la Orden' : '✓ Orden Lista'}
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <OrderCard
+                    {order}
+                    view="kitchen"
+                    {printingOrderId}
+                    onItemComplete={handleItemComplete}
+                    onItemCancel={handleItemCancel}
+                    onViewRecipe={(name, markdown) => recipeModal = { name, markdown }}
+                    onCompleteOrder={handleComplete}
+                    onCancelOrder={handleCancel}
+                    onPrint={handlePrintComanda}
+                />
             {/each}
         </div>
     {/if}
@@ -460,11 +341,15 @@
                 <h3 class="text-xl font-black flex items-center gap-2">
                     📖 {recipeModal.name}
                 </h3>
-                <button
-                    class="btn btn-ghost btn-sm btn-circle"
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    circle
                     onclick={() => recipeModal = null}
                     aria-label="Cerrar receta"
-                >✕</button>
+                >
+                    ✕
+                </Button>
             </div>
             <!-- Contenido Markdown renderizado -->
             <div class="prose prose-sm max-w-none">

@@ -1,5 +1,6 @@
 <script lang="ts">
     import { TableService, type Table } from '$lib/api/tables';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let { isOpen, table = null, onClose, onSave } = $props<{
         isOpen: boolean;
@@ -14,7 +15,7 @@
         location: ''
     });
 
-    let isSubmitting = $state(false);
+    let isLoading = $state(false);
 
     $effect(() => {
         if (isOpen) {
@@ -28,7 +29,7 @@
 
     async function handleSubmit(e: Event) {
         e.preventDefault();
-        isSubmitting = true;
+        isLoading = true;
         try {
             if (table && table.id) {
                 await TableService.update(table.id, formData);
@@ -40,7 +41,7 @@
         } catch (error: any) {
             alert('Error al guardar la mesa: ' + error.message);
         } finally {
-            isSubmitting = false;
+            isLoading = false;
         }
     }
 </script>
@@ -86,13 +87,10 @@
             </div>
 
             <div class="modal-action gap-2">
-                <button type="button" class="btn btn-ghost" onclick={onClose}>Cancelar</button>
-                <button type="submit" class="btn btn-primary px-8" disabled={isSubmitting}>
-                    {#if isSubmitting}
-                        <span class="loading loading-spinner loading-sm"></span>
-                    {/if}
+                <Button variant="ghost" onclick={onClose}>Cancelar</Button>
+                <Button type="submit" variant="primary" class="px-8 font-black" {isLoading}>
                     Guardar
-                </button>
+                </Button>
             </div>
         </form>
     </div>

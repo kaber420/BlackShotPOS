@@ -7,6 +7,7 @@
     import ProductModal from '$lib/components/ProductModal.svelte';
     import CategoryModal from '$lib/components/CategoryModal.svelte';
     import MeasureModal from '$lib/components/MeasureModal.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let products = $state<Product[]>([]);
     let categories = $state<Category[]>([]);
@@ -90,13 +91,15 @@
     </header>
 
     <div class="flex flex-wrap gap-4 items-center justify-between">
-        <div class="flex gap-2 text-xs">
-            <button class="btn btn-primary btn-md gap-2" onclick={openCreateModal}>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+        <div class="flex gap-2">
+            <Button variant="primary" size="md" onclick={openCreateModal}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </svelte:fragment>
                 Nuevo Producto
-            </button>
-            <button class="btn btn-outline btn-md gap-2" onclick={openCategoryModal}>Categorías</button>
-            <button class="btn btn-outline btn-md gap-2" onclick={openMeasureModal}>Tallas/Medidas</button>
+            </Button>
+            <Button variant="outline" size="md" onclick={openCategoryModal}>Categorías</Button>
+            <Button variant="outline" size="md" onclick={openMeasureModal}>Tallas/Medidas</Button>
         </div>
 
         <div class="join">
@@ -105,7 +108,7 @@
                 placeholder="Buscar producto..." 
                 bind:value={searchQuery}
             />
-            <button class="btn join-item btn-ghost bg-base-200">🔍</button>
+            <Button variant="ghost" class="join-item bg-base-200" square>🔍</Button>
         </div>
     </div>
 
@@ -116,7 +119,7 @@
                 <span>{errorMessage}</span>
             </div>
             <div class="flex-none">
-                <button class="btn btn-sm btn-ghost" onclick={loadData}>Reintentar</button>
+                <Button variant="ghost" size="sm" onclick={loadData}>Reintentar</Button>
             </div>
         </div>
     {/if}
@@ -185,8 +188,12 @@
                             </td>
                             <td class="text-right">
                                 <div class="flex justify-end gap-1">
-                                    <button class="btn btn-ghost btn-sm text-primary font-bold hover:bg-primary/10" onclick={() => openEditModal(product)}>Editar</button>
-                                    <button class="btn btn-ghost btn-sm text-error font-bold hover:bg-error/10" onclick={() => deleteProduct(product.id!)}>Eliminar</button>
+                                    <Button variant="ghost" size="sm" class="text-primary" onclick={() => openEditModal(product)}>
+                                        Editar
+                                    </Button>
+                                    <Button variant="ghost" size="sm" danger onclick={() => deleteProduct(product.id!)}>
+                                        Eliminar
+                                    </Button>
                                 </div>
                             </td>
                         </tr>

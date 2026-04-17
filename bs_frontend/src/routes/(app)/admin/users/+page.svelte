@@ -3,6 +3,7 @@
     import { UserService, type PosUser } from '$lib/api/users';
     import { getRoleLabel } from '$lib/app_state.svelte';
     import PermissionRow from '$lib/PermissionRow.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
     // ── Constantes ──────────────────────────────────────────────────────────────
     const ROLES = [
@@ -171,13 +172,15 @@
                 <input type="checkbox" class="toggle toggle-sm" bind:checked={showInactive}
                     onchange={loadUsers} />
             </label>
-            <button id="btn-create-user" class="btn btn-primary gap-2"
+            <Button id="btn-create-user" variant="primary" size="md" class="gap-2"
                 onclick={() => (showCreateModal = true)}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                </svg>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </svelte:fragment>
                 Nuevo Usuario
-            </button>
+            </Button>
         </div>
     </div>
 
@@ -190,7 +193,7 @@
     {#if error}
         <div class="alert alert-error mb-4 shadow-sm">
             <span>{error}</span>
-            <button class="btn btn-ghost btn-xs" onclick={() => (error = null)}>✕</button>
+            <Button variant="ghost" circle size="xs" onclick={() => (error = null)}>✕</Button>
         </div>
     {/if}
 
@@ -262,15 +265,17 @@
                                 </div>
                             </div>
                             <div class="flex gap-2 flex-wrap">
-                                <button class="btn btn-outline btn-sm"
-                                    onclick={() => { showPwdModal = true; }}>
+                                <Button variant="outline" size="sm" onclick={() => { showPwdModal = true; }}>
                                     🔑 Contraseña
-                                </button>
-                                <button
-                                    class="btn btn-sm {selectedUser.is_active ? 'btn-error btn-outline' : 'btn-success btn-outline'}"
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    danger={selectedUser.is_active}
+                                    success={!selectedUser.is_active}
+                                    size="sm"
                                     onclick={() => toggleActive(selectedUser!)}>
                                     {selectedUser.is_active ? '🚫 Desactivar' : '✅ Activar'}
-                                </button>
+                                </Button>
                             </div>
                         </div>
 
@@ -279,12 +284,13 @@
                             <h3 class="font-black text-lg mb-2">Rol base</h3>
                             <div class="flex flex-wrap gap-2">
                                 {#each ROLES as r}
-                                    <button
-                                        class="btn btn-sm {selectedUser.role === r.value ? 'btn-primary' : 'btn-outline btn-ghost'}"
+                                    <Button
+                                        variant={selectedUser.role === r.value ? 'primary' : 'outline'}
+                                        size="sm"
                                         onclick={() => changeRole(selectedUser!, r.value)}
                                         id="role-btn-{r.value}">
                                         {roleIcon(r.value)} {r.label}
-                                    </button>
+                                    </Button>
                                 {/each}
                             </div>
                             <p class="text-xs opacity-40 mt-2">
@@ -363,13 +369,13 @@
                 </div>
             </div>
             <div class="modal-action">
-                <button class="btn btn-ghost" onclick={() => (showCreateModal = false)}>Cancelar</button>
-                <button id="btn-confirm-create-user" class="btn btn-primary"
+                <Button variant="ghost" onclick={() => (showCreateModal = false)}>Cancelar</Button>
+                <Button id="btn-confirm-create-user" variant="primary"
                     onclick={handleCreate}
-                    disabled={creating || !newUser.username.trim() || !newUser.password.trim()}>
-                    {#if creating}<span class="loading loading-spinner loading-sm"></span>{/if}
+                    disabled={!newUser.username.trim() || !newUser.password.trim()}
+                    isLoading={creating}>
                     Crear Usuario
-                </button>
+                </Button>
             </div>
         </div>
     </div>
@@ -391,14 +397,14 @@
                     placeholder="••••••••" bind:value={newPassword}/>
             </div>
             <div class="modal-action">
-                <button class="btn btn-ghost" onclick={() => { showPwdModal = false; newPassword = ''; }}>
+                <Button variant="ghost" onclick={() => { showPwdModal = false; newPassword = ''; }}>
                     Cancelar
-                </button>
-                <button class="btn btn-warning" onclick={handleChangePassword}
-                    disabled={changingPwd || !newPassword.trim()}>
-                    {#if changingPwd}<span class="loading loading-spinner loading-sm"></span>{/if}
+                </Button>
+                <Button variant="warning" onclick={handleChangePassword}
+                    disabled={!newPassword.trim()}
+                    isLoading={changingPwd}>
                     Guardar
-                </button>
+                </Button>
             </div>
         </div>
     </div>

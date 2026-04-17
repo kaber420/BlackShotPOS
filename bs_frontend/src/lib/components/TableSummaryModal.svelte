@@ -1,7 +1,6 @@
 <script lang="ts">
-    import type { Table } from '$lib/api/tables';
-    import { OrderService, OrderStatus } from '$lib/api/orders';
     import { appState } from '$lib/app_state.svelte';
+    import Button from '$lib/components/ui/Button.svelte';
 
     let { 
         isOpen = false, 
@@ -62,7 +61,7 @@
                         <h2 class="text-3xl font-black">Mesa {table.number}</h2>
                         <p class="text-xs font-bold uppercase tracking-widest opacity-80 mt-1">Resumen de Cuenta</p>
                     </div>
-                    <button class="btn btn-circle btn-sm btn-ghost text-primary-content" onclick={onClose}>✕</button>
+                    <Button variant="ghost" circle size="sm" class="text-primary-content" onclick={onClose}>✕</Button>
                 </div>
             </div>
 
@@ -103,42 +102,51 @@
                 </div>
                 
                 <div class="grid grid-cols-2 gap-3">
-                    <button class="btn btn-outline border-base-300 hover:bg-base-200 hover:text-base-content" onclick={onAddMore}>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                        </svg>
+                    <Button variant="outline" class="gap-2" onclick={onAddMore}>
+                        <svelte:fragment slot="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </svelte:fragment>
                         Añadir
-                    </button>
-                    <button 
-                        class="btn btn-primary shadow-lg shadow-primary/30" 
+                    </Button>
+                    <Button 
+                        variant="primary" 
+                        class="shadow-xl shadow-primary/30 gap-2" 
                         onclick={onCheckout}
                         disabled={isProcessing || !order.items || order.items.length === 0}
                     >
                         Cobrar
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                        </svg>
-                    </button>
+                        <svelte:fragment slot="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                            </svg>
+                        </svelte:fragment>
+                    </Button>
                 </div>
 
                 <div class="mt-4 flex justify-center">
-                    <button 
-                        class="btn btn-ghost btn-sm text-error gap-2 opacity-60 hover:opacity-100" 
+                    <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        danger 
+                        class="gap-2 opacity-60 hover:opacity-100" 
                         onclick={handleCancelOrDelete}
                         disabled={isProcessing}
                     >
-                        {#if order.items && order.items.length > 0}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                            Cancelar Pedido
-                        {:else}
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Eliminar Vaciado
-                        {/if}
-                    </button>
+                        <svelte:fragment slot="icon">
+                            {#if order.items && order.items.length > 0}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            {:else}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            {/if}
+                        </svelte:fragment>
+                        {order.items && order.items.length > 0 ? "Cancelar Pedido" : "Eliminar Vaciado"}
+                    </Button>
                 </div>
             </div>
         </div>
