@@ -58,7 +58,7 @@
 		return base + extras;
 	});
 
-	let currentImage = $derived(selectedVariant?.image_url || product?.image_url);
+	let currentImage = $derived(selectedVariant?.image_url || product?.image_url || '');
 
 	// Información nutricional combinada (base + variante)
 	let nutrition = $derived({

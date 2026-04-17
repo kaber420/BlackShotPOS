@@ -121,7 +121,7 @@
             measure_id: measureId,
             measure: measure,
             price: formData.price || 0,
-            image_url: formData.image_url || '',
+            image_url: '',
             protein: formData.protein || 0,
             calories: formData.calories || 0,
             carbs: formData.carbs || 0,

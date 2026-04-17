@@ -57,6 +57,7 @@
     };
 
     function getStatusBadgeClass(status: string) {
+        if (status === 'DELIVERED' && !order.is_paid) return 'bg-fuchsia-500 text-white border-transparent';
         switch (status) {
             case 'PENDING':   return 'badge-warning';
             case 'PREPARING': return 'badge-primary';
@@ -99,6 +100,7 @@
         order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : 
         order.status === 'PREPARING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-primary/40 border-primary/30' : 
         order.status === 'READY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-success/40 border-success/30' : 
+        (order.status === 'DELIVERED' && !order.is_paid) ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-fuchsia-500/40 border-fuchsia-500/30' :
         order.status === 'CANCELLED' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-error/40 border-error/30' : 
         'shadow-sm border-base-content/5'
     );
@@ -284,14 +286,14 @@
                             </Button>
                         {/if}
 
-                        <!-- Botón de Entregar (Siempre visible si se puede entregar, pero deshabilitado si no está READY) -->
+                        <!-- Botón de Entregar (Siempre visible si se puede entregar, pero deshabilitado si no está al 100%) -->
                         {#if onDeliver && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
                             <Button 
                                 variant="success" 
                                 size="sm" 
                                 class="shadow-sm font-bold" 
-                                disabled={order.status === 'PENDING' || order.status === 'PREPARING'}
-                                title={(order.status === 'PENDING' || order.status === 'PREPARING') ? 'La orden debe estar lista para entregar' : 'Entregar orden'}
+                                disabled={progress < 100}
+                                title={progress < 100 ? 'Todos los platillos deben estar listos para entregar la orden' : 'Entregar orden'}
                                 onclick={() => onDeliver(order.id)}
                             >
                                 Entregar

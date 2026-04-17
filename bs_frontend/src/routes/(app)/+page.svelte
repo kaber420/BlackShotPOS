@@ -207,7 +207,7 @@
 			</div>
 			
 			<!-- Product Grid -->
-			<div class="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pb-4 pr-2 min-h-0">
+			<div class="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 overflow-y-auto pb-4 pr-2 min-h-0">
 				{#if isLoading}
 					<div class="col-span-full flex justify-center py-20">
 						<span class="loading loading-spinner loading-lg text-primary"></span>
