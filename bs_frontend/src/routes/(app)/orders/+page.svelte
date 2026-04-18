@@ -112,17 +112,30 @@
                 await OrderService.updateItemStatus(order.id, item.id, OrderStatus.PREPARING);
             } else if (item.status === 'PREPARING') {
                 await OrderService.updateItemStatus(order.id, item.id, OrderStatus.READY);
+            } else if (item.status === 'READY') {
+                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.DELIVERED);
             }
         } catch (e) {
             alert(`Error al actualizar platillo: ${e}`);
         }
     }
 
+    /** Entrega todos los ítems que estén en estado READY */
     async function handleComplete(orderId: number) {
         try {
-            await OrderService.updateStatus(orderId, OrderStatus.DELIVERED);
+            const order = orders.find(o => o.id === orderId);
+            if (!order) return;
+            
+            const readyItems = order.items?.filter(i => i.status === 'READY') || [];
+            if (readyItems.length === 0) return;
+
+            // En un sistema real, querríamos un endpoint de "batch update"
+            // Por ahora, lo hacemos secuencial o en paralelo.
+            await Promise.all(readyItems.map(item => 
+                OrderService.updateItemStatus(orderId, item.id, OrderStatus.DELIVERED)
+            ));
         } catch (e) {
-            alert(`Error al entregar: ${e}`);
+            alert(`Error al entregar listos: ${e}`);
         }
     }
 

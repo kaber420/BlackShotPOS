@@ -53,6 +53,7 @@
         PENDING:   { label: 'En cola',       cls: 'text-warning',  dotCls: 'bg-warning' },
         PREPARING: { label: 'Preparando',    cls: 'text-primary',  dotCls: 'bg-primary animate-pulse' },
         READY:     { label: 'Listo ✓',       cls: 'text-success',  dotCls: 'bg-success' },
+        DELIVERED: { label: 'Entregado ✓',   cls: 'text-fuchsia-400', dotCls: 'bg-fuchsia-400' },
         CANCELLED: { label: 'Anulado',       cls: 'text-error',    dotCls: 'bg-error' },
     };
 
@@ -73,7 +74,7 @@
         const items = order.items ?? [];
         const active = items.filter((i: any) => i.status !== 'CANCELLED');
         if (active.length === 0) return 100;
-        const done = active.filter((i: any) => i.status === 'READY').length;
+        const done = active.filter((i: any) => i.status === 'READY' || i.status === 'DELIVERED').length;
         return Math.round((done / active.length) * 100);
     }
 
@@ -163,7 +164,8 @@
                         {@const cfg = itemStatusConfig[item.status ?? 'PENDING'] ?? itemStatusConfig['PENDING']}
                         <div class="flex flex-col p-3 rounded-xl border {
                             item.status === 'CANCELLED' ? 'opacity-40 bg-error/5 border-error/20 grayscale' :
-                            item.status === 'READY'     ? 'bg-success/10 border-success/20' :
+                            item.status === 'READY'     ? 'bg-success/10 border-success/20 shadow-sm' :
+                            item.status === 'DELIVERED' ? 'bg-fuchsia-500/5 border-fuchsia-500/20 opacity-80' :
                             item.status === 'PREPARING' ? 'bg-primary/5 border-primary/20' :
                             'bg-base-200/50 border-base-300/50'
                         }">
@@ -211,18 +213,31 @@
                                     </span>
 
                                     <!-- Acciones por vista -->
-                                    {#if view === 'orders' && canManageKitchenStatus && !isFinished && (item.status === 'PENDING' || item.status === 'PREPARING')}
-                                        <Button
-                                            size="xs"
-                                            variant={item.status === 'PENDING' ? 'outline' : 'primary'}
-                                            circle
-                                            onclick={() => onItemComplete?.(order, item)}
-                                            title={item.status === 'PENDING' ? 'Empezar preparación' : 'Marcar como listo'}
-                                            id="advance-item-{item.id}"
-                                            class={item.status === 'PENDING' ? 'text-warning border-warning' : ''}
-                                        >
-                                            {item.status === 'PENDING' ? '▶' : '✓'}
-                                        </Button>
+                                    {#if view === 'orders' && canManageKitchenStatus && !isFinished}
+                                        {#if item.status === 'PENDING' || item.status === 'PREPARING'}
+                                            <Button
+                                                size="xs"
+                                                variant={item.status === 'PENDING' ? 'outline' : 'primary'}
+                                                circle
+                                                onclick={() => onItemComplete?.(order, item)}
+                                                title={item.status === 'PENDING' ? 'Empezar preparación' : 'Marcar como listo'}
+                                                id="advance-item-{item.id}"
+                                                class={item.status === 'PENDING' ? 'text-warning border-warning' : ''}
+                                            >
+                                                {item.status === 'PENDING' ? '▶' : '✓'}
+                                            </Button>
+                                        {:else if item.status === 'READY'}
+                                            <Button
+                                                size="xs"
+                                                variant="success"
+                                                circle
+                                                onclick={() => onItemComplete?.(order, item)}
+                                                title="Entregar este platillo"
+                                                id="deliver-item-{item.id}"
+                                            >
+                                                🚚
+                                            </Button>
+                                        {/if}
                                     {/if}
 
                                     {#if view === 'kitchen'}
@@ -276,7 +291,7 @@
                     </div>
                 </div>
                 
-                <div class="flex justify-between items-center gap-2">
+                <div class="flex justify-between items-center gap-2 pt-2 border-t border-base-200/50">
                     <!-- Text Buttons (Cobrar / Entregar) -->
                     <div class="flex gap-2 items-center flex-wrap">
                         <!-- Botón de Cobrar (Solo si no está pagado, y no está cancelado) -->
@@ -286,14 +301,14 @@
                             </Button>
                         {/if}
 
-                        <!-- Botón de Entregar (Siempre visible si se puede entregar, pero deshabilitado si no está al 100%) -->
+                        <!-- Botón de Entregar (Solo habilitado si TODO está listo/entregado) -->
                         {#if onDeliver && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
                             <Button 
                                 variant="success" 
                                 size="sm" 
                                 class="shadow-sm font-bold" 
                                 disabled={progress < 100}
-                                title={progress < 100 ? 'Todos los platillos deben estar listos para entregar la orden' : 'Entregar orden'}
+                                title={progress < 100 ? 'Todos los platillos deben estar listos para entregar la orden completa' : 'Entregar pedido completo'}
                                 onclick={() => onDeliver(order.id)}
                             >
                                 Entregar

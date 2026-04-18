@@ -252,9 +252,9 @@ async def update_order_status(
         order_items = items_result.scalars().all()
 
         if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
-            # Avanzar TODOS los ítems activos (PENDING y PREPARING) al nuevo estado
+            # Avanzar TODOS los ítems activos al nuevo estado
             items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-            items_to_advance = [i for i in order_items if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING)]
+            items_to_advance = [i for i in order_items if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY)]
             for i in items_to_advance:
                 i.status = new_status
                 session.add(i)
@@ -305,16 +305,22 @@ async def update_order_item_status(
     order = order_result.scalar_one_or_none()
     
     if order:
-        all_completed = True
+        all_completed = True # READY, DELIVERED or CANCELLED
+        all_delivered = True # DELIVERED or CANCELLED
         all_cancelled = True
         any_preparing = False
+        any_pending = False
         
         for i in order.items:
             status = new_status if i.id == item_id else i.status
             if status == OrderStatus.PREPARING:
                 any_preparing = True
+            if status == OrderStatus.PENDING:
+                any_pending = True
             if status not in (OrderStatus.READY, OrderStatus.DELIVERED, OrderStatus.CANCELLED):
                 all_completed = False
+            if status not in (OrderStatus.DELIVERED, OrderStatus.CANCELLED):
+                all_delivered = False
             if status != OrderStatus.CANCELLED:
                 all_cancelled = False
                 
@@ -327,14 +333,24 @@ async def update_order_item_status(
                 if db_table:
                     db_table.status = "Free"
                     session.add(db_table)
+        elif all_delivered and len(order.items) > 0:
+            new_order_status = OrderStatus.DELIVERED
         elif all_completed and len(order.items) > 0:
             new_order_status = OrderStatus.READY
-        elif any_preparing and order.status == OrderStatus.PENDING:
+        elif any_preparing:
             new_order_status = OrderStatus.PREPARING
+        elif any_pending:
+            new_order_status = OrderStatus.PENDING
             
         if new_order_status and new_order_status != order.status:
-            order.status = new_order_status
-            session.add(order)
+            # Avoid downgrading from PAID if that was the state
+            if order.status != OrderStatus.PAID:
+                order.status = new_order_status
+                session.add(order)
+            elif new_order_status == OrderStatus.CANCELLED:
+                # Cancelled can override PAID in some scenarios? 
+                # Usually not, but for now let's be conservative.
+                pass
             
     await session.commit()
     await session.refresh(item)

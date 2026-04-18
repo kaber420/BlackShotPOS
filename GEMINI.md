@@ -13,16 +13,12 @@ Este documento proporciona un resumen de alto nivel del proyecto Blackshot POS p
     *   **Base de Datos:** SQLite
     *   **ORM / Data Mapper:** SQLModel (sobre SQLAlchemy)
     *   **Autenticación:** Un módulo custom llamado `omni_auth` está actualmente en uso, con un plan de migración a **Kinde** para mayor seguridad y escalabilidad (ver `docs/STRATEGY_AUTH_KINDE.md`).
-    *   **Tiempo Real:** Actualmente usa una mezcla de polling y un WebSocket simple, con un plan de migración a una arquitectura Pub/Sub unificada (ver `drafts/websocket_pubsub_plan.md`).
 
 *   **Frontend:**
     *   **Framework:** SvelteKit
     *   **Gestión de Estado:** Svelte 5 Runes (`$state`)
     *   **Librerías Clave:** `marked` para renderizar Markdown (recetas).
-
-*   **Despliegue:**
-    *   El servidor se inicia con `uvicorn`.
-    *   Existen planes para contenerizar la aplicación usando Docker (`ROADMAP_V2.md`).
+    *   **docker** Existen planes para contenerizar la aplicación usando Docker (`ROADMAP_V2.md`).
 
 ## 3. Arquitectura y Características Clave
 
@@ -62,13 +58,12 @@ El `ROADMAP_V2.md` define las siguientes fases clave:
 1.  **Seguridad y Despliegue:** Migrar la autenticación a **Kinde**, endurecer la API y crear una configuración Docker para un despliegue reproducible y seguro.
 2.  **Control Operativo:** Implementar cierres de caja (reporte Z), un panel de analíticas de ventas y un sistema de auditoría para cancelaciones.
 3.  **Fidelización de Clientes:** Crear un sistema de puntos y recompensas basado en una PWA, sin depender de servicios de terceros.
-4.  **Experiencia de Usuario:** Mejorar la comunicación en tiempo real con WebSockets, añadir soporte para impresoras térmicas (ESC/POS) y optimizar la UI para dispositivos móviles.
 
 ## 5. Cómo Ejecutar el Proyecto
 
 1.  Asegurar que las dependencias de Python y Node.js estén instaladas.
 2.  Configurar las variables de entorno en un archivo `.env`.
-3.  Ejecutar las migraciones de la base de datos si es necesario (ej. `scripts/migrate_add_recipe.py`).
+3.  Ejecutar las migraciones de la base de datos si es necesario (no necesario en desarrollo por que no hay datos reales solo son datos generados con seed_data.py) (ej. `scripts/migrate_add_recipe.py`).
 4.  Poblar la base de datos con datos de prueba usando `scripts/seed_data.py`.
 5.  Iniciar el backend de FastAPI a activar entorno venv y ejecutar a través del CLI: `blackshot`.
 6.  Navegar al directorio `bs_frontend` e iniciar el servidor de desarrollo de SvelteKit: `npm run dev`.    
