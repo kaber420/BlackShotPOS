@@ -73,6 +73,12 @@ async def pos_websocket(websocket: WebSocket):
                     # Sort desc by date roughly
                     initial_data = sorted(initial_data, key=lambda x: x["created_at"], reverse=True)
                     await websocket.send_json(initial_data)
+                elif topic == "tables":
+                    from pos_core.tables.service import get_tables
+                    initial_data = await get_tables(db, include_inactive=True)
+                    # serializar
+                    initial_data_json = [t.model_dump() for t in initial_data]
+                    await websocket.send_json(initial_data_json)
                 break
 
         # Bucle de escucha para mantener la conexión viva y por si mandan más cosas
@@ -107,6 +113,14 @@ async def broadcast_updates():
             recent_orders = await service.get_orders_json(db)
             recent_orders = sorted(recent_orders, key=lambda x: x["created_at"], reverse=True)
             await broadcaster.broadcast("recent_orders", recent_orders)
+            
+        # Si hay clientes en tables, empujamos
+        if "tables" in broadcaster.active_connections:
+            from pos_core.tables.service import get_tables
+            tables = await get_tables(db, include_inactive=True)
+            tables_json = [t.model_dump() for t in tables]
+            await broadcaster.broadcast("tables", tables_json)
+            
         break
 
 

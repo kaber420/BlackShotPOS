@@ -1,14 +1,23 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { goto } from '$app/navigation';
     import { TableService, type Table } from '$lib/api/tables';
-    import { OrderService, OrderType, OrderStatus } from '$lib/api/orders';
+    import { OrderService, OrderType, OrderStatus, type Order } from '$lib/api/orders';
     import TableModal from '$lib/components/TableModal.svelte';
     import TableSummaryModal from '$lib/components/TableSummaryModal.svelte';
     import { setActiveTable, loadOrderToCart, appState } from '$lib/app_state.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import { posSocket } from '$lib/pos_socket.svelte';
     
-    let tables = $state<Table[]>([]);
+    let tables = $derived<Table[]>(posSocket.tables.length > 0 ? posSocket.tables : []);
+    
+    // Filtramos solo las órdenes activas que nos interesan para el dashboard desde recentOrders
+    let activeOrders = $derived<Order[]>((posSocket.recentOrders || []).filter(o => 
+        o.status === OrderStatus.PENDING || 
+        o.status === OrderStatus.PREPARING || 
+        o.status === OrderStatus.READY
+    ));
+    
     let isLoading = $state(true);
     let adminMode = $state(false);
     
@@ -22,16 +31,37 @@
     let summaryOrder = $state<any>(null);
 
     onMount(async () => {
+        // Inicializar Websocket
+        posSocket.subscribe("tables");
+        posSocket.subscribe("recent_orders");
+        
         await refreshTables();
     });
 
+    onDestroy(() => {
+        posSocket.unsubscribe("tables");
+        posSocket.unsubscribe("recent_orders");
+    });
+
     async function refreshTables() {
+        // Si el socket ya tiene la info cachead y conectada, no hacemos peticiones HTTP innecesarias
+        if (posSocket.tables.length > 0) {
+            isLoading = false;
+            return;
+        }
+
         isLoading = true;
         try {
-            // En modo admin queremos ver todas las mesas, incluyendo las inactivas si existen
-            tables = await TableService.getAll(true);
+            // Cargar inicial (solo si es la primera vez que entramos y el socket no trajo nada aun)
+            const [fetchedTables, fetchedOrders] = await Promise.all([
+                TableService.getAll(true),
+                OrderService.getAll()
+            ]);
+            // Inicializar el socket stores si está vacío
+            if (posSocket.tables.length === 0) posSocket.tables = fetchedTables;
+            if (posSocket.recentOrders.length === 0) posSocket.recentOrders = fetchedOrders;
         } catch (e) {
-            console.error("Error loading tables", e);
+            console.error("Error loading table data", e);
         } finally {
             isLoading = false;
         }
@@ -113,6 +143,42 @@
             goto('/');
         }
     }
+
+    // Helper functions for table UI
+    function getTableOrder(tableId: number) {
+        return activeOrders.find(o => o.table_id === tableId);
+    }
+
+    function hasReadyItems(order: Order) {
+        // Un ítem está listo si su estado individual es READY pero la orden global aún no
+        return order.items?.some(i => i.status === 'READY') ?? false;
+    }
+
+    function getTableGlow(table: Table) {
+        if (!table.is_active) return 'border-base-300 opacity-50 grayscale cursor-not-allowed';
+        
+        const order = getTableOrder(table.id);
+        
+        // Efecto base de hover y click
+        const baseClasses = 'hover:scale-105 active:scale-95 cursor-pointer transition-all duration-300';
+
+        if (!order) {
+            return table.status === 'Occupied' 
+                ? `border-error/40 shadow-error/10 ${baseClasses}` 
+                : `border-success/40 shadow-success/10 ${baseClasses}`;
+        }
+
+        switch (order.status) {
+            case OrderStatus.PENDING:
+                return `shadow-[0_0_20px_var(--tw-shadow-color)] shadow-warning/40 border-warning/50 bg-warning/5 ${baseClasses}`;
+            case OrderStatus.PREPARING:
+                return `shadow-[0_0_20px_var(--tw-shadow-color)] shadow-primary/40 border-primary/50 bg-primary/5 ${baseClasses}`;
+            case OrderStatus.READY:
+                return `shadow-[0_0_30px_var(--tw-shadow-color)] shadow-success/60 border-success/60 bg-success/10 animate-pulse ${baseClasses}`;
+            default:
+                return `border-base-300 ${baseClasses}`;
+        }
+    }
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
@@ -123,11 +189,22 @@
                 <p class="text-lg opacity-70">Monitorea la ocupación y gestiona la asignación de mesas.</p>
             </div>
             <div class="flex items-center gap-3">
+                <!-- Badge de conexión -->
+                <div class="badge {posSocket.status === 'open' ? 'badge-success' : posSocket.status === 'connecting' ? 'badge-warning' : 'badge-error'} gap-2 p-3 font-bold opacity-80" title="Estado de conexión en tiempo real">
+                    {#if posSocket.status === 'open'}
+                        <span class="relative flex h-2 w-2">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
+                        </span>
+                    {/if}
+                    {posSocket.status === 'open' ? 'EN VIVO' : posSocket.status === 'connecting' ? 'CONECTANDO...' : 'DESCONECTADO'}
+                </div>
+
                 <Button 
                     variant={adminMode ? 'primary' : 'outline'}
                     size="md"
                     class="gap-2" 
-                    onclick={() => { adminMode = !adminMode; refreshTables(); }}
+                    onclick={() => { adminMode = !adminMode; }}
                 >
                     <svelte:fragment slot="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -168,40 +245,66 @@
             <p class="text-sm opacity-20">Ve al panel de administración para añadir mesas.</p>
         </div>
     {:else}
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 2xl:grid-cols-10 gap-6">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-8">
             {#each tables as table}
+                {@const order = getTableOrder(table.id)}
+                {@const readyAlert = order && order.status !== 'READY' && hasReadyItems(order)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->
                 <div 
                     role="button"
                     tabindex="0"
-                    class="card aspect-square shadow-xl bg-base-100 transition-all border-2 { table.is_active ? (table.status === 'Occupied' ? 'border-error hover:scale-105 cursor-pointer active:scale-95' : 'border-success hover:scale-105 cursor-pointer active:scale-95') : 'border-base-300 opacity-50 grayscale cursor-not-allowed' }"
+                    class="card aspect-square shadow-xl bg-base-100/60 backdrop-blur-xl rounded-[2.5rem] border-2 relative overflow-visible group {getTableGlow(table)}"
                     onclick={() => table.is_active && handleTableClick(table)}
                 >
-                    <div class="card-body p-4 items-center justify-center text-center">
-                        <span class="text-3xl font-black">{table.number}</span>
-                        <p class="text-xs font-bold uppercase tracking-widest opacity-60">MESA</p>
+                    <!-- Alerta de "Listo" -->
+                    {#if readyAlert}
+                        <div class="absolute -top-3 -right-3 z-20 animate-bounce">
+                            <div class="badge badge-success text-white font-black shadow-lg shadow-success/40 border-none py-3 px-4 flex gap-1 items-center">
+                                <span class="text-lg">🔔</span>
+                                <span class="text-xs">LISTO</span>
+                            </div>
+                        </div>
+                    {/if}
+
+                    <div class="card-body p-6 items-center justify-center text-center relative z-10">
+                        <span class="text-5xl font-black tracking-tighter mb-1">{table.number}</span>
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">MESA</p>
                         
                         {#if adminMode}
-                            <div class="flex gap-1 mt-4">
-                                <Button variant="ghost" size="xs" class="text-primary" onclick={(e) => { e.stopPropagation(); openEditModal(table); }}>Editar</Button>
-                                <Button variant="ghost" size="xs" danger onclick={(e) => { e.stopPropagation(); toggleTableActive(table); }}>
+                            <div class="flex flex-col gap-1 mt-4 w-full">
+                                <Button variant="ghost" size="xs" class="text-primary w-full" onclick={(e) => { e.stopPropagation(); openEditModal(table); }}>Editar</Button>
+                                <Button variant="ghost" size="xs" danger class="w-full" onclick={(e) => { e.stopPropagation(); toggleTableActive(table); }}>
                                     {table.is_active ? 'Eliminar' : 'Activar'}
                                 </Button>
                             </div>
                         {:else}
                             {#if !table.is_active}
-                                <div class="badge badge-ghost font-bold mt-2">INACTIVA</div>
+                                <div class="badge badge-ghost font-bold mt-4 opacity-50">INACTIVA</div>
+                            {:else if order}
+                                <div class="mt-4 flex flex-col items-center gap-1">
+                                    <div class="badge badge-sm font-black border-none {
+                                        order.status === 'READY' ? 'bg-success text-white' : 
+                                        order.status === 'PREPARING' ? 'bg-primary text-white' : 
+                                        'bg-warning text-black'
+                                    }">
+                                        {order.status === 'READY' ? 'COMPLETO' : 
+                                         order.status === 'PREPARING' ? 'COCINANDO' : 'PENDIENTE'}
+                                    </div>
+                                    {#if order.items}
+                                        <p class="text-[10px] font-bold opacity-60">{order.items.length} items</p>
+                                    {/if}
+                                </div>
                             {:else if table.status === 'Occupied'}
-                                <div class="badge badge-error text-white font-bold mt-2">OCUPADA</div>
+                                <div class="badge badge-error text-white font-bold mt-4">OCUPADA</div>
                             {:else if table.status === 'Free'}
-                                <div class="badge badge-success text-white font-bold mt-2">LIBRE</div>
+                                <div class="badge badge-outline border-success/40 text-success/70 font-black mt-4 uppercase text-[10px] tracking-widest">LIBRE</div>
                             {:else}
-                                <div class="badge badge-ghost font-bold mt-2">{table.status}</div>
+                                <div class="badge badge-ghost font-bold mt-4">{table.status}</div>
                             {/if}
                         {/if}
                         
                         {#if table.location}
-                            <p class="text-[9px] mt-2 opacity-40 uppercase font-bold tracking-tight">{table.location}</p>
+                            <p class="absolute bottom-4 text-[9px] opacity-30 uppercase font-black tracking-widest w-full px-4 truncate">{table.location}</p>
                         {/if}
                     </div>
                 </div>

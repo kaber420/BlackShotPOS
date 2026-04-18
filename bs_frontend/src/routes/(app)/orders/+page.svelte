@@ -5,13 +5,12 @@
     import { can, appState, loadOrderToCart } from '$lib/app_state.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import OrderCard from '$lib/components/OrderCard.svelte';
+    import { posSocket } from '$lib/pos_socket.svelte';
 
-    let orders = $state<Order[]>([]);
+    let orders = $derived<Order[]>(posSocket.recentOrders);
     let isLoading = $state(true);
     let printingOrderId = $state<number | null>(null);
     let selectedMethod = $state<PrintMethod>('download');
-    let ws: WebSocket | null = null;
-    let isDestroyed = false;
 
     // Estado del modal de cancelación
     let cancellingOrder = $state<Order | null>(null);
@@ -28,48 +27,19 @@
     const ACTIVE_STATUSES = new Set(['PENDING', 'PREPARING', 'READY']);
 
     onMount(() => {
-        connectWebSocket();
+        posSocket.subscribe("recent_orders");
+        // Si ya tenemos data cacheada
+        if (posSocket.recentOrders.length > 0) {
+            isLoading = false;
+        } else {
+            setTimeout(() => isLoading = false, 300);
+        }
         selectedMethod = getRecommendedMethod();
     });
 
     onDestroy(() => {
-        isDestroyed = true;
-        if (ws) ws.close();
+        posSocket.unsubscribe("recent_orders");
     });
-
-    function connectWebSocket() {
-        if (typeof window === 'undefined' || isDestroyed) return;
-
-        const token = localStorage.getItem('X-Omni-Token') || '';
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
-
-        ws = new WebSocket(url);
-
-        ws.onopen = () => {
-            console.log("🔌 Lista de Órdenes WS conectado");
-            ws?.send(JSON.stringify({ action: "subscribe", topic: "recent_orders" }));
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (!data.error) {
-                    orders = data;
-                    isLoading = false;
-                }
-            } catch (e) {
-                console.error("Error parseando datos WebSocket", e);
-            }
-        };
-
-        ws.onclose = () => {
-            if (isDestroyed) return;
-            console.log("🔌 Lista de Órdenes WS desconectado. Reconectando en 5s...");
-            setTimeout(connectWebSocket, 5000);
-        };
-    }
 
     // Contadores por grupo
     let activeOrders    = $derived(orders.filter(o => ACTIVE_STATUSES.has(o.status) || (o.status === 'DELIVERED' && !o.is_paid) || (o.status === 'PAID' && !o.is_paid /* solo en caso de errores */)));

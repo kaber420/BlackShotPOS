@@ -7,6 +7,7 @@
 	import Toast from '$lib/components/Toast.svelte';
 	import FloatingCart from '$lib/components/FloatingCart.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+	import { posSocket } from '$lib/pos_socket.svelte';
 
 	let { children } = $props();
 
@@ -97,8 +98,27 @@
 			</div>
 
 			<a href="/" class="flex items-center gap-3 group">
-				<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-content shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
-					<span class="text-xl font-black">B</span>
+				<div class="relative">
+					<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-primary-content shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform duration-300">
+						<span class="text-xl font-black">B</span>
+					</div>
+					<!-- Connection Indicator -->
+					<div 
+						class="absolute -top-1 -right-1 z-10" 
+						title={posSocket.status === 'open' ? 'Conectado (Tiempo Real)' : posSocket.status === 'connecting' ? 'Conectando...' : 'Sin conexión'}
+					>
+						<span class="relative flex h-3 w-3">
+							{#if posSocket.status === 'open'}
+								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
+								<span class="relative inline-flex rounded-full h-3 w-3 bg-success shadow-sm shadow-success/40"></span>
+							{:else if posSocket.status === 'connecting'}
+								<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75"></span>
+								<span class="relative inline-flex rounded-full h-3 w-3 bg-warning"></span>
+							{:else}
+								<span class="relative inline-flex rounded-full h-3 w-3 bg-error"></span>
+							{/if}
+						</span>
+					</div>
 				</div>
 				<span class="text-2xl font-black tracking-tighter text-base-content hidden sm:inline-block">Black<span class="text-primary">Shot</span></span>
 			</a>

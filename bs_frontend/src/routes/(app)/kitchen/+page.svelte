@@ -12,12 +12,12 @@
     } from '$lib/printer';
     import Button from '$lib/components/ui/Button.svelte';
     import OrderCard from '$lib/components/OrderCard.svelte';
+    import { posSocket } from '$lib/pos_socket.svelte';
 
     // ── Estado de la aplicación ──────────────────────────────────────────────
-    let orders = $state<any[]>([]);
+    let orders = $derived<any[]>(posSocket.kitchenOrders);
     let tables = $state<Table[]>([]);
     let isLoading = $state(true);
-    let connectionStatus = $state<'connecting' | 'open' | 'closed'>('connecting');
 
     // ── Estado de impresión ──────────────────────────────────────────────────
     let printMethods = $state<PrintMethodInfo[]>([]);
@@ -30,9 +30,6 @@
     let recipeModal = $state<{ name: string; markdown: string } | null>(null);
 
     // ── WebSocket Connection ─────────────────────────────────────────────────
-    let socket: WebSocket | null = null;
-    let isDestroyed = false;
-
     onMount(() => {
         // Cargar mesas y configurar impresión (no bloquean el KDS)
         TableService.getAll().then(t => (tables = t)).catch(console.error);
@@ -40,60 +37,18 @@
         printMethods = getAvailableMethods();
         selectedMethod = getRecommendedMethod();
 
-        connectWebSocket();
+        posSocket.subscribe("kitchen_orders");
+        // Si ya tenemos data, no hay necesidad de esperar
+        if (posSocket.kitchenOrders.length > 0) {
+            isLoading = false;
+        } else {
+            setTimeout(() => isLoading = false, 300);
+        }
+
         return () => {
-            isDestroyed = true;
-            if (socket) socket.close();
+            posSocket.unsubscribe("kitchen_orders");
         };
     });
-
-    function connectWebSocket() {
-        if (typeof window === 'undefined' || isDestroyed) return;
-
-        const token = localStorage.getItem('X-Omni-Token');
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        // Importante: la ruta debe coincidir con el backend
-        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token || '')}`;
-
-        console.log("🔌 Conectando a WebSocket cocina...");
-        connectionStatus = 'connecting';
-        socket = new WebSocket(url);
-
-        socket.onopen = () => {
-            console.log("🔌 WebSocket Cocina conectado");
-            connectionStatus = 'open';
-            socket?.send(JSON.stringify({ action: "subscribe", topic: "kitchen_orders" }));
-            isLoading = false;
-        };
-
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                if (data.error) {
-                    console.error("Error desde el servidor:", data.detail);
-                } else {
-                    orders = data;
-                    isLoading = false;
-                }
-            } catch (e) {
-                console.error("Error parseando datos WebSocket", e);
-            }
-        };
-
-        socket.onclose = () => {
-            if (isDestroyed) return;
-            console.log("🔌 WebSocket Cocina desconectado");
-            connectionStatus = 'closed';
-            // Reintentar en 3 segundos
-            setTimeout(connectWebSocket, 3000);
-        };
-
-        socket.onerror = (err) => {
-            console.error("❌ Error en WebSocket:", err);
-            connectionStatus = 'closed';
-        };
-    }
 
     // ── Acciones de orden ────────────────────────────────────────────────────
     async function handleItemComplete(order: any, item: any) {
@@ -188,14 +143,14 @@
 
             <div class="flex items-center gap-3 flex-wrap">
                 <!-- Badge de conexión -->
-                <div class="badge {statusColors[connectionStatus]} gap-2 p-4 font-bold">
-                    {#if connectionStatus === 'open'}
+                <div class="badge {statusColors[posSocket.status]} gap-2 p-4 font-bold">
+                    {#if posSocket.status === 'open'}
                         <span class="relative flex h-2 w-2">
                             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
                             <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
                         </span>
                     {/if}
-                    {statusLabels[connectionStatus]}
+                    {statusLabels[posSocket.status]}
                 </div>
 
                 <!-- Selector de método de impresión -->
@@ -266,7 +221,7 @@
                     variant="ghost"
                     circle
                     size="sm"
-                    onclick={() => { socket?.close(); connectWebSocket(); }}
+                    onclick={() => posSocket.connect()}
                     aria-label="Reconectar WebSocket"
                     title="Reconectar"
                 >

@@ -4,6 +4,8 @@ from pos_core.database import get_session
 from .models import Table
 from . import service
 from typing import List, Optional
+import asyncio
+from pos_core.sales.router import broadcast_updates
 
 router = APIRouter()
 
@@ -15,7 +17,9 @@ async def list_tables(include_inactive: bool = False, db: AsyncSession = Depends
 @router.post("/tables", response_model=Table)
 async def create_table(number: int, capacity: int = 4, location: str = None, db: AsyncSession = Depends(get_session)):
     """Añade una mesa al sistema."""
-    return await service.create_table(db, number, capacity, location)
+    table = await service.create_table(db, number, capacity, location)
+    asyncio.create_task(broadcast_updates())
+    return table
 
 @router.patch("/tables/{table_id}/status", response_model=Table)
 async def update_table_status(table_id: int, status: str, db: AsyncSession = Depends(get_session)):
@@ -23,6 +27,7 @@ async def update_table_status(table_id: int, status: str, db: AsyncSession = Dep
     table = await service.update_table_status(db, table_id, status)
     if not table:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    asyncio.create_task(broadcast_updates())
     return table
 
 @router.patch("/tables/{table_id}", response_model=Table)
@@ -37,6 +42,7 @@ async def update_table(table_id: int, number: Optional[int] = None, capacity: Op
     table = await service.update_table(db, table_id, **update_data)
     if not table:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    asyncio.create_task(broadcast_updates())
     return table
 
 @router.delete("/tables/{table_id}")
@@ -45,4 +51,5 @@ async def delete_table(table_id: int, db: AsyncSession = Depends(get_session)):
     success = await service.delete_table(db, table_id)
     if not success:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    asyncio.create_task(broadcast_updates())
     return {"detail": "Mesa desactivada"}
