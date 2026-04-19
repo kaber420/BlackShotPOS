@@ -159,20 +159,17 @@
 								<span class="text-xs opacity-50 uppercase tracking-widest">{getRoleLabel(appState.userRole)}</span>
 							</div>
 							<ul class="menu p-0">
-								{#if can.manageUsers()}
-									<li><a href="/admin/users" id="nav-usuarios">👥 Usuarios</a></li>
+								{#if can.viewReports() || can.manageShifts() || can.manageUsers()}
+									<li><a href="/admin" class="font-black text-primary">🏠 Panel de Control</a></li>
+									<div class="divider my-0 opacity-20"></div>
 								{/if}
+
 								{#if can.manageShifts()}
-									<li><a href="/admin/corte">💵 Realizar Corte</a></li>
+									<li><a href="/admin/corte">💵 Corte de Caja</a></li>
 								{/if}
+
 								{#if can.manageSettings()}
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
-								{/if}
-								{#if can.viewReports()}
-									<li><a href="/admin/analytics">📈 Analíticas</a></li>
-								{/if}
-								{#if can.viewAudits()}
-									<li><a href="/admin/audits">🛡️ Auditoría</a></li>
 								{/if}
 							</ul>
 							<div class="card-actions pt-2 border-t border-base-200">

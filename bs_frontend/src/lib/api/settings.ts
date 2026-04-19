@@ -8,6 +8,7 @@ export interface BusinessSettings {
     tax_rate: number;
     currency_symbol: string;
     currency_code: string;
+    locale: string;
     ticket_footer?: string;
 }
 

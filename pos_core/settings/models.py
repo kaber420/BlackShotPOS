@@ -9,6 +9,7 @@ class BusinessSettings(SQLModel, table=True):
     tax_rate: float = Field(default=0.16, description="Tasa de impuesto (ej. 0.16 para 16%)")
     currency_symbol: str = Field(default="$", description="Símbolo de moneda")
     currency_code: str = Field(default="MXN", description="Código de moneda")
+    locale: str = Field(default="es-MX", description="Localización para formatos (ej. es-MX, en-US)")
     ticket_footer: Optional[str] = Field(default="¡Gracias por su preferencia!", description="Pie de página del ticket")
 
 class BusinessSettingsUpdate(SQLModel):
@@ -18,4 +19,5 @@ class BusinessSettingsUpdate(SQLModel):
     tax_rate: Optional[float] = None
     currency_symbol: Optional[str] = None
     currency_code: Optional[str] = None
+    locale: Optional[str] = None
     ticket_footer: Optional[str] = None

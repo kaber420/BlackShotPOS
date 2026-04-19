@@ -19,7 +19,8 @@ export const appState = $state({
         name: 'Blackshot Coffee',
         tax_rate: 0.16,
         currency_symbol: '$',
-        currency_code: 'MXN'
+        currency_code: 'MXN',
+        locale: 'es-MX'
     } as any,
     cartVisible: false,
 });

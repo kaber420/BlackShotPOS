@@ -78,12 +78,23 @@
                     
                     <div class="grid grid-cols-2 gap-4">
                         <div class="form-control w-full">
-                            <label class="label"><span class="label-text font-bold">Moneda</span></label>
+                            <label class="label"><span class="label-text font-bold">Símbolo</span></label>
                             <input type="text" bind:value={settings.currency_symbol} class="input input-bordered font-bold text-center focus:border-primary" />
                         </div>
                         <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">Código (ISO)</span></label>
+                            <input type="text" bind:value={settings.currency_code} class="input input-bordered font-bold text-center focus:border-primary" placeholder="MXN" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="form-control w-full">
                             <label class="label"><span class="label-text font-bold">IVA (%)</span></label>
                             <input type="number" step="0.01" bind:value={settings.tax_rate} class="input input-bordered font-bold text-center focus:border-primary" />
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">Localización (Locale)</span></label>
+                            <input type="text" bind:value={settings.locale} class="input input-bordered font-bold text-center focus:border-primary" placeholder="es-MX" />
                         </div>
                     </div>
 
