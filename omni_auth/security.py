@@ -80,13 +80,9 @@ async def require_elevation(user_info: dict = Depends(verify_omni_token)):
 
 def require_role(role: Union[str, List[str]]):
     """
-    Role-based access control dependency.
+    Role-based access control dependency (Legacy/Simple).
     Accepts a single role string or a list of roles.
     Admin always has access.
-    
-    Usage:
-        Depends(require_role("admin"))
-        Depends(require_role(["admin", "cajero"]))
     """
     allowed_roles = [role] if isinstance(role, str) else role
     
@@ -99,3 +95,40 @@ def require_role(role: Union[str, List[str]]):
             )
         return user_info
     return role_checker
+
+def require_permission(permission: str):
+    """
+    Granular Permission-based access control dependency.
+    Resolves effective permissions (Preset + Overrides in Metadata).
+    Admin always has access.
+    """
+    async def permission_checker(user_info: dict = Depends(verify_omni_token)):
+        import json
+        from . import database
+        from pos_core.roles import resolve_permissions
+        
+        # 1. Admin bypass
+        if user_info.get("role") == "admin":
+            return user_info
+
+        # 2. Obtener permisos frescos del usuario (incluyendo overrides en metadata)
+        user = database.get_user(user_uuid=user_info["user_uuid"])
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado.")
+
+        metadata = json.loads(user.get("metadata") or "{}")
+        metadata_permissions = metadata.get("permissions", {})
+
+        effective_permissions = resolve_permissions(
+            user_info["role"], metadata_permissions
+        )
+
+        # 3. Verificar permiso específico
+        if not effective_permissions.get(permission, False):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Acceso denegado. Requiere permiso: '{permission}'."
+            )
+            
+        return user_info
+    return permission_checker

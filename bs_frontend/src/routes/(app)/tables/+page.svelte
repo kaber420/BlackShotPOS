@@ -100,25 +100,21 @@
             goto('/');
         } else if (table.status === 'Occupied') {
             try {
-                // Find existing order for this table
-                const activeOrders = await OrderService.getAll(OrderStatus.PENDING); // Or filter by multiple statuses if needed
-                const tableOrder = activeOrders.find(o => o.table_id === table.id);
+                // Buscamos la orden en el estado reactivo del socket primero (es instantáneo)
+                let tableOrder = activeOrders.find(o => o.table_id === table.id);
+                
+                // Si no está en el socket (raro), hacemos un fetch de seguridad buscando cualquier orden activa
+                if (!tableOrder) {
+                    const allActive = await OrderService.getAll(); // Sin filtro trae todo lo PENDING/PREPARING/READY/etc
+                    tableOrder = allActive.find(o => o.table_id === table.id && o.status !== OrderStatus.PAID);
+                }
                 
                 if (tableOrder) {
                     summaryOrder = tableOrder;
                     summaryTable = table;
                     isSummaryOpen = true;
                 } else {
-                    // Fallback: If occupied but no order found, maybe it's preparing?
-                    const preparingOrders = await OrderService.getAll(OrderStatus.PREPARING);
-                    const tableOrderPrep = preparingOrders.find(o => o.table_id === table.id);
-                    if (tableOrderPrep) {
-                        summaryOrder = tableOrderPrep;
-                        summaryTable = table;
-                        isSummaryOpen = true;
-                    } else {
-                        alert("Mesa ocupada pero no se encontró orden activa.");
-                    }
+                    alert("Mesa ocupada pero no se encontró orden activa vinculada.");
                 }
             } catch (e) {
                 alert(`Error al cargar orden de la mesa: ${e}`);

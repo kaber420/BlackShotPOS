@@ -8,13 +8,40 @@
     let period: Period = $state('today');
     let fromDate: string = $state('');
     let toDate: string = $state('');
-    
+
     let summary: any = $state(null);
     let error: string | null = $state(null);
     let loading = $state(true);
 
+    // ── Estadísticas de equipo (meseros y cocineros) ─────────────────────────────
+    interface WaiterStat {
+        waiter_uuid: string;
+        waiter_name: string;
+        orders_count: number;
+        total_sales: number;
+        avg_delivery_seconds: number | null;
+    }
+    interface CookStat {
+        cook_uuid: string;
+        cook_name: string;
+        orders_handled: number;
+        items_prepared: number;
+        avg_prep_seconds: number | null;
+    }
+    interface DishSpeed {
+        product_id: number;
+        product_name: string;
+        avg_prep_seconds: number;
+        sample_count: number;
+    }
+
+    let waiterStats: WaiterStat[] = $state([]);
+    let cookStats: CookStat[] = $state([]);
+    let dishSpeed: DishSpeed[] = $state([]);
+    let teamLoading = $state(true);
+
     onMount(async () => {
-        await loadData();
+        await Promise.all([loadData(), loadTeamStats()]);
     });
 
     async function loadData() {
@@ -38,6 +65,24 @@
         }
     }
 
+    async function loadTeamStats() {
+        teamLoading = true;
+        try {
+            const [w, c, d] = await Promise.all([
+                fetchApi('/api/v1/pos/analytics/waiters/performance'),
+                fetchApi('/api/v1/pos/analytics/kitchen/performance'),
+                fetchApi('/api/v1/pos/analytics/kitchen/dish-speed'),
+            ]);
+            waiterStats = w;
+            cookStats = c;
+            dishSpeed = d;
+        } catch {
+            // Silenciar si no hay datos todavía
+        } finally {
+            teamLoading = false;
+        }
+    }
+
     // Reactividad
     $effect(() => {
         if (period !== 'custom') {
@@ -49,6 +94,26 @@
         if (fromDate && toDate) {
             loadData();
         }
+    }
+
+    // Helpers de formato
+    function formatSeconds(secs: number | null): string {
+        if (secs === null || secs === undefined) return '—';
+        const m = Math.floor(secs / 60);
+        const s = Math.round(secs % 60);
+        return m > 0 ? `${m}m ${s}s` : `${s}s`;
+    }
+    function deliveryBadge(secs: number | null) {
+        if (secs === null) return { label: 'Sin datos', cls: 'badge-neutral' };
+        if (secs < 120)  return { label: '🔥 Excelente',  cls: 'badge-success' };
+        if (secs < 300)  return { label: '✅ Estándar',  cls: 'badge-warning' };
+        return              { label: '⚠️ Por mejorar',   cls: 'badge-error' };
+    }
+    function prepBadge(secs: number | null) {
+        if (secs === null) return { label: 'Sin datos', cls: 'badge-neutral' };
+        if (secs < 300)  return { label: '⚡ Excelente',  cls: 'badge-success' };
+        if (secs < 600)  return { label: '✅ Estándar',  cls: 'badge-warning' };
+        return              { label: '⚠️ Por mejorar',   cls: 'badge-error' };
     }
 </script>
 
@@ -233,7 +298,157 @@
                 </div>
             </div>
         </div>
-    {/if}
+        <!-- ════════════════════════════════════════════════════════
+             SECCIÓN: DESEMPEÑO DE EQUIPO
+        ════════════════════════════════════════════════════════ -->
+        <div class="divider my-2"><span class="text-xs font-black uppercase tracking-widest opacity-30">Desempeño del Equipo — Hoy</span></div>
+
+        {#if teamLoading}
+            <div class="flex gap-4">
+                {#each Array(3) as _}
+                    <div class="h-48 flex-1 bg-base-300 animate-pulse rounded-3xl"></div>
+                {/each}
+            </div>
+        {:else}
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+                <!-- TABLA: Meseros -->
+                <div class="card bg-base-100 shadow-xl border border-base-content/5">
+                    <div class="card-body p-6">
+                        <h3 class="flex items-center gap-2 text-lg font-black uppercase tracking-tight mb-4">
+                            <span class="w-1.5 h-5 bg-info rounded-full"></span>
+                            🤵 Meseros
+                        </h3>
+                        {#if waiterStats.length === 0}
+                            <p class="text-center py-8 opacity-30 text-sm font-bold">No hay datos para hoy.<br>Las órdenes creadas aparecerán aquí.</p>
+                        {:else}
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm w-full">
+                                    <thead>
+                                        <tr class="bg-base-200/50">
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50">#</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50">Nombre</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-right">Tickets</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-right">Ventas</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-center">Entrega</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each waiterStats as stat, i}
+                                            {@const badge = deliveryBadge(stat.avg_delivery_seconds)}
+                                            <tr class="hover:bg-base-200/30 transition-colors {i === 0 ? 'font-black' : ''}">
+                                                <td class="opacity-30 font-black text-xl">{i + 1}</td>
+                                                <td class="font-bold">
+                                                    {stat.waiter_name}
+                                                    {#if i === 0}<span class="ml-1 text-xs">🏆</span>{/if}
+                                                </td>
+                                                <td class="text-right tabular-nums font-bold text-primary">{stat.orders_count}</td>
+                                                <td class="text-right tabular-nums font-bold text-success">{formatCurrency(stat.total_sales)}</td>
+                                                <td class="text-center">
+                                                    <span class="badge {badge.cls} badge-sm font-black text-white">
+                                                        {formatSeconds(stat.avg_delivery_seconds)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+
+                <!-- TABLA: Cocineros -->
+                <div class="card bg-base-100 shadow-xl border border-base-content/5">
+                    <div class="card-body p-6">
+                        <h3 class="flex items-center gap-2 text-lg font-black uppercase tracking-tight mb-4">
+                            <span class="w-1.5 h-5 bg-warning rounded-full"></span>
+                            👨‍🍳 Cocina
+                        </h3>
+                        {#if cookStats.length === 0}
+                            <p class="text-center py-8 opacity-30 text-sm font-bold">No hay datos para hoy.<br>Las órdenes preparadas aparecerán aquí.</p>
+                        {:else}
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm w-full">
+                                    <thead>
+                                        <tr class="bg-base-200/50">
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50">#</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50">Cocinero</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-right">Órdenes</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-right">Items</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-center">Prep.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each cookStats as stat, i}
+                                            {@const badge = prepBadge(stat.avg_prep_seconds)}
+                                            <tr class="hover:bg-base-200/30 transition-colors {i === 0 ? 'font-black' : ''}">
+                                                <td class="opacity-30 font-black text-xl">{i + 1}</td>
+                                                <td class="font-bold">
+                                                    {stat.cook_name}
+                                                    {#if i === 0}<span class="ml-1 text-xs">🏆</span>{/if}
+                                                </td>
+                                                <td class="text-right tabular-nums font-bold text-primary">{stat.orders_handled}</td>
+                                                <td class="text-right tabular-nums font-bold opacity-60">{stat.items_prepared}</td>
+                                                <td class="text-center">
+                                                    <span class="badge {badge.cls} badge-sm font-black text-white">
+                                                        {formatSeconds(stat.avg_prep_seconds)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+
+                <!-- TABLA: Velocidad por Platillo -->
+                <div class="card bg-base-100 shadow-xl border border-base-content/5">
+                    <div class="card-body p-6">
+                        <h3 class="flex items-center gap-2 text-lg font-black uppercase tracking-tight mb-4">
+                            <span class="w-1.5 h-5 bg-secondary rounded-full"></span>
+                            ⏱️ Velocidad por Platillo
+                        </h3>
+                        {#if dishSpeed.length === 0}
+                            <p class="text-center py-8 opacity-30 text-sm font-bold">Datos acumulados aparecerán<br>cuando se registren preparaciones por ítem.</p>
+                        {:else}
+                            <div class="overflow-x-auto">
+                                <table class="table table-sm w-full">
+                                    <thead>
+                                        <tr class="bg-base-200/50">
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50">#</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50">Platillo</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-right">Prom.</th>
+                                            <th class="font-black text-[9px] uppercase tracking-widest opacity-50 text-center">Velocidad</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {#each dishSpeed as dish, i}
+                                            {@const badge = prepBadge(dish.avg_prep_seconds)}
+                                            <tr class="hover:bg-base-200/30 transition-colors">
+                                                <td class="opacity-30 font-black text-xl">{i + 1}</td>
+                                                <td class="font-bold">
+                                                    {dish.product_name}
+                                                    <div class="text-[9px] font-bold opacity-30">{dish.sample_count} pedidos</div>
+                                                </td>
+                                                <td class="text-right tabular-nums font-bold opacity-70">{formatSeconds(dish.avg_prep_seconds)}</td>
+                                                <td class="text-center">
+                                                    <span class="badge {badge.cls} badge-sm font-black text-white">{badge.label}</span>
+                                                </td>
+                                            </tr>
+                                        {/each}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+
+            </div><!-- end grid equipo -->
+        {/if}<!-- end teamLoading -->
+    {/if}<!-- end summary -->
 </div>
 
 <style>

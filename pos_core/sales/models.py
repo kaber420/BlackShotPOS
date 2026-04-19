@@ -51,7 +51,20 @@ class OrderItem(SQLModel, table=True):
     quantity: int = Field(default=1)
     unit_price: float = Field(description="Precio unitario al momento de la venta")
     status: OrderStatus = Field(default=OrderStatus.PENDING)
-    
+
+    # ── Rastreo de entrega (¿quién entregó este ítem al cliente?) ────────────
+    delivered_by_uuid: Optional[str] = Field(default=None)
+    delivered_by_name: Optional[str] = Field(default=None)
+
+    # ── Rastreo de cocina (¿qué cocinero preparó este ítem?) ────────────────
+    cook_uuid: Optional[str] = Field(default=None)
+    cook_name: Optional[str] = Field(default=None)
+
+    # ── Timestamps de ciclo de vida por ítem ─────────────────────────────────
+    preparing_at: Optional[datetime] = Field(default=None)
+    ready_at: Optional[datetime] = Field(default=None)
+    delivered_at: Optional[datetime] = Field(default=None)
+
     order: "Order" = Relationship(back_populates="items")
     product: "Product" = Relationship()
     variant: Optional["ProductVariant"] = Relationship()
@@ -81,7 +94,20 @@ class Order(SQLModel, table=True):
     external_reference: Optional[str] = Field(default=None, description="PIN de Uber, ID de Rappi, etc.")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
+    # ── Rastreo del mesero creador ────────────────────────────────────────────
+    waiter_uuid: Optional[str] = Field(default=None, description="UUID del mesero que creó la orden")
+    waiter_name: Optional[str] = Field(default=None, description="Nombre del mesero (snapshot de auditoría)")
+
+    # ── Rastreo del cocinero responsable ─────────────────────────────────────
+    cook_uuid: Optional[str] = Field(default=None, description="UUID del cocinero que tomó/preparó la orden")
+    cook_name: Optional[str] = Field(default=None, description="Nombre del cocinero (snapshot de auditoría)")
+
+    # ── Timestamps de ciclo de vida de la orden ───────────────────────────────
+    preparing_at: Optional[datetime] = Field(default=None, description="Cuando cocina empezó a preparar")
+    ready_at: Optional[datetime] = Field(default=None, description="Cuando cocina marcó la orden como lista")
+    delivered_at: Optional[datetime] = Field(default=None, description="Cuando el mesero entregó al cliente")
+
     items: List[OrderItem] = Relationship(back_populates="order")
     payments: List[Payment] = Relationship(back_populates="order")
     shift: Optional[Shift] = Relationship(back_populates="orders")

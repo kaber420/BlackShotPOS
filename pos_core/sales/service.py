@@ -7,20 +7,24 @@ from pos_core.inventory.service import process_inventory_depletion
 from pos_core.sales.shifts_service import get_active_shift
 
 async def create_order(
-    session: AsyncSession, 
-    order_type: OrderType, 
-    table_id: Optional[int] = None, 
-    external_reference: Optional[str] = None
+    session: AsyncSession,
+    order_type: OrderType,
+    table_id: Optional[int] = None,
+    external_reference: Optional[str] = None,
+    waiter_uuid: Optional[str] = None,   # UUID del mesero creador
+    waiter_name: Optional[str] = None,   # Nombre snapshot para auditoría
 ) -> Order:
     active_shift = await get_active_shift(session)
     shift_id = active_shift.id if active_shift else None
-    
+
     db_order = Order(
         type=order_type,
         table_id=table_id,
         shift_id=shift_id,
         external_reference=external_reference,
-        status=OrderStatus.PENDING
+        status=OrderStatus.PENDING,
+        waiter_uuid=waiter_uuid,
+        waiter_name=waiter_name,
     )
     session.add(db_order)
     
@@ -142,9 +146,8 @@ def format_order_json(order: Order) -> dict:
                 "name": item.product.name,
                 "recipe_markdown": item.product.recipe_markdown,
             } if item.product else None,
-
             "variant": {
-                "id": item.variant.id, 
+                "id": item.variant.id,
                 "measure": {"id": item.variant.measure.id, "name": item.variant.measure.name} if item.variant and item.variant.measure else (item.variant.measure if item.variant else None),
                 "price": item.variant.price
             } if item.variant else None,
@@ -152,6 +155,16 @@ def format_order_json(order: Order) -> dict:
             "unit_price": item.unit_price,
             "status": item.status,
             "modifiers": [{"id": m.id, "name": m.name, "extra_price": m.extra_price} for m in (item.modifiers or [])],
+            # ── Rastreo de cocina por ítem ────────────────────────────────────
+            "cook_uuid": item.cook_uuid,
+            "cook_name": item.cook_name,
+            # ── Rastreo de entrega por ítem ───────────────────────────────────
+            "delivered_by_uuid": item.delivered_by_uuid,
+            "delivered_by_name": item.delivered_by_name,
+            # ── Timestamps por ítem ───────────────────────────────────────────
+            "preparing_at": item.preparing_at.isoformat() if item.preparing_at else None,
+            "ready_at": item.ready_at.isoformat() if item.ready_at else None,
+            "delivered_at": item.delivered_at.isoformat() if item.delivered_at else None,
         })
     return {
         "id": order.id,
@@ -163,6 +176,16 @@ def format_order_json(order: Order) -> dict:
         "external_reference": order.external_reference,
         "created_at": order.created_at.isoformat(),
         "updated_at": order.updated_at.isoformat(),
+        # ── Rastreo del mesero ────────────────────────────────────────────────
+        "waiter_uuid": order.waiter_uuid,
+        "waiter_name": order.waiter_name,
+        # ── Rastreo del cocinero ──────────────────────────────────────────────
+        "cook_uuid": order.cook_uuid,
+        "cook_name": order.cook_name,
+        # ── Timestamps de la orden ────────────────────────────────────────────
+        "preparing_at": order.preparing_at.isoformat() if order.preparing_at else None,
+        "ready_at": order.ready_at.isoformat() if order.ready_at else None,
+        "delivered_at": order.delivered_at.isoformat() if order.delivered_at else None,
         "items": items_data,
     }
 
@@ -222,19 +245,42 @@ async def get_order_json(session: AsyncSession, order_id: int) -> Optional[dict]
 async def update_order_status(
     session: AsyncSession,
     order_id: int,
-    new_status: OrderStatus
+    new_status: OrderStatus,
+    cook_uuid: Optional[str] = None,          # Cocinero que marca PREPARING / READY
+    cook_name: Optional[str] = None,
+    delivered_by_uuid: Optional[str] = None,  # Mesero que marca DELIVERED
+    delivered_by_name: Optional[str] = None,
 ) -> Optional[Order]:
-    # We need to eager load items to use them for depletion, or just query them
+    from datetime import datetime as _dt
     statement = select(Order).where(Order.id == order_id)
     result = await session.execute(statement)
     order = result.scalar_one_or_none()
-    
+
     if order:
         old_status = order.status
         order.status = new_status
+
+        # ── Timestamps de ciclo de vida ───────────────────────────────────────
+        if new_status == OrderStatus.PREPARING and order.preparing_at is None:
+            order.preparing_at = _dt.utcnow()
+            # Registrar el cocinero que tomó la orden (solo primera vez)
+            if cook_uuid and order.cook_uuid is None:
+                order.cook_uuid = cook_uuid
+                order.cook_name = cook_name
+
+        elif new_status == OrderStatus.READY and order.ready_at is None:
+            order.ready_at = _dt.utcnow()
+            # Si llegó directo a READY sin pasar por PREPARING, registrar cocinero
+            if cook_uuid and order.cook_uuid is None:
+                order.cook_uuid = cook_uuid
+                order.cook_name = cook_name
+
+        elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
+            order.delivered_at = _dt.utcnow()
+
         session.add(order)
-        
-        # SI SE CANCELA: Liberar mesa
+
+        # ── Liberar mesa si se cancela ────────────────────────────────────────
         if new_status == OrderStatus.CANCELLED and order.table_id:
             from pos_core.tables.models import Table
             db_table = await session.get(Table, order.table_id)
@@ -244,19 +290,30 @@ async def update_order_status(
 
         await session.commit()
         await session.refresh(order)
-        
-        # Cargar ítems con modificadores para descuento de inventario
+
+        # ── Cargar ítems para inventario y avance de estado ───────────────────
         from sqlalchemy.orm import selectinload
         items_statement = select(OrderItem).where(OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
         items_result = await session.execute(items_statement)
         order_items = items_result.scalars().all()
 
         if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
-            # Avanzar TODOS los ítems activos al nuevo estado
             items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
             items_to_advance = [i for i in order_items if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY)]
+            now = _dt.utcnow()
             for i in items_to_advance:
                 i.status = new_status
+                # Propagar timestamps a los ítems que aún no los tienen
+                if new_status == OrderStatus.READY and i.ready_at is None:
+                    i.ready_at = now
+                    if cook_uuid and i.cook_uuid is None:
+                        i.cook_uuid = cook_uuid
+                        i.cook_name = cook_name
+                elif new_status == OrderStatus.DELIVERED and i.delivered_at is None:
+                    i.delivered_at = now
+                    if delivered_by_uuid and i.delivered_by_uuid is None:
+                        i.delivered_by_uuid = delivered_by_uuid
+                        i.delivered_by_name = delivered_by_name
                 session.add(i)
             if items_to_deplete:
                 await process_inventory_depletion(session, items_to_deplete)
@@ -264,36 +321,65 @@ async def update_order_status(
                 await session.commit()
 
         elif old_status == OrderStatus.PENDING and new_status == OrderStatus.PREPARING:
-            # Avanzar solo ítems PENDING → PREPARING y descontar inventario
             items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
+            now = _dt.utcnow()
             for i in items_to_deplete:
                 i.status = OrderStatus.PREPARING
+                if i.preparing_at is None:
+                    i.preparing_at = now
+                if cook_uuid and i.cook_uuid is None:
+                    i.cook_uuid = cook_uuid
+                    i.cook_name = cook_name
                 session.add(i)
             if items_to_deplete:
                 await process_inventory_depletion(session, items_to_deplete)
                 await session.commit()
-            
+
     return order
 
 async def update_order_item_status(
     session: AsyncSession,
     order_id: int,
     item_id: int,
-    new_status: OrderStatus
+    new_status: OrderStatus,
+    cook_uuid: Optional[str] = None,          # Cocinero que marca PREPARING / READY en el ítem
+    cook_name: Optional[str] = None,
+    delivered_by_uuid: Optional[str] = None,  # Mesero que entrega el ítem
+    delivered_by_name: Optional[str] = None,
 ) -> Optional[OrderItem]:
+    from datetime import datetime as _dt
     from sqlalchemy.orm import selectinload
     statement = select(OrderItem).where(OrderItem.id == item_id, OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
     result = await session.execute(statement)
     item = result.scalar_one_or_none()
-    
+
     if not item:
         return None
-        
+
     old_status = item.status
     if old_status == new_status:
         return item
-        
+
     item.status = new_status
+
+    # ── Timestamps y rastreo por ítem ─────────────────────────────────────────
+    now = _dt.utcnow()
+    if new_status == OrderStatus.PREPARING and item.preparing_at is None:
+        item.preparing_at = now
+        if cook_uuid and item.cook_uuid is None:
+            item.cook_uuid = cook_uuid
+            item.cook_name = cook_name
+    elif new_status == OrderStatus.READY and item.ready_at is None:
+        item.ready_at = now
+        if cook_uuid and item.cook_uuid is None:
+            item.cook_uuid = cook_uuid
+            item.cook_name = cook_name
+    elif new_status == OrderStatus.DELIVERED and item.delivered_at is None:
+        item.delivered_at = now
+        if delivered_by_uuid and item.delivered_by_uuid is None:
+            item.delivered_by_uuid = delivered_by_uuid
+            item.delivered_by_name = delivered_by_name
+
     session.add(item)
     
     if old_status == OrderStatus.PENDING and new_status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
@@ -343,6 +429,11 @@ async def update_order_item_status(
             new_order_status = OrderStatus.PENDING
             
         if new_order_status and new_order_status != order.status:
+            # Propagar identidad al padre si el padre aún no tiene responsable
+            if cook_uuid and order.cook_uuid is None:
+                order.cook_uuid = cook_uuid
+                order.cook_name = cook_name
+
             # Avoid downgrading from PAID if that was the state
             if order.status != OrderStatus.PAID:
                 order.status = new_order_status

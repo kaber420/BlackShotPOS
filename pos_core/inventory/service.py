@@ -480,6 +480,9 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
             recipe = await get_product_recipe(session, item.product_id) or []
 
         # 3. Procesar cada componente de la receta (Fijo o por Grupo)
+        # Guardaremos qué modificadores fueron usados como ingredientes de receta para no duplicar
+        deducted_modifier_ids = set()
+        
         for ri in recipe:
             final_ingredient_id = None
             final_quantity = ri.quantity * item.quantity
@@ -494,6 +497,8 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
                     m_group_id = getattr(mod, 'modifier_group_id', None)
                     if m_group_id == ri.modifier_group_id:
                         final_ingredient_id = getattr(mod, 'ingredient_id', None)
+                        # Registrar este modificador para evitar descuento doble
+                        deducted_modifier_ids.add(getattr(mod, 'id', None))
                         break
             
             if final_ingredient_id:
@@ -502,8 +507,14 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
                     ingredient.current_stock -= final_quantity
                     session.add(ingredient)
         
-                # 3. Depleción por modificadores seleccionados
+        # 4. Depleción por modificadores seleccionados (que no estuvieran en la receta base)
         for modifier in getattr(item, 'modifiers', []):
+            mod_id = modifier.get('id') if isinstance(modifier, dict) else getattr(modifier, 'id', None)
+            
+            # SI YA SE DESCONTÓ EN EL PASO 3 (Receta dinámica), OMITIR AQUÍ
+            if mod_id in deducted_modifier_ids:
+                continue
+
             ingredient_id = modifier.get('ingredient_id') if isinstance(modifier, dict) else getattr(modifier, 'ingredient_id', None)
             if ingredient_id:
                 # Buscar cantidad específica por medida si existe
@@ -518,7 +529,7 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
                 
                 if measure_id:
                     stmt = select(ModifierQuantity).where(
-                        ModifierQuantity.modifier_id == (modifier.get('id') if isinstance(modifier, dict) else modifier.id),
+                        ModifierQuantity.modifier_id == mod_id,
                         ModifierQuantity.measure_id == measure_id
                     )
                     res = await session.execute(stmt)
@@ -535,6 +546,7 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
                     if mod_ingredient:
                         total_mod_deduction = quantity * item.quantity
                         mod_ingredient.current_stock -= total_mod_deduction
+                        session.add(mod_ingredient)
                 
     await session.commit()
 

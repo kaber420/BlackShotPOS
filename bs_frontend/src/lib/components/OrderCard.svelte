@@ -138,6 +138,19 @@
                     <p class="text-xs opacity-60 uppercase font-black tracking-tight mt-0.5 mb-2">
                         {order.type === 'DINE_IN' ? 'Comedor' : 'Para Llevar'} • {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
+                    <!-- ── Badges de actor: mesero y cocinero ─────────────── -->
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        {#if order.waiter_name}
+                            <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-info/15 text-info border border-info/20">
+                                🤵 {order.waiter_name}
+                            </span>
+                        {/if}
+                        {#if order.cook_name && view === 'kitchen'}
+                            <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-warning/15 text-warning border border-warning/20">
+                                👨‍🍳 {order.cook_name}
+                            </span>
+                        {/if}
+                    </div>
                 </div>
             </div>
 
