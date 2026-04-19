@@ -55,42 +55,23 @@ class PosSocketManager {
                 if (data.error) {
                     console.error("SOCKET: Error desde el servidor:", data.detail);
                 } else {
-                    // We need to figure out which topic this data belongs to.
-                    // Since the current backend just sends raw data without wrappers, 
-                    // we might need to guess based on active subscriptions or data shape.
-                    // A better approach is to wrap data {topic: "xx", data: []} on the backend.
-                    // But for now, we'll try to infer based on active topics and data structure 
-                    
-                    // IF it's an array and we are subscribed to tables and it has a 'number' and 'capacity' property
-                    if (Array.isArray(data) && data.length > 0 && data[0].hasOwnProperty('number') && data[0].hasOwnProperty('capacity')) {
-                        this.tables = data;
-                    } 
-                    // Else if it has preparingCount, it is dashboard_stats
-                    else if (!Array.isArray(data) && data && data.hasOwnProperty('preparingCount')) {
-                        this.dashboardStats = data;
-                    }
-                    // Else it's orders. This is tricky because kitchen_orders and recent_orders have similar structure.
-                    // Ideally the backend should tell us the topic. 
-                    // However, we can just update all order collections if they are arrays.
-                    // The backend just broadcasts raw json arrays for orders.
-                    else if (Array.isArray(data)) {
-                        // Just update both to be safe for now since they are just different filters of the same data mostly
-                        // But wait, they are different subsets.
-                        // I will update both if we don't have a reliable way to differentiate right now.
-                        // Wait, kitchen_orders are only PENDING and PREPARING.
-                        // We can filter it here on the client from the unified array if needed, but since backend pushes it, let's update both.
-                        const hasOnlyKitchenStatus = data.every(o => o.status === 'PENDING' || o.status === 'PREPARING');
-                        if (hasOnlyKitchenStatus && this.subscribedTopics.has('kitchen_orders')) {
-                            this.kitchenOrders = data;
-                        } 
-                        if (this.subscribedTopics.has('recent_orders')) {
-                            this.recentOrders = data;
+                    if (data.topic && data.data !== undefined) {
+                        switch (data.topic) {
+                            case 'kitchen_orders':
+                                this.kitchenOrders = data.data;
+                                break;
+                            case 'recent_orders':
+                                this.recentOrders = data.data;
+                                break;
+                            case 'dashboard_stats':
+                                this.dashboardStats = data.data;
+                                break;
+                            case 'tables':
+                                this.tables = data.data;
+                                break;
                         }
-                    } else if (Array.isArray(data) && data.length === 0) {
-                        // Empty states
-                        if (this.subscribedTopics.has('kitchen_orders')) this.kitchenOrders = [];
-                        if (this.subscribedTopics.has('recent_orders')) this.recentOrders = [];
-                        if (this.subscribedTopics.has('tables')) this.tables = [];
+                    } else {
+                        console.warn("SOCKET: Formato de mensaje desconocido (faltaban topic/data)");
                     }
                 }
             } catch (e) {

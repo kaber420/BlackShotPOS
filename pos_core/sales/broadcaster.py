@@ -37,7 +37,8 @@ class PubSubManager:
             dead_connections = []
             for connection in self.active_connections[topic]:
                 try:
-                    await connection.send_json(message)
+                    payload = {"topic": topic, "data": message}
+                    await connection.send_json(payload)
                 except Exception as e:
                     # Si falla al enviar, marcamos para remover
                     print(f"Error boradcasting to socket in {topic}: {e}")
