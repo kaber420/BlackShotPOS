@@ -30,7 +30,7 @@
     let recipeModal = $state<{ name: string; markdown: string } | null>(null);
 
     // ── WebSocket Connection ─────────────────────────────────────────────────
-    onMount(() => {
+    onMount(async () => {
         // Cargar mesas y configurar impresión (no bloquean el KDS)
         TableService.getAll().then(t => (tables = t)).catch(console.error);
 
@@ -38,11 +38,26 @@
         selectedMethod = getRecommendedMethod();
 
         posSocket.subscribe("kitchen_orders");
-        // Si ya tenemos data, no hay necesidad de esperar
-        if (posSocket.kitchenOrders.length > 0) {
-            isLoading = false;
+        
+        // Si no tenemos datos, forzamos una carga inicial via REST
+        if (posSocket.kitchenOrders.length === 0) {
+            isLoading = true;
+            try {
+                // Obtenemos órdenes de cocina (solo pendientes/preparando)
+                const data = await OrderService.getAll(OrderStatus.PENDING); // Tendríamos que filtrar o usar un endpoint específico
+                // En realidad OrderService.getAll con status PENDING es lo que usa la cocina
+                // Pero el socket usa service.get_kitchen_orders(db) que incluye PENDING y PREPARING.
+                // Vamos a usar una carga genérica si es necesario o confiar en el fix del socket.
+                
+                // Con el fix en el backend (envío de initial_data en cada subscribe), 
+                // el socket debería poblarse casi instantáneamente al llamar a subscribe.
+            } catch (e) {
+                console.error("Error en carga inicial KDS:", e);
+            } finally {
+                isLoading = false;
+            }
         } else {
-            setTimeout(() => isLoading = false, 300);
+            isLoading = false;
         }
 
         return () => {

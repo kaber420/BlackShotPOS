@@ -50,49 +50,52 @@ async def pos_websocket(websocket: WebSocket):
         return
 
     print(f"🔌 WebSocket POS Iniciado: Usuario {user_info.get('username')}")
-    topic = None
+    subscribed_topics = set()
 
     try:
-        # Esperamos el comando de suscripción: {"action": "subscribe", "topic": "lo_que_sea"}
-        data = await websocket.receive_json()
-        if data.get("action") == "subscribe" and data.get("topic"):
-            topic = data.get("topic")
-            broadcaster.connect(websocket, topic)
-            
-            # Enviar el estado inicial inmediatamente para que la UI no parpadee
-            async for db in get_session():
-                if topic == "kitchen_orders":
-                    initial_data = await service.get_kitchen_orders(db)
-                    await websocket.send_json({"topic": topic, "data": initial_data})
-                elif topic == "dashboard_stats":
-                    initial_data = await service.get_dashboard_stats(db)
-                    await websocket.send_json({"topic": topic, "data": initial_data})
-                elif topic == "recent_orders":
-                    # Las órdenes pueden venir ordenadas, esto lo maneja el cliente o lo podemos hacer desde BD
-                    initial_data = await service.get_orders_json(db)
-                    # Sort desc by date roughly
-                    initial_data = sorted(initial_data, key=lambda x: x["created_at"], reverse=True)
-                    await websocket.send_json({"topic": topic, "data": initial_data})
-                elif topic == "tables":
-                    from pos_core.tables.service import get_tables
-                    initial_data = await get_tables(db, include_inactive=True)
-                    # serializar
-                    initial_data_json = [t.model_dump() for t in initial_data]
-                    await websocket.send_json({"topic": topic, "data": initial_data_json})
-                break
-
-        # Bucle de escucha para mantener la conexión viva y por si mandan más cosas
+        # Bucle de escucha infinito para procesar múltiples comandos
         while True:
-            msg = await websocket.receive_text()
-            # Podríamos soportar cambiar de topics aquí si fuera necesario
+            data = await websocket.receive_json()
+            
+            if data.get("action") == "subscribe" and (topic := data.get("topic")):
+                # Registramos el topic en el broadcaster
+                broadcaster.connect(websocket, topic)
+                subscribed_topics.add(topic)
                 
+                print(f"📡 Usuario {user_info.get('username')} suscrito a: {topic}")
+
+                # Enviar el estado inicial inmediatamente
+                async for db in get_session():
+                    if topic == "kitchen_orders":
+                        initial_data = await service.get_kitchen_orders(db)
+                        await websocket.send_json({"topic": topic, "data": initial_data})
+                    elif topic == "dashboard_stats":
+                        initial_data = await service.get_dashboard_stats(db)
+                        await websocket.send_json({"topic": topic, "data": initial_data})
+                    elif topic == "recent_orders":
+                        initial_data = await service.get_orders_json(db)
+                        initial_data = sorted(initial_data, key=lambda x: x["created_at"], reverse=True)
+                        await websocket.send_json({"topic": topic, "data": initial_data})
+                    elif topic == "tables":
+                        from pos_core.tables.service import get_tables
+                        initial_data = await get_tables(db, include_inactive=True)
+                        initial_data_json = [t.model_dump() for t in initial_data]
+                        await websocket.send_json({"topic": topic, "data": initial_data_json})
+                    break
+            
+            elif data.get("action") == "unsubscribe" and (topic := data.get("topic")):
+                broadcaster.disconnect(websocket, topic)
+                if topic in subscribed_topics:
+                    subscribed_topics.remove(topic)
+
     except WebSocketDisconnect:
         pass
     except Exception as e:
         print(f"❌ Error en WebSocket POS: {e}")
     finally:
-        broadcaster.disconnect(websocket, topic)
-        print(f"🔌 WebSocket POS: Desconectado")
+        # Al cerrar, desconectamos de todos los topics
+        broadcaster.disconnect(websocket)
+        print(f"🔌 WebSocket POS: Desconectado de todos los topics")
 
 
 async def broadcast_updates():

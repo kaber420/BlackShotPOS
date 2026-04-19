@@ -26,14 +26,29 @@
 
     const ACTIVE_STATUSES = new Set(['PENDING', 'PREPARING', 'READY']);
 
-    onMount(() => {
+    onMount(async () => {
         posSocket.subscribe("recent_orders");
-        // Si ya tenemos data cacheada
-        if (posSocket.recentOrders.length > 0) {
-            isLoading = false;
+        
+        // Carga inicial resiliente
+        if (posSocket.recentOrders.length === 0) {
+            isLoading = true;
+            try {
+                const data = await OrderService.getAll();
+                // Si el socket aún no ha poblado los datos (ej. delay en WS), podemos poblarlos aquí
+                if (posSocket.recentOrders.length === 0) {
+                    posSocket.recentOrders = data.sort((a, b) => 
+                        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                    );
+                }
+            } catch (e) {
+                console.error("Error al cargar órdenes iniciales:", e);
+            } finally {
+                isLoading = false;
+            }
         } else {
-            setTimeout(() => isLoading = false, 300);
+            isLoading = false;
         }
+
         selectedMethod = getRecommendedMethod();
     });
 
