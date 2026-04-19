@@ -3,13 +3,21 @@
 **Proyecto:** BlackShot POS  
 **Estado:** BORRADOR v2 — pendiente de ejecución  
 **Fecha:** 2026-04-19  
-**Conversación de referencia:** `7fe9c8da-b7a5-44f7-9fc9-ee7b367611e5`
+**Conversación de referencia:** `7fe9c8da-b7a5-44f7-9fc9-ee7b367611e5`  
+**Planes relacionados:** `KITCHEN_EFFICIENCY_PLAN.md`, `ADMIN_PANEL_PLAN.md`
+
+> [!IMPORTANT]
+> **Este plan es la base de infraestructura compartida.**  
+> Los campos `preparing_at`, `ready_at` y `delivered_at` que agrega este plan son también usados por `KITCHEN_EFFICIENCY_PLAN.md` para medir tiempos de cocina.
+> **Ejecutar este plan primero** antes de `KITCHEN_EFFICIENCY_PLAN.md`.
 
 ---
 
 ## Contexto y Objetivo
 
-Este plan detalla los cambios necesarios para medir la carga de trabajo y la rapidez de los meseros, permitiendo identificar quiénes son los más activos y eficientes.
+Este plan detalla los cambios necesarios para medir la carga de trabajo y la rapidez de los **meseros**, permitiendo al gerente identificar quiénes son los más activos y eficientes.
+
+La infraestructura de timestamps que este plan agrega (`preparing_at`, `ready_at`, `delivered_at`) es **compartida** con `KITCHEN_EFFICIENCY_PLAN.md` para medir tiempos de producción de cocina. Por eso este plan va primero.
 
 ### Estado Actual del Código
 
@@ -19,6 +27,8 @@ Este plan detalla los cambios necesarios para medir la carga de trabajo y la rap
 - ✅ `pos_core/sales/analytics_router.py` — `/dashboard` existe, pero **no hay endpoint de meseros**.
 - ✅ `pos_core/sales/models.py` — `Order` y `OrderItem` existen pero **sin campos de mesero ni timestamps de ciclo de vida**.
 - ✅ `bs_frontend/src/routes/(app)/admin/analytics/+page.svelte` — existe pero sin sección de desempeño de equipo.
+- ❌ Nadie registra quién creó la orden ni quién la entregó — esa información se pierde.
+- ❌ No hay timestamps de ciclo de vida para medir tiempos reales de atención.
 
 ---
 
@@ -507,6 +517,10 @@ app.include_router(analytics_router, prefix="/api/analytics", tags=["analytics"]
 
 ## Orden de Ejecución y Checklist
 
+> [!NOTE]
+> **Orden entre planes:** Ejecutar `WAITER_EFFICIENCY_PLAN` → luego `KITCHEN_EFFICIENCY_PLAN`.  
+> Los timestamps del ciclo de vida (`preparing_at`, `ready_at`, `delivered_at`) son infraestructura compartida.
+
 ```
 FASE 1: Migración SQLite                           ~10 min
 FASE 2: Actualizar models.py (Order + OrderItem)   ~15 min
@@ -553,6 +567,11 @@ Total estimado:                                   ~2h 25min
 > [!TIP]
 > **Eficiencia por ítem vs. por orden**  
 > Los timestamps en `OrderItem` permiten analíticas futuras más granulares (ej. "¿cuánto tarda la cocina en preparar un cappuccino?"). Para esta primera versión, el endpoint de eficiencia usa solo los timestamps de `Order`; los de `OrderItem` quedan disponibles para el siguiente sprint.
+
+> [!NOTE]
+> **Relación con KITCHEN_EFFICIENCY_PLAN.md**  
+> El endpoint `/analytics/kitchen/performance` que mide los cocineros usa los mismos `preparing_at` y `ready_at` que añade este plan.  
+> El plan de cocina **no duplica** la migración — solo añade `cook_uuid` y `cook_name`.
 
 ---
 
