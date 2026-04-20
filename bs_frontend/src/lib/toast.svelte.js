@@ -77,3 +77,10 @@ export function addToast(message, type = 'success', duration = 3000) {
 export function removeToast(id) {
     toastState.toasts = toastState.toasts.filter(t => t.id !== id);
 }
+
+/** Convenient object for calling addToast with specific types */
+export const toast = {
+    success: (msg, duration) => addToast(msg, 'success', duration),
+    error: (msg, duration) => addToast(msg, 'error', duration),
+    info: (msg, duration) => addToast(msg, 'info', duration)
+};

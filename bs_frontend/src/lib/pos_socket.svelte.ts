@@ -10,8 +10,8 @@ class PosSocketManager {
     // Topics data
     kitchenOrders = $state<Order[]>([]);
     recentOrders = $state<Order[]>([]);
-    tables = $state<Table[]>([]);
     dashboardStats = $state<any>(null);
+    iotDevices = $state<any[]>([]);
 
     private subscribedTopics = new Set<string>();
     private reconnectTimeout: any = null;
@@ -68,6 +68,26 @@ class PosSocketManager {
                                 break;
                             case 'tables':
                                 this.tables = data.data;
+                                break;
+                            case 'admin_iot':
+                                const msg = data.data;
+                                if (Array.isArray(msg)) {
+                                    this.iotDevices = msg;
+                                } else if (msg.type === 'status') {
+                                    this.iotDevices = this.iotDevices.map(d => 
+                                        d.id === msg.device_id ? { ...d, is_online: msg.status === 'online' } : d
+                                    );
+                                } else if (msg.type === 'health') {
+                                    this.iotDevices = this.iotDevices.map(d => 
+                                        d.id === msg.device_id ? { 
+                                            ...d, 
+                                            rssi: msg.rssi, 
+                                            battery_level: msg.battery, 
+                                            firmware_version: msg.version,
+                                            is_online: true 
+                                        } : d
+                                    );
+                                }
                                 break;
                         }
                     } else {

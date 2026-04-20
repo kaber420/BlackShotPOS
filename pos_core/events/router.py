@@ -58,6 +58,10 @@ async def pos_websocket(websocket: WebSocket):
                         from pos_core.tables.service import get_tables
                         tables = await get_tables(db, include_inactive=True)
                         initial_data = [t.model_dump(mode="json") for t in tables]
+                    elif topic == "admin_iot":
+                        from pos_core.iot.service import get_all_devices
+                        initial_data = await get_all_devices(db)
+                        initial_data = [d.model_dump(mode="json") for d in initial_data]
                     
                     if initial_data is not None:
                         await websocket.send_json({"topic": topic, "data": initial_data})

@@ -171,6 +171,10 @@
 								{#if can.manageSettings()}
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
 								{/if}
+								
+								{#if can.manageIoT()}
+									<li><a href="/admin/devices">🔌 Gestionar Dispositivos</a></li>
+								{/if}
 							</ul>
 							<div class="card-actions pt-2 border-t border-base-200">
 								<Button variant="danger" size="sm" class="btn-block" onclick={handleLogout}>Cerrar Sesión</Button>

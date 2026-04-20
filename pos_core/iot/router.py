@@ -1,7 +1,8 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pos_core.database import get_session
 from pos_core.events.manager import broadcaster
-from .service import get_device_by_token, update_device_last_seen
+from pos_core.events.service import trigger_broadcast
+from .service import get_device_by_token, update_device_last_seen, update_device_health
 import logging
 import asyncio
 
@@ -41,6 +42,13 @@ async def iot_websocket(websocket: WebSocket):
         # Suscribir al tópico de la mesa
         broadcaster.connect(websocket, topic)
         
+        # Notificar al panel de admin que este dispositivo está ONLINE
+        await broadcaster.broadcast("admin_iot", {
+            "type": "status",
+            "device_id": device_id,
+            "status": "online"
+        })
+        
         try:
             # Actualizar last_seen inicialmente
             await update_device_last_seen(db, device_id)
@@ -52,12 +60,28 @@ async def iot_websocket(websocket: WebSocket):
                 
                 if action == "ping":
                     await websocket.send_json({"ev": "pong"})
-                    # Ocasionalmente actualizar last_seen
                     await update_device_last_seen(db, device_id)
+                
+                elif action == "health":
+                    # Reporte de salud: rssi, battery, version
+                    rssi = data.get("rssi")
+                    battery = data.get("battery")
+                    version = data.get("version")
+                    
+                    await update_device_health(db, device_id, rssi=rssi, battery=battery)
+                    
+                    # Notificar al panel de admin los nuevos valores
+                    await broadcaster.broadcast("admin_iot", {
+                        "type": "health",
+                        "device_id": device_id,
+                        "rssi": rssi,
+                        "battery": battery,
+                        "version": version
+                    })
                 
                 elif action == "call_waiter":
                     # Disparar un evento para el POS general
-                    await broadcaster.broadcast("dashboard_stats", {
+                    await trigger_broadcast("dashboard_stats", {
                         "type": "notification",
                         "msg": f"🔔 Mesa {table_id} solicita asistencia",
                         "table_id": table_id
@@ -66,6 +90,12 @@ async def iot_websocket(websocket: WebSocket):
 
         except WebSocketDisconnect:
             logger.info(f"🔌 Dispositivo IoT desconectado: {device.device_id}")
+            # Notificar al panel de admin que este dispositivo está OFFLINE
+            await broadcaster.broadcast("admin_iot", {
+                "type": "status",
+                "device_id": device_id,
+                "status": "offline"
+            })
         except Exception as e:
             logger.error(f"❌ Error en WebSocket IoT: {e}")
         finally:

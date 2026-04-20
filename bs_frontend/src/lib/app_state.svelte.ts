@@ -149,6 +149,7 @@ export const can = {
     viewReports:         () => appState.permissions['can_view_reports']           ?? false,
     manageSettings:      () => appState.permissions['can_manage_settings']          ?? false,
     viewAudits:          () => appState.permissions['can_view_audits']          ?? false,
+    manageIoT:           () => appState.permissions['can_manage_iot']          ?? false,
 };
 
 export function setActiveShift(shift: any | null) {
