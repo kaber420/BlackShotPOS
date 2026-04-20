@@ -1,7 +1,7 @@
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from omni_auth.manager import OmniAuthManager
 from pos_core.database import get_session
-from .manager import broadcaster
+from .manager import pos_broadcaster
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,9 +35,13 @@ async def pos_websocket(websocket: WebSocket):
             data = await websocket.receive_json()
             action = data.get("action")
             topic = data.get("topic")
-            
+
+            if action == "ping":
+                # Heartbeat - solo registrar actividad para evitar el timeout
+                continue
+
             if action == "subscribe" and topic:
-                broadcaster.connect(websocket, topic)
+                pos_broadcaster.connect(websocket, topic)
                 subscribed_topics.add(topic)
                 logger.info(f"📡 Usuario {user_info.get('username')} suscrito a: {topic}")
 
@@ -68,7 +72,7 @@ async def pos_websocket(websocket: WebSocket):
                     break
             
             elif action == "unsubscribe" and topic:
-                broadcaster.disconnect(websocket, topic)
+                pos_broadcaster.disconnect(websocket, topic)
                 if topic in subscribed_topics:
                     subscribed_topics.remove(topic)
 
@@ -78,4 +82,4 @@ async def pos_websocket(websocket: WebSocket):
         logger.error(f"❌ Error en WebSocket POS para usuario {user_info.get('username')}: {e}", exc_info=True)
     finally:
         # Limpieza final: desuscribir de todos los tópicos
-        broadcaster.disconnect(websocket)
+        pos_broadcaster.disconnect(websocket)

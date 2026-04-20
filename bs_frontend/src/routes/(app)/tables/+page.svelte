@@ -63,9 +63,9 @@
         posSocket.unsubscribe("recent_orders");
     });
 
-    async function refreshTables() {
-        // Si el socket ya tiene la info cachead y conectada, no hacemos peticiones HTTP innecesarias
-        if (posSocket.tables.length > 0) {
+    async function refreshTables(force = false) {
+        // Solo saltamos la carga si el socket tiene datos Y no es un refresh forzado
+        if (!force && posSocket.tables.length > 0) {
             isLoading = false;
             return;
         }
@@ -238,7 +238,7 @@
                     </Button>
                 {/if}
 
-                <Button variant="ghost" circle size="md" onclick={refreshTables} aria-label="Actualizar mesas">
+                <Button variant="ghost" circle size="md" onclick={() => refreshTables(true)} aria-label="Actualizar mesas">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>

@@ -5,6 +5,7 @@ from .models import Order, OrderItem, Payment, OrderStatus, OrderType, PaymentMe
 from pos_core.inventory.models import Product, Modifier, ProductVariant
 from pos_core.inventory.service import process_inventory_depletion
 from pos_core.sales.shifts_service import get_active_shift
+from pos_core.events.service import trigger_iot_broadcast
 
 async def create_order(
     session: AsyncSession,
@@ -303,6 +304,10 @@ async def update_order_status(
             if cook_uuid and order.cook_uuid is None:
                 order.cook_uuid = cook_uuid
                 order.cook_name = cook_name
+            
+            # Notificar a dispositivos IoT de la mesa
+            if order.table_id:
+                await trigger_iot_broadcast(order.table_id, "rdy", "¡Orden lista!")
 
         elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
             order.delivered_at = _dt.utcnow()
@@ -465,8 +470,12 @@ async def update_order_item_status(
 
             # Avoid downgrading from PAID if that was the state
             if order.status != OrderStatus.PAID:
+                is_becoming_ready = (new_order_status == OrderStatus.READY and order.status != OrderStatus.READY)
                 order.status = new_order_status
                 session.add(order)
+
+                if is_becoming_ready and order.table_id:
+                    await trigger_iot_broadcast(order.table_id, "rdy", "¡Orden lista!")
             elif new_order_status == OrderStatus.CANCELLED:
                 # Cancelled can override PAID in some scenarios? 
                 # Usually not, but for now let's be conservative.

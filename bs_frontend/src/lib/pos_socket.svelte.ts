@@ -10,11 +10,13 @@ class PosSocketManager {
     // Topics data
     kitchenOrders = $state<Order[]>([]);
     recentOrders = $state<Order[]>([]);
+    tables = $state<Table[]>([]);
     dashboardStats = $state<any>(null);
     iotDevices = $state<any[]>([]);
 
     private subscribedTopics = new Set<string>();
     private reconnectTimeout: any = null;
+    private heartbeatInterval: any = null;
     private isManuallyClosed = false;
 
     connect() {
@@ -47,6 +49,14 @@ class PosSocketManager {
             for (const topic of this.subscribedTopics) {
                 this.socket?.send(JSON.stringify({ action: "subscribe", topic }));
             }
+
+            // Iniciar heartbeat cada 30 segundos para evitar timeouts de red
+            clearInterval(this.heartbeatInterval);
+            this.heartbeatInterval = setInterval(() => {
+                if (this.status === 'open' && this.socket) {
+                    this.socket.send(JSON.stringify({ action: "ping" }));
+                }
+            }, 30000);
         };
 
         this.socket.onmessage = (event) => {
@@ -100,6 +110,7 @@ class PosSocketManager {
         };
 
         this.socket.onclose = () => {
+            clearInterval(this.heartbeatInterval);
             if (this.isManuallyClosed) return;
             console.log("🔌 SOCKET: Desconectado");
             this.status = 'closed';
@@ -133,6 +144,7 @@ class PosSocketManager {
     close() {
         this.isManuallyClosed = true;
         clearTimeout(this.reconnectTimeout);
+        clearInterval(this.heartbeatInterval);
         if (this.socket) {
             this.socket.close();
             this.socket = null;

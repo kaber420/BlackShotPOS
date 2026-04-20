@@ -6,6 +6,7 @@ from fastapi import WebSocket
 from fastapi.encoders import jsonable_encoder
 from typing import Dict, List, Any
 import logging
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +35,10 @@ class PubSubManager:
                     logger.info(f"🔌 Desuscrito (desconexión general) de '{t}'. Restantes: {len(wss)}")
 
     async def broadcast(self, topic: str, message: Any):
-        """Envía un mensaje a todos los suscriptores de un tópico de forma segura."""
+        """Envía un mensaje a todos los suscriptores de un tópico de forma segura y en paralelo."""
         if topic not in self.active_connections or not self.active_connections[topic]:
             return
 
-        # Aseguramos que el mensaje sea serializable antes de intentar enviar
         try:
             safe_payload = {
                 "topic": topic,
@@ -48,17 +48,22 @@ class PubSubManager:
             logger.error(f"❌ Error al serializar mensaje para tópico '{topic}': {e}")
             return
 
-        dead_connections = []
-        for connection in self.active_connections[topic]:
+        # Enviar en paralelo para que una conexión lenta no bloquee a las demás
+        async def send_to_socket(websocket: WebSocket):
             try:
-                await connection.send_json(safe_payload)
+                await websocket.send_json(safe_payload)
             except Exception as e:
                 logger.warning(f"⚠️ Error al enviar a socket en tópico '{topic}': {e}")
-                dead_connections.append(connection)
-        
-        # Limpieza de conexiones muertas
-        for dead in dead_connections:
-            self.disconnect(dead, topic)
+                self.disconnect(websocket, topic)
 
-# Instancia global del manager
-broadcaster = PubSubManager()
+        # Disparamos las tareas de envío
+        tasks = [asyncio.create_task(send_to_socket(ws)) for ws in self.active_connections[topic]]
+        if tasks:
+            await asyncio.wait(tasks)
+
+# Instancias separadas para total aislamiento
+pos_broadcaster = PubSubManager()
+iot_broadcaster = PubSubManager()
+
+# Alias para compatibilidad temporal si es necesario, pero migraremos a los específicos
+broadcaster = pos_broadcaster 

@@ -31,5 +31,11 @@ export const IoTService = {
         return fetchApi<any>(`${BASE_URL}/devices/${id}`, {
             method: 'DELETE'
         });
+    },
+
+    async syncDevices() {
+        return fetchApi<any>(`${BASE_URL}/devices/sync`, {
+            method: 'POST'
+        });
     }
 };

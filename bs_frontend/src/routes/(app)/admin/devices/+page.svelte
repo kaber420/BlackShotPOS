@@ -41,6 +41,15 @@
         }
     }
 
+    async function handleSync() {
+        try {
+            const res = await IoTService.syncDevices();
+            toast.success(res.message || "Sincronización enviada");
+        } catch (e) {
+            toast.error("Fallo al sincronizar");
+        }
+    }
+
     const onlineCount = $derived(posSocket.iotDevices.filter(d => d.is_online).length);
     const totalCount = $derived(posSocket.iotDevices.length);
 </script>
@@ -82,6 +91,13 @@
                 </div>
             </div>
             
+            <Button variant="outline" size="lg" class="px-6 font-black rounded-[1.5rem] border-2 group" onclick={handleSync}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 group-hover:rotate-180 transition-transform duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                SINCRONIZAR
+            </Button>
+
             <Button variant="primary" size="lg" class="px-10 font-black rounded-[1.5rem] shadow-xl hover:shadow-primary/30 group" onclick={() => openModal()}>
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 group-hover:rotate-90 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
