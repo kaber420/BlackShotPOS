@@ -6,7 +6,7 @@ from sqlalchemy import select
 from pos_core.database import get_session
 from .models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMethod
 from . import service
-from pos_core.events.service import trigger_broadcast
+from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast
 from omni_auth.security import require_role, require_permission
 from typing import List, Optional
 from pydantic import BaseModel
@@ -129,6 +129,14 @@ async def update_status(
     asyncio.create_task(trigger_broadcast("recent_orders"))
     asyncio.create_task(trigger_broadcast("dashboard_stats"))
     asyncio.create_task(trigger_broadcast("tables"))
+
+    # Notificar a IoT si la orden tiene mesa
+    if order.table_id:
+        if status == OrderStatus.PREPARING:
+            asyncio.create_task(trigger_iot_broadcast(order.table_id, "prep", "Su orden está en preparación"))
+        elif status == OrderStatus.READY:
+            asyncio.create_task(trigger_iot_broadcast(order.table_id, "rdy", "¡Su orden está lista!"))
+
     return order
 
 @router.patch("/orders/{order_id}/items/{item_id}/status", response_model=OrderItem)
@@ -158,6 +166,25 @@ async def update_item_status(
     asyncio.create_task(trigger_broadcast("recent_orders"))
     asyncio.create_task(trigger_broadcast("dashboard_stats"))
     asyncio.create_task(trigger_broadcast("tables"))
+
+    # Notificar a IoT si el ítem tiene mesa asociada vía la orden
+    if item and status in (OrderStatus.PREPARING, OrderStatus.READY):
+        # Necesitamos el table_id y el nombre del producto para una mejor experiencia IoT
+        async def notify_iot_item():
+            from pos_core.inventory.models import Product
+            async for db_session in get_session():
+                # Recargar ítem con producto para el nombre
+                db_item = await db_session.get(OrderItem, item_id)
+                if db_item:
+                    db_order = await db_session.get(Order, order_id)
+                    db_product = await db_session.get(Product, db_item.product_id)
+                    if db_order and db_order.table_id and db_product:
+                        ev = "prep" if status == OrderStatus.PREPARING else "rdy"
+                        msg = f"{db_product.name} listo" if ev == "rdy" else f"Preparando {db_product.name}"
+                        await trigger_iot_broadcast(db_order.table_id, ev, msg)
+                break
+        asyncio.create_task(notify_iot_item())
+
     return item
 
 @router.delete("/orders/{order_id}")

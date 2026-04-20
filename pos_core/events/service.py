@@ -51,3 +51,17 @@ async def trigger_all_broadcasts():
     """Dispara actualizaciones para todos los tópicos conocidos."""
     for topic in ["kitchen_orders", "dashboard_stats", "recent_orders", "tables"]:
         await trigger_broadcast(topic)
+
+async def trigger_iot_broadcast(table_id: int, event: str, message: str, eta: int = 0):
+    """
+    Despacha una notificación optimizada a los dispositivos IoT de una mesa.
+    """
+    topic = f"iot_table_{table_id}"
+    if topic not in broadcaster.active_connections or not broadcaster.active_connections[topic]:
+        return
+
+    from pos_core.iot.service import format_iot_payload
+    payload = format_iot_payload(event, message, eta)
+    
+    # El broadcaster se encarga de envolverlo en {"topic": topic, "data": payload}
+    await broadcaster.broadcast(topic, payload)
