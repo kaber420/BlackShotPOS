@@ -2,11 +2,12 @@
     import { appState } from '$lib/app_state.svelte';
     import Button from '$lib/components/ui/Button.svelte';
 
-    let { isOpen, total, onConfirm, onClose } = $props();
+    let { isOpen, total, onConfirm, onClose, hasTable = true } = $props();
 
     let paymentMethod = $state<string>('CASH');
     let amountReceived = $state<number>(0);
     let shouldPrint = $state<boolean>(true);
+    let vacateTable = $state<boolean>(true);
     let isLoading = $state(false);
 
     let change = $derived(Math.max(0, amountReceived - total));
@@ -36,7 +37,7 @@
         
         isLoading = true;
         try {
-            await onConfirm(paymentMethod, amountReceived, shouldPrint);
+            await onConfirm(paymentMethod, amountReceived, shouldPrint, vacateTable);
         } finally {
             isLoading = false;
         }
@@ -123,10 +124,22 @@
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 opacity-60">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0110.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0l.229 2.523a1.125 1.125 0 01-1.12 1.227H7.231a1.125 1.125 0 01-1.12-1.227L6.34 18m11.318-3.071A3 3 0 0014.122 12H9.878a3 3 0 00-2.878 2.378L6.34 18m11.318-3.071c1.118-.119 2.232-.26 3.342-.424a.75.75 0 00.612-.732V6.378a.75.75 0 00-.612-.732 42.42 42.42 0 00-3.342-.424M6.34 18a42.42 42.42 0 01-3.342-.424.75.75 0 01-.612-.732V6.378a.75.75 0 01.612-.732 42.423 42.423 0 013.342-.424M15 9h.008v.008H15V9zm0 3h.008v.008H15V12zm0-6h.008v.008H15V6zm-3 6h.008v.008H12V12zm0-3h.008v.008H12V9zm0-6h.008v.008H12V6zM9 9h.008v.008H9V9zm0 3h.008v.008H9V12zm0-6h.008v.008H9V6z" />
                         </svg>
-                        <span class="font-bold text-sm">Imprimir Ticket</span>
+                        <span class="font-bold text-sm">Ticket</span>
                     </div>
-                    <input type="checkbox" class="toggle toggle-primary" bind:checked={shouldPrint} />
+                    <input type="checkbox" class="toggle toggle-primary toggle-sm" bind:checked={shouldPrint} />
                 </div>
+
+                {#if hasTable}
+                <div class="flex items-center justify-between p-4 bg-base-200 rounded-xl border border-base-300">
+                    <div class="flex items-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 opacity-60">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                        </svg>
+                        <span class="font-bold text-sm">Liberar Mesa</span>
+                    </div>
+                    <input type="checkbox" class="toggle toggle-secondary toggle-sm" bind:checked={vacateTable} />
+                </div>
+                {/if}
             </div>
 
             <!-- Right Side: Totals & Summary -->

@@ -30,9 +30,12 @@ async def create_order(
     
     if table_id:
         from pos_core.tables.models import Table
+        from datetime import datetime as _dt
         db_table = await session.get(Table, table_id)
         if db_table:
-            db_table.status = "Occupied"
+            if db_table.status != "Occupied":
+                db_table.status = "Occupied"
+                db_table.occupied_at = _dt.utcnow()
             session.add(db_table)
             
     await session.commit()
@@ -108,7 +111,8 @@ async def add_payment(
     session: AsyncSession,
     order_id: int,
     method: PaymentMethod,
-    amount: float
+    amount: float,
+    vacate_table: bool = True
 ) -> Payment:
     payment = Payment(
         order_id=order_id,
@@ -122,17 +126,42 @@ async def add_payment(
     if order:
         order.is_paid = True
         
-        # Liberamos la mesa si estaba asociada a una
-        if order.table_id:
-            from pos_core.tables.models import Table
-            db_table = await session.get(Table, order.table_id)
-            if db_table:
-                db_table.status = "Free"
-                session.add(db_table)
+        # Liberamos la mesa si estaba asociada a una Y el usuario lo solicitó
+        if order.table_id and vacate_table:
+            await vacate_table_service(session, order.table_id)
         
     await session.commit()
     await session.refresh(payment)
     return payment
+
+async def vacate_table_service(session: AsyncSession, table_id: int) -> Optional[dict]:
+    """
+    Libera una mesa, calcula el tiempo de ocupación y retorna estadísticas.
+    """
+    from pos_core.tables.models import Table
+    from datetime import datetime as _dt
+    db_table = await session.get(Table, table_id)
+    if not db_table:
+        return None
+    
+    res = {
+        "table_id": table_id,
+        "number": db_table.number,
+        "occupied_at": db_table.occupied_at.isoformat() if db_table.occupied_at else None,
+        "vacated_at": _dt.utcnow().isoformat(),
+        "duration_minutes": 0
+    }
+    
+    if db_table.occupied_at:
+        delta = _dt.utcnow() - db_table.occupied_at
+        res["duration_minutes"] = round(delta.total_seconds() / 60, 2)
+    
+    db_table.status = "Free"
+    db_table.occupied_at = None
+    session.add(db_table)
+    await session.commit()
+    
+    return res
 
 def format_order_json(order: Order) -> dict:
     """Format an order object into a serializable dict with full nested details."""

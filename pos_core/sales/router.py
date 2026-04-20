@@ -6,7 +6,7 @@ from sqlalchemy import select
 from pos_core.database import get_session
 from .models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMethod
 from . import service
-from .broadcaster import broadcaster
+from pos_core.events.service import trigger_broadcast
 from omni_auth.security import require_role, require_permission
 from typing import List, Optional
 from pydantic import BaseModel
@@ -31,101 +31,7 @@ class OrderItemCreate(BaseModel):
 class PaymentCreate(BaseModel):
     method: PaymentMethod
     amount: float
-
-@router.websocket("/ws/pos")
-async def pos_websocket(websocket: WebSocket):
-    """
-    WebSocket unificado para la aplicación POS.
-    Utiliza un patrón de suscripción basado en el comando 'subscribe'.
-    """
-    await websocket.accept()
-    
-    # 1. Autenticación (vía query param 'token' en el handshake)
-    token = websocket.query_params.get("token")
-    user_info = _auth_manager.verify_token(token) if token else None
-    
-    if not user_info:
-        await websocket.send_json({"error": "Unauthorized", "detail": "Token inválido o faltante"})
-        await websocket.close(code=1008)
-        return
-
-    print(f"🔌 WebSocket POS Iniciado: Usuario {user_info.get('username')}")
-    subscribed_topics = set()
-
-    try:
-        # Bucle de escucha infinito para procesar múltiples comandos
-        while True:
-            data = await websocket.receive_json()
-            
-            if data.get("action") == "subscribe" and (topic := data.get("topic")):
-                # Registramos el topic en el broadcaster
-                broadcaster.connect(websocket, topic)
-                subscribed_topics.add(topic)
-                
-                print(f"📡 Usuario {user_info.get('username')} suscrito a: {topic}")
-
-                # Enviar el estado inicial inmediatamente
-                async for db in get_session():
-                    if topic == "kitchen_orders":
-                        initial_data = await service.get_kitchen_orders(db)
-                        await websocket.send_json({"topic": topic, "data": initial_data})
-                    elif topic == "dashboard_stats":
-                        initial_data = await service.get_dashboard_stats(db)
-                        await websocket.send_json({"topic": topic, "data": initial_data})
-                    elif topic == "recent_orders":
-                        initial_data = await service.get_orders_json(db)
-                        initial_data = sorted(initial_data, key=lambda x: x["created_at"], reverse=True)
-                        await websocket.send_json({"topic": topic, "data": initial_data})
-                    elif topic == "tables":
-                        from pos_core.tables.service import get_tables
-                        initial_data = await get_tables(db, include_inactive=True)
-                        initial_data_json = [t.model_dump() for t in initial_data]
-                        await websocket.send_json({"topic": topic, "data": initial_data_json})
-                    break
-            
-            elif data.get("action") == "unsubscribe" and (topic := data.get("topic")):
-                broadcaster.disconnect(websocket, topic)
-                if topic in subscribed_topics:
-                    subscribed_topics.remove(topic)
-
-    except WebSocketDisconnect:
-        pass
-    except Exception as e:
-        print(f"❌ Error en WebSocket POS: {e}")
-    finally:
-        # Al cerrar, desconectamos de todos los topics
-        broadcaster.disconnect(websocket)
-        print(f"🔌 WebSocket POS: Desconectado de todos los topics")
-
-
-async def broadcast_updates():
-    """Calcula y despacha el estado fresco a todos los suscriptores activos."""
-    async for db in get_session():
-        # Si hay clientes en cocina, empujamos
-        if "kitchen_orders" in broadcaster.active_connections:
-            kitchen_orders = await service.get_kitchen_orders(db)
-            await broadcaster.broadcast("kitchen_orders", kitchen_orders)
-            
-        # Si hay clientes en dashboard, empujamos
-        if "dashboard_stats" in broadcaster.active_connections:
-            dashboard_stats = await service.get_dashboard_stats(db)
-            await broadcaster.broadcast("dashboard_stats", dashboard_stats)
-            
-        # Si hay clientes en recent_orders, empujamos
-        if "recent_orders" in broadcaster.active_connections:
-            recent_orders = await service.get_orders_json(db)
-            recent_orders = sorted(recent_orders, key=lambda x: x["created_at"], reverse=True)
-            await broadcaster.broadcast("recent_orders", recent_orders)
-            
-        # Si hay clientes en tables, empujamos
-        if "tables" in broadcaster.active_connections:
-            from pos_core.tables.service import get_tables
-            tables = await get_tables(db, include_inactive=True)
-            tables_json = [t.model_dump() for t in tables]
-            await broadcaster.broadcast("tables", tables_json)
-            
-        break
-
+    vacate_table: bool = True
 
 @router.post("/orders", response_model=Order)
 async def create_new_order(
@@ -142,7 +48,10 @@ async def create_new_order(
         waiter_uuid=user.get("user_uuid"),
         waiter_name=user.get("username"),
     )
-    asyncio.create_task(broadcast_updates())
+    asyncio.create_task(trigger_broadcast("kitchen_orders"))
+    asyncio.create_task(trigger_broadcast("recent_orders"))
+    asyncio.create_task(trigger_broadcast("dashboard_stats"))
+    asyncio.create_task(trigger_broadcast("tables"))
     return order
 
 @router.get("/orders")
@@ -187,7 +96,10 @@ async def add_item(
             product_variant_id=item_in.product_variant_id,
             modifier_ids=item_in.modifier_ids
         )
-        asyncio.create_task(broadcast_updates())
+        asyncio.create_task(trigger_broadcast("kitchen_orders"))
+        asyncio.create_task(trigger_broadcast("recent_orders"))
+        asyncio.create_task(trigger_broadcast("dashboard_stats"))
+        asyncio.create_task(trigger_broadcast("tables"))
         return item
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -213,7 +125,10 @@ async def update_status(
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    asyncio.create_task(broadcast_updates())
+    asyncio.create_task(trigger_broadcast("kitchen_orders"))
+    asyncio.create_task(trigger_broadcast("recent_orders"))
+    asyncio.create_task(trigger_broadcast("dashboard_stats"))
+    asyncio.create_task(trigger_broadcast("tables"))
     return order
 
 @router.patch("/orders/{order_id}/items/{item_id}/status", response_model=OrderItem)
@@ -239,7 +154,10 @@ async def update_item_status(
     )
     if not item:
         raise HTTPException(status_code=404, detail="OrderItem not found")
-    asyncio.create_task(broadcast_updates())
+    asyncio.create_task(trigger_broadcast("kitchen_orders"))
+    asyncio.create_task(trigger_broadcast("recent_orders"))
+    asyncio.create_task(trigger_broadcast("dashboard_stats"))
+    asyncio.create_task(trigger_broadcast("tables"))
     return item
 
 @router.delete("/orders/{order_id}")
@@ -257,7 +175,10 @@ async def delete_order(
         if not success:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        asyncio.create_task(broadcast_updates())
+        asyncio.create_task(trigger_broadcast("kitchen_orders"))
+        asyncio.create_task(trigger_broadcast("recent_orders"))
+        asyncio.create_task(trigger_broadcast("dashboard_stats"))
+        asyncio.create_task(trigger_broadcast("tables"))
         return {"status": "success", "message": "Orden eliminada y mesa liberada"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -274,6 +195,15 @@ async def pay_order(
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    payment = await service.add_payment(db, order_id, payment_in.method, payment_in.amount)
-    asyncio.create_task(broadcast_updates())
+    payment = await service.add_payment(
+        db, 
+        order_id, 
+        payment_in.method, 
+        payment_in.amount, 
+        vacate_table=payment_in.vacate_table
+    )
+    asyncio.create_task(trigger_broadcast("kitchen_orders"))
+    asyncio.create_task(trigger_broadcast("recent_orders"))
+    asyncio.create_task(trigger_broadcast("dashboard_stats"))
+    asyncio.create_task(trigger_broadcast("tables"))
     return payment

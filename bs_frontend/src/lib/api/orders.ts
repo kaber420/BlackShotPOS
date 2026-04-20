@@ -75,10 +75,10 @@ export const OrderService = {
             method: 'PATCH'
         }),
 
-    pay: (orderId: number, method: string, amount: number) =>
+    pay: (orderId: number, method: string, amount: number, vacateTable: boolean = true) =>
         fetchApi<any>(`/api/v1/pos/orders/${orderId}/payments`, {
             method: 'POST',
-            body: JSON.stringify({ method, amount })
+            body: JSON.stringify({ method, amount, vacate_table: vacateTable })
         }),
 
     delete: (orderId: number) =>

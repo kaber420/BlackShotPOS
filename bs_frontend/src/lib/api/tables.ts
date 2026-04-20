@@ -8,6 +8,7 @@ export interface Table {
     capacity: number;
     status: TableStatus;
     location?: string;
+    occupied_at?: string;
     is_active: boolean;
 }
 
@@ -18,14 +19,19 @@ export const TableService = {
     },
     
     create: (number: number, capacity: number = 4, location?: string) => 
-        fetchApi<Table>(`/api/v1/pos/tables?number=${number}&capacity=${capacity}${location ? `&location=${location}` : ''}`, {
-            method: 'POST'
-        }),
+    fetchApi<Table>(`/api/v1/pos/tables?number=${number}&capacity=${capacity}${location ? `&location=${location}` : ''}`, {
+        method: 'POST'
+    }),
 
     updateStatus: (id: number, status: TableStatus) =>
-        fetchApi<Table>(`/api/v1/pos/tables/${id}/status?status=${status}`, {
-            method: 'PATCH'
-        }),
+    fetchApi<Table>(`/api/v1/pos/tables/${id}/status?status=${status}`, {
+        method: 'PATCH'
+    }),
+
+    vacate: (id: number) =>
+    fetchApi<any>(`/api/v1/pos/tables/${id}/vacate`, {
+        method: 'POST'
+    }),
 
     update: (id: number, data: Partial<Table>) => {
         const params = new URLSearchParams();

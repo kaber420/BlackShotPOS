@@ -9,6 +9,26 @@
     import Button from '$lib/components/ui/Button.svelte';
     import { posSocket } from '$lib/pos_socket.svelte';
     
+    let now = $state(new Date());
+
+    onMount(() => {
+        const interval = setInterval(() => {
+            now = new Date();
+        }, 30000); // Actualizar cada 30 segundos
+        return () => clearInterval(interval);
+    });
+
+    function getDuration(occupiedAt: string | undefined): string {
+        if (!occupiedAt) return '';
+        const start = new Date(occupiedAt);
+        const diff = Math.floor((now.getTime() - start.getTime()) / 60000);
+        
+        if (diff < 60) return `${diff}m`;
+        const hours = Math.floor(diff / 60);
+        const mins = diff % 60;
+        return `${hours}h ${mins}m`;
+    }
+    
     let tables = $derived<Table[]>(posSocket.tables.length > 0 ? posSocket.tables : []);
     
     // Filtramos solo las órdenes activas que nos interesan para el dashboard desde recentOrders
@@ -109,13 +129,9 @@
                     tableOrder = allActive.find(o => o.table_id === table.id && o.status !== OrderStatus.PAID);
                 }
                 
-                if (tableOrder) {
-                    summaryOrder = tableOrder;
-                    summaryTable = table;
-                    isSummaryOpen = true;
-                } else {
-                    alert("Mesa ocupada pero no se encontró orden activa vinculada.");
-                }
+                summaryOrder = tableOrder || null;
+                summaryTable = table;
+                isSummaryOpen = true;
             } catch (e) {
                 alert(`Error al cargar orden de la mesa: ${e}`);
             }
@@ -289,9 +305,25 @@
                                     {#if order.items}
                                         <p class="text-[10px] font-bold opacity-60">{order.items.length} items</p>
                                     {/if}
+                                    {#if table.occupied_at}
+                                        <span class="text-[9px] font-black opacity-50 flex items-center gap-1 mt-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-2.5 h-2.5">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            {getDuration(table.occupied_at)}
+                                        </span>
+                                    {/if}
                                 </div>
                             {:else if table.status === 'Occupied'}
-                                <div class="badge badge-error text-white font-bold mt-4">OCUPADA</div>
+                                <div class="flex flex-col items-center gap-1 mt-4">
+                                    <div class="badge badge-error text-white font-bold">OCUPADA</div>
+                                    <span class="text-[10px] font-black opacity-60 flex items-center gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-2.5 h-2.5">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {getDuration(table.occupied_at)}
+                                    </span>
+                                </div>
                             {:else if table.status === 'Free'}
                                 <div class="badge badge-outline border-success/40 text-success/70 font-black mt-4 uppercase text-[10px] tracking-widest">LIBRE</div>
                             {:else}

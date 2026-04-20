@@ -35,7 +35,7 @@
 		showPaymentModal = true;
 	}
 
-	async function processCheckout(method: string, amount: number, shouldPrint: boolean) {
+	async function processCheckout(method: string, amount: number, shouldPrint: boolean, vacateTable: boolean) {
 		if (appState.cart.length === 0) return;
 		
 		try {
@@ -71,7 +71,7 @@
 			}
 
             // 3. Register payment (will set is_paid = true in backend)
-            await OrderService.pay(order.id, method, amount);
+            await OrderService.pay(order.id, method, amount, vacateTable);
 
             // 4. Print ticket if requested
             if (shouldPrint) {
@@ -314,6 +314,7 @@
     total={finalTotal}
     onClose={() => showPaymentModal = false}
     onConfirm={processCheckout}
+    hasTable={!!appState.activeTable}
 />
 
 <style>

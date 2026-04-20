@@ -71,8 +71,8 @@ async def cancel_order_with_reason(
     await db.refresh(order)
 
     # Broadcast a las pantallas en tiempo real (KDS y Orders)
-    from .router import broadcast_updates
+    from pos_core.events.service import trigger_all_broadcasts
     import asyncio
-    asyncio.create_task(broadcast_updates())
+    asyncio.create_task(trigger_all_broadcasts())
 
     return {"status": "success", "order": order.id, "audit_id": log.id}
