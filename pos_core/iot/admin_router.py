@@ -100,9 +100,11 @@ async def sync_all_devices(
             # fácilmente accesible aquí sin re-consultar cada uno. 
             # Enviamos el nombre del negocio actualizado.
             payload = {
-                "ev": "config",
-                "business_name": settings.name,
-                "table_id": table_id
+                "event": "config",
+                "data": {
+                    "business_name": settings.name,
+                    "table_id": table_id
+                }
             }
             
             # Usamos el broadcaster para enviar a todo el tópico (mesa)

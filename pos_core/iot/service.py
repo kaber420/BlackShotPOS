@@ -83,11 +83,13 @@ async def update_device_health(session: AsyncSession, device_id: int, rssi: Opti
         await session.commit()
 
 def format_iot_payload(event: str, message: str, eta: int = 0) -> dict:
-    """Payload minimalista para ESP32"""
+    """Payload de comunicación nativa Blackshot IoT"""
     return {
-        "ev": event,
-        "msg": message,
-        "eta": eta
+        "event": event,
+        "data": {
+            "message": message,
+            "eta": eta
+        }
     }
 
 async def get_devices_by_table(session: AsyncSession, table_id: int) -> List[IoTDevice]:

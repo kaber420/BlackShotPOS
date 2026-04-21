@@ -4,6 +4,8 @@ from pos_core.events.manager import pos_broadcaster, iot_broadcaster
 from pos_core.events.service import trigger_broadcast
 from .service import get_device_by_token, update_device_last_seen, update_device_health
 from pos_core.settings.service import get_settings
+from pos_core.sales.service import get_orders_json
+from pos_core.sales.models import OrderStatus
 import logging
 import asyncio
 
@@ -29,7 +31,7 @@ async def iot_websocket(websocket: WebSocket):
     async for db in get_session():
         device = await get_device_by_token(db, token)
         if not device:
-            await websocket.send_json({"err": "invalid_token"})
+            await websocket.send_json({"event": "system_error", "data": {"code": "AUTH_FAILED", "message": "invalid_token"}})
             await websocket.close(code=1008)
             return
         
@@ -53,12 +55,16 @@ async def iot_websocket(websocket: WebSocket):
         # --- ENVÍO DE CONFIGURACIÓN INICIAL (Zero-Config) ---
         try:
             settings = await get_settings(db)
-            await websocket.send_json({
-                "ev": "config",
-                "business_name": settings.name,
-                "device_name": device.name or f"Mesa {table_id}",
-                "table_id": table_id
-            })
+            config_payload = {
+                "event": "config",
+                "data": {
+                    "business_name": settings.name,
+                    "device_name": device.name or f"Mesa {table_id}",
+                    "table_id": int(table_id) if table_id else 0
+                }
+            }
+            await websocket.send_json(config_payload)
+            logger.info(f"📡 Configuración enviada a Mesa {table_id}: {settings.name}")
         except Exception as e:
             logger.error(f"⚠️ Error al enviar config inicial: {e}")
         
@@ -70,37 +76,63 @@ async def iot_websocket(websocket: WebSocket):
             while True:
                 data = await websocket.receive_json()
                 action = data.get("action")
+                payload = data.get("data") or data.get("payload") or {}
                 
                 if action == "ping":
-                    await websocket.send_json({"ev": "pong"})
+                    await websocket.send_json({"event": "pong"})
                     await update_device_last_seen(db, device_id)
                 
-                elif action == "health":
-                    # Reporte de salud: rssi, battery, version
-                    rssi = data.get("rssi")
-                    battery = data.get("battery")
-                    version = data.get("version")
+                elif action in ["health", "heartbeat"]:
+                    # Reporte de salud nativo (Acepta ambos nombres)
+                    rssi = payload.get("rssi") if isinstance(payload, dict) else data.get("rssi")
+                    battery = payload.get("battery") if isinstance(payload, dict) else data.get("battery")
+                    free_heap = payload.get("free_heap") if isinstance(payload, dict) else data.get("free_heap")
                     
                     await update_device_health(db, device_id, rssi=rssi, battery=battery)
                     
-                    # Notificar al panel de admin (vía pos_broadcaster)
+                    # Notificar al panel de admin
                     await pos_broadcaster.broadcast("admin_iot", {
                         "type": "health",
                         "device_id": device_id,
                         "rssi": rssi,
                         "battery": battery,
-                        "version": version
+                        "free_heap": free_heap
                     })
                 
+                elif action == "sync_orders":
+                    # Recuperar órdenes activas para esta mesa
+                    logger.info(f"🔄 Mesa {table_id} solicitó sincronización de órdenes")
+                    orders = await get_orders_json(db)
+                    active_orders = [o for o in orders if o["table_id"] == table_id and o["status"] not in [OrderStatus.PAID.value, OrderStatus.CANCELLED.value]]
+                    
+                    logger.info(f"📤 Enviando {len(active_orders)} órdenes activas a Mesa {table_id}")
+                    for order in active_orders:
+                        # Mapear estados a lenguaje nativo
+                        status_map = {
+                            "PENDING": "EN COLA",
+                            "PREPARING": "PREPARANDO",
+                            "READY": "LISTO",
+                            "DELIVERED": "ENTREGADO"
+                        }
+                        
+                        await websocket.send_json({
+                            "event": "order_new",
+                            "data": {
+                                "order_id": order["id"],
+                                "table_id": int(table_id) if table_id else 0,
+                                "status": status_map.get(order["status"], order["status"]),
+                                "progress": 100 if order["status"] == "READY" else 0,
+                                "items": [{"name": i["product"]["name"], "qty": i["quantity"]} for i in order["items"]]
+                            }
+                        })
+
                 elif action == "call_waiter":
-                    # Disparar un evento para el POS general
                     await trigger_broadcast("dashboard_stats")
-                    await websocket.send_json({"ev": "msg", "msg": "Mesero en camino"})
+                    await websocket.send_json({"event": "msg", "data": {"message": "Mesero en camino"}})
 
                 elif action == "request_bill":
-                    # Notificar al POS que la mesa quiere su cuenta
                     await trigger_broadcast("dashboard_stats") 
-                    await websocket.send_json({"ev": "msg", "msg": "Solicitando cuenta..."})
+                    await websocket.send_json({"event": "msg", "data": {"message": "Solicitando cuenta..."}})
                     logger.info(f"🧾 Mesa {table_id} solicitó la cuenta")
 
         except WebSocketDisconnect:

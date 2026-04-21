@@ -44,20 +44,23 @@ class IoTDeviceSimulator:
         
         print(f"{BOLD}║{RESET}                                            {BOLD}║{RESET}")
         print(f"{BOLD}╠════════════════════════════════════════════╣{RESET}")
-        print(f"{BOLD}║{RESET}  [M] Llamar Mesero   [B] Bajar Batería      {BOLD}║{RESET}")
-        print(f"{BOLD}║{RESET}  [Q] Salir                                  {BOLD}║{RESET}")
+        print(f"{BOLD}║{RESET}  [M] Llamar Mesero   [S] Sincronizar        {BOLD}║{RESET}")
+        print(f"{BOLD}║{RESET}  [B] Bajar Batería   [Q] Salir              {BOLD}║{RESET}")
         print(f"{BOLD}╚════════════════════════════════════════════╝{RESET}")
         print(f"\nÚltima actualización: {datetime.now().strftime('%H:%M:%S')}")
 
     async def send_health(self, ws):
-        """Envía reportes de salud periódicos."""
+        """Envía reportes de salud periódicos (heartbeat)."""
         while self.is_running:
             try:
                 payload = {
-                    "action": "health",
-                    "rssi": random.randint(-70, -40),
-                    "battery": self.battery,
-                    "version": "v1.0.0-sim"
+                    "action": "heartbeat",
+                    "data": {
+                        "rssi": random.randint(-70, -40),
+                        "battery": self.battery,
+                        "uptime": 3600,
+                        "free_heap": 250000
+                    }
                 }
                 await ws.send(json.dumps(payload))
                 await asyncio.sleep(30) # Cada 30 seg
@@ -65,20 +68,25 @@ class IoTDeviceSimulator:
                 break
 
     async def listen(self, ws):
-        """Escucha mensajes del servidor (READY)."""
+        """Escucha mensajes del servidor (READY, MSG, ORDER_NEW)."""
         async for message in ws:
             try:
                 data = json.loads(message)
-                # El formato del broadcaster es {"topic": "...", "data": {"ev": "...", "msg": "..."}}
+                event = data.get("event")
                 payload = data.get("data", {})
-                event = payload.get("ev")
                 
                 if event == "rdy":
-                    self.last_msg = f"🔔 {payload.get('msg', '¡LISTO!')}"
+                    self.last_msg = f"🔔 {payload.get('message', '¡LISTO!')}"
                     self.draw_screen()
-                    # Volver al estado normal después de 10 seg
-                    await asyncio.sleep(10)
-                    self.last_msg = "Esperando órdenes..."
+                elif event == "msg":
+                    self.last_msg = f"📩 {payload.get('message')}"
+                    self.draw_screen()
+                elif event == "order_new":
+                    items_count = len(payload.get("items", []))
+                    self.last_msg = f"📦 Orden #{payload.get('order_id')} ({items_count} ítems)"
+                    self.draw_screen()
+                elif event == "config":
+                    self.status = f"CONFIG: {payload.get('business_name')}"
                     self.draw_screen()
                 elif event == "pong":
                     pass # Latido silencioso
@@ -88,8 +96,6 @@ class IoTDeviceSimulator:
 
     async def handle_input(self, ws):
         """Permite interacción desde la terminal."""
-        # Nota: En un script real de terminal necesitaríamos sys.stdin.readline
-        # Pero para este simulador, usaremos un loop simple.
         loop = asyncio.get_event_loop()
         while self.is_running:
             cmd = await loop.run_in_executor(None, lambda: sys.stdin.read(1).lower())
@@ -97,9 +103,16 @@ class IoTDeviceSimulator:
                 await ws.send(json.dumps({"action": "call_waiter"}))
                 self.last_msg = "⌛ Mesero solicitado..."
                 self.draw_screen()
+            elif cmd == 's':
+                await ws.send(json.dumps({"action": "sync_orders"}))
+                self.status = "SINCRONIZANDO..."
+                self.draw_screen()
             elif cmd == 'b':
                 self.battery = max(0, self.battery - 10)
-                await ws.send(json.dumps({"action": "health", "battery": self.battery}))
+                await ws.send(json.dumps({
+                    "action": "heartbeat", 
+                    "data": {"battery": self.battery}
+                }))
                 self.draw_screen()
             elif cmd == 'q':
                 self.is_running = False
