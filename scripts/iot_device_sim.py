@@ -22,6 +22,7 @@ class IoTDeviceSimulator:
         self.is_running = True
         self.last_msg = "Esperando órdenes..."
         self.status = "Iniciando..."
+        self.orders = {} # {order_id: {status: str, items: [{id, name, qty, status}]}}
 
     def draw_screen(self):
         """Dibuja una interfaz visual en la terminal que simula la pantalla del dispositivo."""
@@ -29,7 +30,6 @@ class IoTDeviceSimulator:
         print(f"{BOLD}╔════════════════════════════════════════════╗{RESET}")
         print(f"{BOLD}║{RESET}  {BLUE}BLACKSHOT IoT Simulator{RESET}               {BOLD}║{RESET}")
         print(f"{BOLD}╠════════════════════════════════════════════╣{RESET}")
-        print(f"{BOLD}║{RESET}                                            {BOLD}║{RESET}")
         
         # Estado de salud
         bat_color = GREEN if self.battery > 20 else RED
@@ -42,6 +42,20 @@ class IoTDeviceSimulator:
         print(f"{BOLD}║{RESET}  {YELLOW}{BOLD}│{RESET}{msg_centered}{YELLOW}{BOLD}│{RESET}  {BOLD}║{RESET}")
         print(f"{BOLD}║{RESET}  {YELLOW}{BOLD}└──────────────────────────────────────┘{RESET}  {BOLD}║{RESET}")
         
+        # Lista de Órdenes e Ítems
+        if self.orders:
+            print(f"{BOLD}║{RESET}  {BOLD}ORDENES ACTIVAS:{RESET}                          {BOLD}║{RESET}")
+            for oid, odata in self.orders.items():
+                status_clr = GREEN if odata['status'] == "LISTO" else BLUE if odata['status'] == "ENTREGADO" else YELLOW
+                print(f"{BOLD}║{RESET}  #{oid} [{status_clr}{odata['status']}{RESET}]                         {BOLD}║{RESET}")
+                for item in odata.get('items', []):
+                    istatus = item.get('status', 'PENDIENTE')
+                    iclr = GREEN if istatus == "LISTO" else BLUE if istatus == "ENTREGADO" else RESET
+                    item_line = f"  - {item['qty']}x {item['name'][:15]} [{iclr}{istatus}{RESET}]"
+                    print(f"{BOLD}║{RESET}  {item_line.ljust(40)}  {BOLD}║{RESET}")
+        else:
+            print(f"{BOLD}║{RESET}  (No hay órdenes activas)                  {BOLD}║{RESET}")
+
         print(f"{BOLD}║{RESET}                                            {BOLD}║{RESET}")
         print(f"{BOLD}╠════════════════════════════════════════════╣{RESET}")
         print(f"{BOLD}║{RESET}  [M] Llamar Mesero   [S] Sincronizar        {BOLD}║{RESET}")
@@ -68,7 +82,7 @@ class IoTDeviceSimulator:
                 break
 
     async def listen(self, ws):
-        """Escucha mensajes del servidor (READY, MSG, ORDER_NEW)."""
+        """Escucha mensajes del servidor (READY, MSG, ORDER_NEW, ORDER_UPDATE)."""
         async for message in ws:
             try:
                 data = json.loads(message)
@@ -82,8 +96,38 @@ class IoTDeviceSimulator:
                     self.last_msg = f"📩 {payload.get('message')}"
                     self.draw_screen()
                 elif event == "order_new":
-                    items_count = len(payload.get("items", []))
-                    self.last_msg = f"📦 Orden #{payload.get('order_id')} ({items_count} ítems)"
+                    oid = payload.get("order_id")
+                    self.orders[oid] = {
+                        "status": payload.get("status", "PENDIENTE"),
+                        "items": payload.get("items", [])
+                    }
+                    self.last_msg = f"📦 Nueva Orden #{oid}"
+                    self.draw_screen()
+                elif event == "order_update":
+                    oid = payload.get("order_id")
+                    item_id = payload.get("item_id")
+                    new_status = payload.get("status")
+                    
+                    if oid in self.orders:
+                        # Actualizar estado general
+                        self.orders[oid]["status"] = new_status
+                        
+                        # Si viene un ítem específico, actualizarlo
+                        if item_id:
+                            for item in self.orders[oid].get("items", []):
+                                if item.get("id") == item_id:
+                                    item["status"] = payload.get("item_status")
+                                    self.last_msg = f"🍳 {item['name']} -> {item['status']}"
+                        else:
+                            self.last_msg = f"📋 Orden #{oid} -> {new_status}"
+                    
+                    # Limpiar órdenes entregadas si se desea (opcional)
+                    # if new_status == "ENTREGADO": del self.orders[oid]
+                    
+                    self.draw_screen()
+                elif event == "clear_table":
+                    self.orders = {}
+                    self.last_msg = "✨ Mesa Liberada"
                     self.draw_screen()
                 elif event == "config":
                     self.status = f"CONFIG: {payload.get('business_name')}"
@@ -104,6 +148,8 @@ class IoTDeviceSimulator:
                 self.last_msg = "⌛ Mesero solicitado..."
                 self.draw_screen()
             elif cmd == 's':
+                # Limpiar locales para forzar refresco
+                self.orders = {}
                 await ws.send(json.dumps({"action": "sync_orders"}))
                 self.status = "SINCRONIZANDO..."
                 self.draw_screen()
@@ -124,6 +170,9 @@ class IoTDeviceSimulator:
             async with websockets.connect(self.uri) as ws:
                 self.status = "CONECTADO"
                 self.draw_screen()
+                
+                # Sincronización inicial automática
+                await ws.send(json.dumps({"action": "sync_orders"}))
                 
                 # Ejecutar tareas en paralelo
                 await asyncio.gather(

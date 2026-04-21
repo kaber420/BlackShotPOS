@@ -132,13 +132,26 @@ async def update_status(
 
     # Notificar a IoT si la orden tiene mesa
     if order.table_id:
-        if status == OrderStatus.PREPARING:
-            asyncio.create_task(trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "PREPARANDO", "progress": 50}))
-        elif status == OrderStatus.READY:
-            asyncio.create_task(trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100}))
-        elif status == OrderStatus.DELIVERED:
-            # Notifica ENTREGADO al TablePad → muestra fuchsia y desaparece en 4s
-            asyncio.create_task(trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "ENTREGADO", "progress": 100}))
+        # Mapeo de estados locales para IoT
+        status_map = {
+            OrderStatus.PENDING: ("EN COLA", 0),
+            OrderStatus.PREPARING: ("PREPARANDO", 50),
+            OrderStatus.READY: ("LISTO", 100),
+            OrderStatus.DELIVERED: ("ENTREGADO", 100),
+        }
+        
+        status_str, prog = status_map.get(status, (status.value, 0))
+        
+        asyncio.create_task(trigger_iot_broadcast(
+            order.table_id, 
+            "order_update", 
+            "", 
+            data={
+                "order_id": order.id, 
+                "status": status_str, 
+                "progress": prog
+            }
+        ))
 
     return order
 
@@ -171,7 +184,7 @@ async def update_item_status(
     asyncio.create_task(trigger_broadcast("tables"))
 
     # Notificar a IoT si el ítem tiene mesa asociada vía la orden
-    if item and status in (OrderStatus.PREPARING, OrderStatus.READY):
+    if item and status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
         # Necesitamos el table_id y el nombre del producto para una mejor experiencia IoT
         async def notify_iot_item():
             from pos_core.inventory.models import Product
@@ -183,9 +196,32 @@ async def update_item_status(
                     db_product = await db_session.get(Product, db_item.product_id)
                     if db_order and db_order.table_id and db_product:
                         ev = "order_update"
-                        prog = 100 if status == OrderStatus.READY else 50
-                        status_str = "LISTO" if status == OrderStatus.READY else "PREPARANDO"
-                        await trigger_iot_broadcast(db_order.table_id, ev, "", data={"order_id": db_order.id, "status": status_str, "progress": prog})
+                        
+                        # Mapeo de estados locales para IoT
+                        status_map = {
+                            OrderStatus.PREPARING: ("PREPARANDO", 50),
+                            OrderStatus.READY: ("LISTO", 100),
+                            OrderStatus.DELIVERED: ("ENTREGADO", 100),
+                        }
+                        
+                        status_str, prog = status_map.get(status, (status.value, 0))
+                        
+                        # Mapeo del estado general de la orden
+                        order_status_map = {
+                            OrderStatus.PENDING: "EN COLA",
+                            OrderStatus.PREPARING: "PREPARANDO",
+                            OrderStatus.READY: "LISTO",
+                            OrderStatus.DELIVERED: "ENTREGADO"
+                        }
+                        
+                        await trigger_iot_broadcast(db_order.table_id, ev, "", data={
+                            "order_id": db_order.id, 
+                            "status": order_status_map.get(db_order.status, db_order.status),
+                            "progress": 100 if db_order.status == OrderStatus.READY else 50 if db_order.status == OrderStatus.PREPARING else 0,
+                            "item_id": item_id,
+                            "item_status": status_str,
+                            "item_name": db_product.name
+                        })
                 break
         asyncio.create_task(notify_iot_item())
 

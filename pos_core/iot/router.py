@@ -122,7 +122,14 @@ async def iot_websocket(websocket: WebSocket):
                                 "table_id": int(table_id) if table_id else 0,
                                 "status": status_map.get(order["status"], order["status"]),
                                 "progress": 100 if order["status"] == "READY" else 0,
-                                "items": [{"name": i["product"]["name"], "qty": i["quantity"]} for i in order["items"]]
+                                "items": [
+                                    {
+                                        "id": i["id"],
+                                        "name": i["product"]["name"], 
+                                        "qty": i["quantity"],
+                                        "status": status_map.get(i["status"], i["status"])
+                                    } for i in order["items"]
+                                ]
                             }
                         })
 
@@ -134,6 +141,12 @@ async def iot_websocket(websocket: WebSocket):
                     await trigger_broadcast("dashboard_stats") 
                     await websocket.send_json({"event": "msg", "data": {"message": "Solicitando cuenta..."}})
                     logger.info(f"🧾 Mesa {table_id} solicitó la cuenta")
+
+                elif action == "clear_table":
+                    from pos_core.sales.service import vacate_table_service
+                    await vacate_table_service(db, table_id)
+                    await trigger_broadcast("tables") # Notificar al POS central la actualización de mesas
+                    logger.info(f"🧹 Mesa {table_id} liberada desde TablePad")
 
         except WebSocketDisconnect:
             logger.info(f"🔌 Dispositivo IoT desconectado: {device.device_id}")
