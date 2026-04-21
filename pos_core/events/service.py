@@ -67,7 +67,7 @@ async def trigger_iot_broadcast(table_id: int, event: str, message: str, eta: in
         return
 
     if data:
-        payload = data
+        payload = {"event": event, "data": data}
     else:
         from pos_core.iot.service import format_iot_payload
         payload = format_iot_payload(event, message, eta)

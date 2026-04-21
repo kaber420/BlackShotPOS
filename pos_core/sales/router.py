@@ -133,9 +133,12 @@ async def update_status(
     # Notificar a IoT si la orden tiene mesa
     if order.table_id:
         if status == OrderStatus.PREPARING:
-            asyncio.create_task(trigger_iot_broadcast(order.table_id, "prep", "Su orden está en preparación"))
+            asyncio.create_task(trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "PREPARANDO", "progress": 50}))
         elif status == OrderStatus.READY:
-            asyncio.create_task(trigger_iot_broadcast(order.table_id, "rdy", "¡Su orden está lista!"))
+            asyncio.create_task(trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100}))
+        elif status == OrderStatus.DELIVERED:
+            # Notifica ENTREGADO al TablePad → muestra fuchsia y desaparece en 4s
+            asyncio.create_task(trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "ENTREGADO", "progress": 100}))
 
     return order
 
@@ -179,9 +182,10 @@ async def update_item_status(
                     db_order = await db_session.get(Order, order_id)
                     db_product = await db_session.get(Product, db_item.product_id)
                     if db_order and db_order.table_id and db_product:
-                        ev = "prep" if status == OrderStatus.PREPARING else "rdy"
-                        msg = f"{db_product.name} listo" if ev == "rdy" else f"Preparando {db_product.name}"
-                        await trigger_iot_broadcast(db_order.table_id, ev, msg)
+                        ev = "order_update"
+                        prog = 100 if status == OrderStatus.READY else 50
+                        status_str = "LISTO" if status == OrderStatus.READY else "PREPARANDO"
+                        await trigger_iot_broadcast(db_order.table_id, ev, "", data={"order_id": db_order.id, "status": status_str, "progress": prog})
                 break
         asyncio.create_task(notify_iot_item())
 
@@ -233,4 +237,9 @@ async def pay_order(
     asyncio.create_task(trigger_broadcast("recent_orders"))
     asyncio.create_task(trigger_broadcast("dashboard_stats"))
     asyncio.create_task(trigger_broadcast("tables"))
+
+    # Notificar al TablePad que la mesa fue pagada y liberada
+    if order.table_id and payment_in.vacate_table:
+        asyncio.create_task(trigger_iot_broadcast(order.table_id, "clear_table", "", data={}))
+
     return payment

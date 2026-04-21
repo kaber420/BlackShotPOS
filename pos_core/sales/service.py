@@ -126,6 +126,7 @@ async def add_payment(
     order = await session.get(Order, order_id)
     if order:
         order.is_paid = True
+        order.status = OrderStatus.PAID
         
         # Liberamos la mesa si estaba asociada a una Y el usuario lo solicitó
         if order.table_id and vacate_table:
@@ -307,7 +308,7 @@ async def update_order_status(
             
             # Notificar a dispositivos IoT de la mesa
             if order.table_id:
-                await trigger_iot_broadcast(order.table_id, "rdy", "¡Orden lista!")
+                await trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100})
 
         elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
             order.delivered_at = _dt.utcnow()
@@ -475,7 +476,7 @@ async def update_order_item_status(
                 session.add(order)
 
                 if is_becoming_ready and order.table_id:
-                    await trigger_iot_broadcast(order.table_id, "rdy", "¡Orden lista!")
+                    await trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100})
             elif new_order_status == OrderStatus.CANCELLED:
                 # Cancelled can override PAID in some scenarios? 
                 # Usually not, but for now let's be conservative.
