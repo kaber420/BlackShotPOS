@@ -56,3 +56,39 @@ async def delete_table(session: AsyncSession, table_id: int) -> bool:
 async def get_table_by_id(session: AsyncSession, table_id: int) -> Optional[Table]:
     """Obtiene una mesa específica por su ID."""
     return await session.get(Table, table_id)
+
+async def vacate_table_service(
+    session: AsyncSession, table_id: int
+) -> Optional[dict]:
+    """
+    Libera una mesa, calcula el tiempo de ocupación y retorna estadísticas.
+    Puede ser llamada por el Router al pagar, o por order_service al cancelar.
+    """
+    from datetime import datetime, timezone
+
+    db_table = await session.get(Table, table_id)
+    if not db_table:
+        return None
+
+    occupied_at = db_table.occupied_at
+    if occupied_at and occupied_at.tzinfo is None:
+        occupied_at = occupied_at.replace(tzinfo=timezone.utc)
+
+    res = {
+        "table_id":        table_id,
+        "number":          db_table.number,
+        "occupied_at":     occupied_at.isoformat() if occupied_at else None,
+        "vacated_at":      datetime.now(timezone.utc).isoformat(),
+        "duration_minutes": 0,
+    }
+
+    if occupied_at:
+        delta = datetime.now(timezone.utc) - occupied_at
+        res["duration_minutes"] = round(delta.total_seconds() / 60, 2)
+
+    db_table.status = "Free"
+    db_table.occupied_at = None
+    session.add(db_table)
+    await session.commit()
+
+    return res

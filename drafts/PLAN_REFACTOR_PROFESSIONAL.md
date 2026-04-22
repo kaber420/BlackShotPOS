@@ -86,6 +86,26 @@ Para evitar el temido "Big Bang Rewrite" (donde nada funciona por semanas), la m
 2.  Mover la lógica de mesas (ej. `vacate_table_service`) a `pos_core/tables/service.py`.
 3.  **Desacoplamiento Estricto de Pagos y Mesas:** Eliminar la llamada a `vacate_table` dentro de `add_payment`. El servicio de pagos no debe asumir que el cliente se retira al pagar (para soportar modelos de cobro por adelantado). La coordinación de "Pagar y Liberar Mesa" si la requiere la UI debe suceder en la capa superior (FastAPI Router o un Servicio Orquestador), manteniendo los dominios 100% aislados.
 
+#### Decisión Arquitectónica: El Facade de `service.py`
+
+> [!NOTE]
+> **Medida temporal documentada — no es deuda técnica accidental.**
+>
+> Durante la implementación de la Fase 3, `pos_core/sales/service.py` **no se elimina de inmediato**.
+> En su lugar, se convierte en un **facade de compatibilidad**: un archivo que solo re-exporta
+> las funciones de los nuevos módulos especializados (`order_service`, `payment_service`, `analytics_service`).
+>
+> **¿Por qué?** Para evitar el "Big Bang Rewrite": si se borrase `service.py` directamente,
+> habría que actualizar `router.py`, los WebSockets, los tests y cualquier otro importador
+> en el mismo commit, creando un riesgo de regresión enorme.
+>
+> **¿Cuándo se elimina?** Al finalizar la Fase 3, como último paso, se actualiza `router.py`
+> para importar directamente de los nuevos servicios y se borra `service.py`.
+> Ese commit final es la confirmación de que la desintegración del monolito está completa.
+>
+> **TODO explícito:** Buscar `# TODO (Fase 3 final)` en el código para encontrar los puntos
+> de migración pendientes antes de eliminar el facade.
+
 ### Fase 4: Sincronización WebSockets y Frontend
 **Por qué:** El frontend necesita depender de contratos estrictos, y los sockets deben enviar la misma estructura exacta que la API REST.
 1.  Modificar los eventos de WebSocket (`trigger_broadcast`) para que serialicen el modelo ORM pasándolo directamente a través del Pydantic Schema de la Fase 1.
