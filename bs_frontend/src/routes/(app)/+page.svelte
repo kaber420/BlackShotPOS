@@ -11,19 +11,19 @@
 	import ProductCustomizer from '$lib/components/ProductCustomizer.svelte';
 	import { addToast } from '$lib/toast.svelte.js';
     import Button from '$lib/components/ui/Button.svelte';
+	import { posSocket } from '$lib/pos_socket.svelte';
 
 	let categories = $state<Category[]>([]);
 	let products = $state<Product[]>([]);
 	let selectedCategory = $state<number | null>(null);
 	let isLoading = $state(true);
 
-	// Operational Stats State
-	let preparingCount = $state(0);
-	let readyCount = $state(0);
-	let starProductToday = $state("Cargando...");
-	let starProductWeek = $state("Cargando...");
+	// Operational Stats derived from global socket
+	let preparingCount = $derived(posSocket.dashboardStats?.preparingCount ?? 0);
+	let readyCount = $derived(posSocket.dashboardStats?.readyCount ?? 0);
+	let starProductToday = $derived(posSocket.dashboardStats?.starProductToday ?? "Ninguno aún");
+	let starProductWeek = $derived(posSocket.dashboardStats?.starProductWeek ?? "Ninguno aún");
 	let showWeeklyStar = $state(false);
-	let ws: WebSocket | null = null;
 
 	// Modal State
 	let showCustomizer = $state(false);
@@ -31,6 +31,9 @@
 	let infoProductId = $state<number | null>(null);
 
 	onMount(async () => {
+		// Subscribe to real-time stats
+		posSocket.subscribe("dashboard_stats");
+
 		try {
 			categories = await CategoryService.getAll();
 			if (categories.length > 0) {
@@ -38,9 +41,6 @@
 				await loadProducts(selectedCategory);
 			}
 
-            // Si hay una orden activa (desde el tablero de mesas), cargar sus items al carrito
-            // (Para simplicidad en este MVP, las órdenes se completan en una sesión)
-            
             // Detección de orden vía URL (Cobro desde lista de órdenes)
             const orderId = page.url.searchParams.get('order_id');
             if (orderId) {
@@ -53,6 +53,10 @@
 		} finally {
 			isLoading = false;
 		}
+
+		return () => {
+			posSocket.unsubscribe("dashboard_stats");
+		};
 	});
 
     // Rotation for Star Product
@@ -63,52 +67,6 @@
         return () => clearInterval(interval);
     });
 
-    // Real-time stats via WebSocket
-    $effect(() => {
-        let socket: WebSocket | null = null;
-        let reconnectTimeout: any;
-
-        function connect() {
-            const token = localStorage.getItem('X-Omni-Token') || '';
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const host = window.location.host;
-            const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
-
-            socket = new WebSocket(url);
-            ws = socket; // Export for other functions if needed
-
-            socket.onopen = () => {
-                console.log("🔌 Dashboard WS conectado");
-                socket?.send(JSON.stringify({ action: "subscribe", topic: "dashboard_stats" }));
-            };
-
-            socket.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    if (data.preparingCount !== undefined) {
-                        preparingCount = data.preparingCount;
-                        readyCount = data.readyCount;
-                        starProductToday = data.starProductToday;
-                        starProductWeek = data.starProductWeek;
-                    }
-                } catch (e) {
-                    console.error("Error parsing WS data", e);
-                }
-            };
-
-            socket.onclose = () => {
-                console.log("🔌 Dashboard WS desconectado. Reconectando en 5s...");
-                reconnectTimeout = setTimeout(connect, 5000);
-            };
-        }
-
-        connect();
-
-        return () => {
-            socket?.close();
-            clearTimeout(reconnectTimeout);
-        };
-    });
 
 
 
