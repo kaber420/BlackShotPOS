@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Query, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-from sqlalchemy import select
 from pos_core.database import get_session
 from .models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMethod
 from . import service
+from pos_core.tables import service as table_service
 from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast
 from omni_auth.security import require_role, require_permission
 from typing import List, Optional
 from pydantic import BaseModel
 import asyncio
+from pos_core.sales.schemas import OrderRead
 from omni_auth.manager import OmniAuthManager
 
 _auth_manager = OmniAuthManager()
@@ -54,7 +54,7 @@ async def create_new_order(
     asyncio.create_task(trigger_broadcast("tables"))
     return order
 
-@router.get("/orders")
+@router.get("/orders", response_model=List[OrderRead])
 async def list_orders(
     status: Optional[OrderStatus] = None,
     db: AsyncSession = Depends(get_session),
@@ -63,7 +63,7 @@ async def list_orders(
     """Lista las órdenes serializadas con ítems."""
     return await service.get_orders_json(db, status)
 
-@router.get("/orders/{order_id}")
+@router.get("/orders/{order_id}", response_model=OrderRead)
 async def get_order(
     order_id: int,
     db: AsyncSession = Depends(get_session),
@@ -257,24 +257,28 @@ async def pay_order(
     db: AsyncSession = Depends(get_session),
     user=Depends(require_permission("can_charge")),
 ):
-    """Registra un pago y notifica a la cocina (la orden pasa a PAID)."""
+    """
+    Registra un pago. Si vacate_table=True, libera la mesa en una operación separada.
+    El Router orquesta ambos dominios (pagos + mesas) sin acoplarlos entre sí.
+    """
     order = await service.get_order_by_id(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
-    payment = await service.add_payment(
-        db, 
-        order_id, 
-        payment_in.method, 
-        payment_in.amount, 
-        vacate_table=payment_in.vacate_table
-    )
+    # 1. Registrar el pago (dominio financiero puro)
+    payment = await service.add_payment(db, order_id, payment_in.method, payment_in.amount)
+
+    # 2. Si el cliente se va, liberar la mesa (dominio de mesas, independiente)
+    if order.table_id and payment_in.vacate_table:
+        await table_service.vacate_table_service(db, order.table_id)
+
+    # 3. Broadcasts
     asyncio.create_task(trigger_broadcast("kitchen_orders"))
     asyncio.create_task(trigger_broadcast("recent_orders"))
     asyncio.create_task(trigger_broadcast("dashboard_stats"))
     asyncio.create_task(trigger_broadcast("tables"))
 
-    # Notificar al TablePad que la mesa fue pagada y liberada
+    # 4. Notificar al TablePad si la mesa fue liberada
     if order.table_id and payment_in.vacate_table:
         asyncio.create_task(trigger_iot_broadcast(order.table_id, "clear_table", "", data={}))
 

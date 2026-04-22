@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
@@ -34,6 +35,18 @@ app = FastAPI(
 
 # Montar archivos estáticos para subidas de fotos
 app.mount("/uploads", StaticFiles(directory="data/img"), name="uploads")
+
+from pos_core.exceptions import BusinessLogicError
+
+@app.exception_handler(BusinessLogicError)
+async def business_logic_exception_handler(request: Request, exc: BusinessLogicError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error_code": exc.error_code,
+            "detail": exc.detail
+        },
+    )
 
 # Inclusión de rutas de inventario y mesas
 app.include_router(inventory_router, prefix="/api/v1/pos", tags=["Inventario"])

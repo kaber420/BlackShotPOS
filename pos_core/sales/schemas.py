@@ -1,0 +1,114 @@
+from typing import List, Optional
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict
+from pos_core.sales.models import OrderType, OrderStatus, PaymentMethod
+
+# ---------------------------------------------------------------------------
+# SCHEMAS DE INVENTARIO (espejo de inventory/models.py para órdenes)
+# ---------------------------------------------------------------------------
+
+class MeasureRead(BaseModel):
+    id: int
+    name: str
+    value: float
+    unit: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+class VariantRead(BaseModel):
+    id: int
+    price: float
+    measure: Optional[MeasureRead] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ProductSimpleRead(BaseModel):
+    id: int
+    name: str
+    recipe_markdown: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+class ModifierSimpleRead(BaseModel):
+    id: int
+    name: str
+    extra_price: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+# ---------------------------------------------------------------------------
+# SCHEMAS DE PAGO
+# ---------------------------------------------------------------------------
+
+class PaymentRead(BaseModel):
+    id: int
+    method: PaymentMethod
+    amount: float
+    timestamp: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+# ---------------------------------------------------------------------------
+# SCHEMA DE ÍTEM DE ORDEN  (espejo 1:1 de format_order_json → items_data)
+# ---------------------------------------------------------------------------
+
+class OrderItemRead(BaseModel):
+    id: int
+    product_id: int
+    product_variant_id: Optional[int] = None
+    quantity: int
+    unit_price: float
+    status: OrderStatus
+
+    # Relaciones anidadas
+    product: Optional[ProductSimpleRead] = None
+    variant: Optional[VariantRead] = None
+    modifiers: List[ModifierSimpleRead] = []
+
+    # Rastreo de cocinero y mesero
+    cook_uuid: Optional[str] = None
+    cook_name: Optional[str] = None
+    delivered_by_uuid: Optional[str] = None
+    delivered_by_name: Optional[str] = None
+
+    # Timestamps de ciclo de vida del ítem
+    preparing_at: Optional[datetime] = None
+    ready_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+# ---------------------------------------------------------------------------
+# SCHEMA DE ORDEN  (espejo 1:1 de format_order_json → dict raíz)
+# ---------------------------------------------------------------------------
+
+class OrderRead(BaseModel):
+    id: int
+    type: OrderType
+    status: OrderStatus
+    is_paid: bool
+    table_id: Optional[int] = None
+    shift_id: Optional[int] = None
+    external_reference: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    # Rastreo del mesero creador
+    waiter_uuid: Optional[str] = None
+    waiter_name: Optional[str] = None
+
+    # Rastreo del cocinero responsable
+    cook_uuid: Optional[str] = None
+    cook_name: Optional[str] = None
+
+    # Timestamps de ciclo de vida de la orden
+    preparing_at: Optional[datetime] = None
+    ready_at: Optional[datetime] = None
+    delivered_at: Optional[datetime] = None
+
+    # Relaciones anidadas
+    items: List[OrderItemRead] = []
+    payments: List[PaymentRead] = []
+
+    model_config = ConfigDict(from_attributes=True)
+

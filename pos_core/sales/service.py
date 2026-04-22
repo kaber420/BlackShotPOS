@@ -1,20 +1,36 @@
-from datetime import datetime, timedelta, timezone
+"""
+pos_core/sales/service.py
+=========================
+Capa de Servicio: contiene las reglas de negocio del módulo de ventas.
+
+RESPONSABILIDADES:
+  - Validar reglas de negocio antes de persistir.
+  - Coordinar llamadas al Repositorio.
+  - Controlar los límites transaccionales (session.commit).
+  - NO contiene sentencias SQL/ORM directas (eso es responsabilidad del Repository).
+"""
+from datetime import datetime, timezone
 from typing import List, Optional
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
+
 from .models import Order, OrderItem, Payment, OrderStatus, OrderType, PaymentMethod
-from pos_core.inventory.models import Product, Modifier, ProductVariant
 from pos_core.inventory.service import process_inventory_depletion
 from pos_core.sales.shifts_service import get_active_shift
 from pos_core.events.service import trigger_iot_broadcast
+from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
+from pos_core.sales.repository import order_repo, item_repo
+
+
+# ── Creación de Órdenes ────────────────────────────────────────────────────────
 
 async def create_order(
     session: AsyncSession,
     order_type: OrderType,
     table_id: Optional[int] = None,
     external_reference: Optional[str] = None,
-    waiter_uuid: Optional[str] = None,   # UUID del mesero creador
-    waiter_name: Optional[str] = None,   # Nombre snapshot para auditoría
+    waiter_uuid: Optional[str] = None,
+    waiter_name: Optional[str] = None,
 ) -> Order:
     active_shift = await get_active_shift(session)
     shift_id = active_shift.id if active_shift else None
@@ -29,56 +45,72 @@ async def create_order(
         waiter_name=waiter_name,
     )
     session.add(db_order)
-    
+
     if table_id:
         from pos_core.tables.models import Table
-        from datetime import datetime, timezone
         db_table = await session.get(Table, table_id)
         if db_table:
             if db_table.status != "Occupied":
                 db_table.status = "Occupied"
                 db_table.occupied_at = datetime.now(timezone.utc)
             session.add(db_table)
-            
+
     await session.commit()
     await session.refresh(db_order)
     return db_order
 
-async def get_order_by_id(session: AsyncSession, order_id: int) -> Optional[Order]:
-    return await session.get(Order, order_id)
 
-async def get_orders(session: AsyncSession, status: Optional[OrderStatus] = None) -> List[Order]:
-    from sqlalchemy.orm import selectinload
-    # Eager load items, their nested products and modifiers
-    statement = select(Order).options(
-        selectinload(Order.items).selectinload(OrderItem.product),
-        selectinload(Order.items).selectinload(OrderItem.modifiers)
-    )
-    if status is not None:
-        statement = statement.where(Order.status == status)
-    result = await session.execute(statement)
-    return result.scalars().all()
-    # Note: Product name is tricky if not a relationship. OrderItem has product_id.
-    # Let's ensure OrderItem has a Relationship to Product.
+# ── Lectura de Órdenes ─────────────────────────────────────────────────────────
+
+async def get_order_by_id(session: AsyncSession, order_id: int) -> Optional[Order]:
+    return await order_repo.get_by_id(session, order_id)
+
+
+async def get_orders(
+    session: AsyncSession, status: Optional[OrderStatus] = None
+) -> List[Order]:
+    return await order_repo.get_all(session, status)
+
+
+async def get_kitchen_orders(session: AsyncSession) -> List[Order]:
+    """Retorna las órdenes PENDING y PREPARING para la pantalla KDS."""
+    return await order_repo.get_active_for_kitchen(session)
+
+
+async def get_orders_json(
+    session: AsyncSession, status: Optional[OrderStatus] = None
+) -> List[Order]:
+    """Lista órdenes con todas sus relaciones cargadas (para serialización Pydantic)."""
+    return await order_repo.get_all(session, status)
+
+
+async def get_order_json(
+    session: AsyncSession, order_id: int
+) -> Optional[Order]:
+    """Obtiene una orden específica con todas sus relaciones cargadas."""
+    return await order_repo.get_with_relations(session, order_id)
+
+
+# ── Ítems de Orden ─────────────────────────────────────────────────────────────
 
 async def add_item_to_order(
-    session: AsyncSession, 
+    session: AsyncSession,
     order_id: int,
-    product_id: int, 
+    product_id: int,
     quantity: int,
     product_variant_id: Optional[int] = None,
-    modifier_ids: Optional[List[int]] = None
+    modifier_ids: Optional[List[int]] = None,
 ) -> OrderItem:
+    from pos_core.inventory.models import Product, ProductVariant, Modifier
+
     # 1. Obtener el producto base
     product = await session.get(Product, product_id)
     if not product:
         raise ValueError(f"Product with id {product_id} not found")
 
-    # 2. Determinar precio base (desde el producto o la variante)
+    # 2. Determinar precio base (producto o variante)
     base_price = product.price
-    variant = None
     if product_variant_id:
-        from pos_core.inventory.models import ProductVariant
         variant = await session.get(ProductVariant, product_variant_id)
         if variant:
             base_price = variant.price
@@ -95,305 +127,202 @@ async def add_item_to_order(
                 extra_price += mod.extra_price
                 modifiers.append(mod)
 
-    # 4. Crear el item de la orden
+    # 4. Crear el ítem
     order_item = OrderItem(
         order_id=order_id,
         product_id=product_id,
         product_variant_id=product_variant_id,
         quantity=quantity,
         unit_price=base_price + extra_price,
-        modifiers=modifiers
+        modifiers=modifiers,
     )
     session.add(order_item)
     await session.commit()
     await session.refresh(order_item)
     return order_item
 
+
+# ── Pagos ──────────────────────────────────────────────────────────────────────
+
 async def add_payment(
     session: AsyncSession,
     order_id: int,
     method: PaymentMethod,
     amount: float,
-    vacate_table: bool = True
 ) -> Payment:
-    payment = Payment(
-        order_id=order_id,
-        method=method,
-        amount=amount
-    )
-    session.add(payment)
-    
-    # Marcamos la orden como pagada
-    order = await session.get(Order, order_id)
-    if order:
-        order.is_paid = True
-        order.status = OrderStatus.PAID
-        
-        # Liberamos la mesa si estaba asociada a una Y el usuario lo solicitó
-        if order.table_id and vacate_table:
-            await vacate_table_service(session, order.table_id)
-        
+    """
+    Registra un pago y marca la orden como pagada.
+
+    RESPONSABILIDAD ÚNICA: Solo gestiona la transacción financiera.
+    La liberación de mesa es responsabilidad del Router, que llama a
+    table_service.vacate_table_service() por separado si es necesario.
+    """
+    order = await order_repo.get_by_id(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
+    if order.is_paid:
+        raise InvalidOrderStateError("Esta orden ya fue pagada.")
+
+    payment = await order_repo.create_payment(session, order_id, method, amount)
+    order.is_paid = True
+    order.status = OrderStatus.PAID
+    await order_repo.save(session, order)
+
+    # El Servicio controla el único commit de la transacción
     await session.commit()
     await session.refresh(payment)
     return payment
 
-async def vacate_table_service(session: AsyncSession, table_id: int) -> Optional[dict]:
+
+# ── Liberación de Mesas ────────────────────────────────────────────────────────
+
+async def vacate_table_service(
+    session: AsyncSession, table_id: int
+) -> Optional[dict]:
     """
     Libera una mesa, calcula el tiempo de ocupación y retorna estadísticas.
+    Puede ser llamada directamente por el Router o por update_order_status al cancelar.
     """
     from pos_core.tables.models import Table
-    from datetime import datetime, timezone
+
     db_table = await session.get(Table, table_id)
     if not db_table:
         return None
-    
+
     res = {
         "table_id": table_id,
         "number": db_table.number,
-        "occupied_at": (db_table.occupied_at.replace(tzinfo=timezone.utc) if db_table.occupied_at.tzinfo is None else db_table.occupied_at).isoformat() if db_table.occupied_at else None,
+        "occupied_at": (
+            db_table.occupied_at.replace(tzinfo=timezone.utc)
+            if db_table.occupied_at and db_table.occupied_at.tzinfo is None
+            else db_table.occupied_at
+        ).isoformat() if db_table.occupied_at else None,
         "vacated_at": datetime.now(timezone.utc).isoformat(),
-        "duration_minutes": 0
+        "duration_minutes": 0,
     }
-    
+
     if db_table.occupied_at:
-        # Normalizar a aware si viene naive de la DB
         occupied_at = db_table.occupied_at
         if occupied_at.tzinfo is None:
             occupied_at = occupied_at.replace(tzinfo=timezone.utc)
-            
         delta = datetime.now(timezone.utc) - occupied_at
         res["duration_minutes"] = round(delta.total_seconds() / 60, 2)
-    
+
     db_table.status = "Free"
     db_table.occupied_at = None
     session.add(db_table)
     await session.commit()
-    
+
     return res
 
-def format_order_json(order: Order) -> dict:
-    """Format an order object into a serializable dict with full nested details."""
-    items_data = []
-    for item in (order.items or []):
-        items_data.append({
-            "id": item.id,
-            "product_id": item.product_id,
-            "product": {
-                "id": item.product.id,
-                "name": item.product.name,
-                "recipe_markdown": item.product.recipe_markdown,
-            } if item.product else None,
-            "variant": {
-                "id": item.variant.id,
-                "measure": {"id": item.variant.measure.id, "name": item.variant.measure.name} if item.variant and item.variant.measure else (item.variant.measure if item.variant else None),
-                "price": item.variant.price
-            } if item.variant else None,
-            "quantity": item.quantity,
-            "unit_price": item.unit_price,
-            "status": item.status,
-            "modifiers": [{"id": m.id, "name": m.name, "extra_price": m.extra_price} for m in (item.modifiers or [])],
-            # ── Rastreo de cocina por ítem ────────────────────────────────────
-            "cook_uuid": item.cook_uuid,
-            "cook_name": item.cook_name,
-            # ── Rastreo de entrega por ítem ───────────────────────────────────
-            "delivered_by_uuid": item.delivered_by_uuid,
-            "delivered_by_name": item.delivered_by_name,
-            # ── Timestamps por ítem ───────────────────────────────────────────
-            "preparing_at": (item.preparing_at.replace(tzinfo=timezone.utc) if item.preparing_at.tzinfo is None else item.preparing_at).isoformat() if item.preparing_at else None,
-            "ready_at": (item.ready_at.replace(tzinfo=timezone.utc) if item.ready_at.tzinfo is None else item.ready_at).isoformat() if item.ready_at else None,
-            "delivered_at": (item.delivered_at.replace(tzinfo=timezone.utc) if item.delivered_at.tzinfo is None else item.delivered_at).isoformat() if item.delivered_at else None,
-        })
-    return {
-        "id": order.id,
-        "type": order.type,
-        "status": order.status,
-        "is_paid": order.is_paid,
-        "table_id": order.table_id,
-        "shift_id": order.shift_id,
-        "external_reference": order.external_reference,
-        "created_at": (order.created_at.replace(tzinfo=timezone.utc) if order.created_at.tzinfo is None else order.created_at).isoformat(),
-        "updated_at": (order.updated_at.replace(tzinfo=timezone.utc) if order.updated_at.tzinfo is None else order.updated_at).isoformat(),
-        # ── Rastreo del mesero ────────────────────────────────────────────────
-        "waiter_uuid": order.waiter_uuid,
-        "waiter_name": order.waiter_name,
-        # ── Rastreo del cocinero ──────────────────────────────────────────────
-        "cook_uuid": order.cook_uuid,
-        "cook_name": order.cook_name,
-        # ── Timestamps de la orden ────────────────────────────────────────────
-        "preparing_at": (order.preparing_at.replace(tzinfo=timezone.utc) if order.preparing_at.tzinfo is None else order.preparing_at).isoformat() if order.preparing_at else None,
-        "ready_at": (order.ready_at.replace(tzinfo=timezone.utc) if order.ready_at.tzinfo is None else order.ready_at).isoformat() if order.ready_at else None,
-        "delivered_at": (order.delivered_at.replace(tzinfo=timezone.utc) if order.delivered_at.tzinfo is None else order.delivered_at).isoformat() if order.delivered_at else None,
-        "items": items_data,
-    }
 
-async def get_kitchen_orders(session: AsyncSession) -> list:
-    """
-    Retorna las órdenes PENDING y PREPARING como lista de dicts serializables.
-    """
-    from sqlalchemy.orm import selectinload
-    statement = (
-        select(Order)
-        .where(Order.status.in_([OrderStatus.PENDING, OrderStatus.PREPARING]))
-        .order_by(Order.created_at)
-        .options(
-            selectinload(Order.items),
-            selectinload(Order.items, OrderItem.product),
-            selectinload(Order.items, OrderItem.modifiers),
-            selectinload(Order.items, OrderItem.variant),
-            selectinload(Order.items, OrderItem.variant, ProductVariant.measure)
-        )
-    )
-    result = await session.execute(statement)
-    orders = result.unique().scalars().all()
-    return [format_order_json(o) for o in orders]
-
-async def get_orders_json(session: AsyncSession, status: Optional[OrderStatus] = None) -> List[dict]:
-    """Lista órdenes serializadas como JSON."""
-    from sqlalchemy.orm import selectinload
-    statement = select(Order).options(
-        selectinload(Order.items),
-        selectinload(Order.items, OrderItem.product),
-        selectinload(Order.items, OrderItem.modifiers),
-        selectinload(Order.items, OrderItem.variant),
-        selectinload(Order.items, OrderItem.variant, ProductVariant.measure)
-    )
-    if status is not None:
-        statement = statement.where(Order.status == status)
-    
-    result = await session.execute(statement)
-    orders = result.unique().scalars().all()
-    return [format_order_json(o) for o in orders]
-
-async def get_order_json(session: AsyncSession, order_id: int) -> Optional[dict]:
-    """Obtiene una orden específica serializada como JSON."""
-    from sqlalchemy.orm import selectinload
-    statement = select(Order).where(Order.id == order_id).options(
-        selectinload(Order.items),
-        selectinload(Order.items, OrderItem.product),
-        selectinload(Order.items, OrderItem.modifiers),
-        selectinload(Order.items, OrderItem.variant),
-        selectinload(Order.items, OrderItem.variant, ProductVariant.measure)
-    )
-    result = await session.execute(statement)
-    order = result.unique().scalar_one_or_none()
-    return format_order_json(order) if order else None
-
+# ── Actualización de Estado de Orden ──────────────────────────────────────────
 
 async def update_order_status(
     session: AsyncSession,
     order_id: int,
     new_status: OrderStatus,
-    cook_uuid: Optional[str] = None,          # Cocinero que marca PREPARING / READY
+    cook_uuid: Optional[str] = None,
     cook_name: Optional[str] = None,
-    delivered_by_uuid: Optional[str] = None,  # Mesero que marca DELIVERED
+    delivered_by_uuid: Optional[str] = None,
     delivered_by_name: Optional[str] = None,
 ) -> Optional[Order]:
-    from datetime import datetime, timezone
-    statement = select(Order).where(Order.id == order_id)
-    result = await session.execute(statement)
-    order = result.scalar_one_or_none()
+    order = await order_repo.get_by_id(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
 
-    if order:
-        old_status = order.status
-        order.status = new_status
+    old_status = order.status
+    order.status = new_status
+    now = datetime.now(timezone.utc)
 
-        # ── Timestamps de ciclo de vida ───────────────────────────────────────
-        if new_status == OrderStatus.PREPARING and order.preparing_at is None:
-            order.preparing_at = datetime.now(timezone.utc)
-            # Registrar el cocinero que tomó la orden (solo primera vez)
-            if cook_uuid and order.cook_uuid is None:
-                order.cook_uuid = cook_uuid
-                order.cook_name = cook_name
+    # ── Timestamps de ciclo de vida ────────────────────────────────────────────
+    if new_status == OrderStatus.PREPARING and order.preparing_at is None:
+        order.preparing_at = now
+        if cook_uuid and order.cook_uuid is None:
+            order.cook_uuid = cook_uuid
+            order.cook_name = cook_name
 
-        elif new_status == OrderStatus.READY and order.ready_at is None:
-            order.ready_at = datetime.now(timezone.utc)
-            # Si llegó directo a READY sin pasar por PREPARING, registrar cocinero
-            if cook_uuid and order.cook_uuid is None:
-                order.cook_uuid = cook_uuid
-                order.cook_name = cook_name
-            
-            # Notificar a dispositivos IoT de la mesa
-            if order.table_id:
-                await trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100})
+    elif new_status == OrderStatus.READY and order.ready_at is None:
+        order.ready_at = now
+        if cook_uuid and order.cook_uuid is None:
+            order.cook_uuid = cook_uuid
+            order.cook_name = cook_name
+        if order.table_id:
+            await trigger_iot_broadcast(
+                order.table_id, "order_update", "",
+                data={"order_id": order.id, "status": "LISTO", "progress": 100},
+            )
 
-        elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
-            order.delivered_at = datetime.now(timezone.utc)
+    elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
+        order.delivered_at = now
 
-        session.add(order)
+    await order_repo.save(session, order)
 
-        # ── Liberar mesa si se cancela ────────────────────────────────────────
-        if new_status == OrderStatus.CANCELLED and order.table_id:
-            from pos_core.tables.models import Table
-            db_table = await session.get(Table, order.table_id)
-            if db_table:
-                db_table.status = "Free"
-                session.add(db_table)
+    # ── Cancelación: liberar la mesa via table_service ─────────────────────────
+    if new_status == OrderStatus.CANCELLED and order.table_id:
+        from pos_core.tables import service as table_service
+        await table_service.vacate_table_service(session, order.table_id)
 
-        await session.commit()
-        await session.refresh(order)
+    await session.commit()
+    await session.refresh(order)
 
-        # ── Cargar ítems para inventario y avance de estado ───────────────────
-        from sqlalchemy.orm import selectinload
-        items_statement = select(OrderItem).where(OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
-        items_result = await session.execute(items_statement)
-        order_items = items_result.scalars().all()
+    # ── Propagar estado a los ítems ────────────────────────────────────────────
+    order_items = await item_repo.get_items_for_order(session, order_id)
 
-        if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
-            items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-            items_to_advance = [i for i in order_items if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY)]
-            now = datetime.now(timezone.utc)
-            for i in items_to_advance:
-                i.status = new_status
-                # Propagar timestamps a los ítems que aún no los tienen
-                if new_status == OrderStatus.READY and i.ready_at is None:
-                    i.ready_at = now
-                    if cook_uuid and i.cook_uuid is None:
-                        i.cook_uuid = cook_uuid
-                        i.cook_name = cook_name
-                elif new_status == OrderStatus.DELIVERED and i.delivered_at is None:
-                    i.delivered_at = now
-                    if delivered_by_uuid and i.delivered_by_uuid is None:
-                        i.delivered_by_uuid = delivered_by_uuid
-                        i.delivered_by_name = delivered_by_name
-                session.add(i)
-            if items_to_deplete:
-                await process_inventory_depletion(session, items_to_deplete)
-            if items_to_advance:
-                await session.commit()
-
-        elif old_status == OrderStatus.PENDING and new_status == OrderStatus.PREPARING:
-            items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-            now = datetime.now(timezone.utc)
-            for i in items_to_deplete:
-                i.status = OrderStatus.PREPARING
-                if i.preparing_at is None:
-                    i.preparing_at = now
+    if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
+        items_to_advance = [
+            i for i in order_items
+            if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY)
+        ]
+        items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
+        for i in items_to_advance:
+            i.status = new_status
+            if new_status == OrderStatus.READY and i.ready_at is None:
+                i.ready_at = now
                 if cook_uuid and i.cook_uuid is None:
                     i.cook_uuid = cook_uuid
                     i.cook_name = cook_name
-                session.add(i)
-            if items_to_deplete:
-                await process_inventory_depletion(session, items_to_deplete)
-                await session.commit()
+            elif new_status == OrderStatus.DELIVERED and i.delivered_at is None:
+                i.delivered_at = now
+                if delivered_by_uuid and i.delivered_by_uuid is None:
+                    i.delivered_by_uuid = delivered_by_uuid
+                    i.delivered_by_name = delivered_by_name
+            await item_repo.save(session, i)
+        if items_to_deplete:
+            await process_inventory_depletion(session, items_to_deplete)
+        if items_to_advance:
+            await session.commit()
+
+    elif old_status == OrderStatus.PENDING and new_status == OrderStatus.PREPARING:
+        items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
+        for i in items_to_deplete:
+            i.status = OrderStatus.PREPARING
+            if i.preparing_at is None:
+                i.preparing_at = now
+            if cook_uuid and i.cook_uuid is None:
+                i.cook_uuid = cook_uuid
+                i.cook_name = cook_name
+            await item_repo.save(session, i)
+        if items_to_deplete:
+            await process_inventory_depletion(session, items_to_deplete)
+            await session.commit()
 
     return order
+
+
+# ── Actualización de Estado de Ítem Individual ────────────────────────────────
 
 async def update_order_item_status(
     session: AsyncSession,
     order_id: int,
     item_id: int,
     new_status: OrderStatus,
-    cook_uuid: Optional[str] = None,          # Cocinero que marca PREPARING / READY en el ítem
+    cook_uuid: Optional[str] = None,
     cook_name: Optional[str] = None,
-    delivered_by_uuid: Optional[str] = None,  # Mesero que entrega el ítem
+    delivered_by_uuid: Optional[str] = None,
     delivered_by_name: Optional[str] = None,
 ) -> Optional[OrderItem]:
-    from datetime import datetime, timezone
-    from sqlalchemy.orm import selectinload
-    statement = select(OrderItem).where(OrderItem.id == item_id, OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
-    result = await session.execute(statement)
-    item = result.scalar_one_or_none()
-
+    item = await item_repo.get_by_id(session, order_id, item_id)
     if not item:
         return None
 
@@ -402,9 +331,9 @@ async def update_order_item_status(
         return item
 
     item.status = new_status
+    now = datetime.now(timezone.utc)
 
     # ── Timestamps y rastreo por ítem ─────────────────────────────────────────
-    now = datetime.now(timezone.utc)
     if new_status == OrderStatus.PREPARING and item.preparing_at is None:
         item.preparing_at = now
         if cook_uuid and item.cook_uuid is None:
@@ -421,24 +350,25 @@ async def update_order_item_status(
             item.delivered_by_uuid = delivered_by_uuid
             item.delivered_by_name = delivered_by_name
 
-    session.add(item)
-    
-    if old_status == OrderStatus.PENDING and new_status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
+    await item_repo.save(session, item)
+
+    if old_status == OrderStatus.PENDING and new_status in (
+        OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED
+    ):
         await process_inventory_depletion(session, [item])
-        
-    # Recalcular estado de la orden padre
-    order_stmt = select(Order).where(Order.id == order_id).options(selectinload(Order.items))
-    order_result = await session.execute(order_stmt)
-    order = order_result.scalar_one_or_none()
-    
+
+    # ── Recalcular estado de la orden padre ────────────────────────────────────
+    order_items = await item_repo.get_items_for_order(session, order_id)
+    order = await order_repo.get_by_id(session, order_id)
+
     if order:
-        all_completed = True # READY, DELIVERED or CANCELLED
-        all_delivered = True # DELIVERED or CANCELLED
+        all_completed = True
+        all_delivered = True
         all_cancelled = True
         any_preparing = False
         any_pending = False
-        
-        for i in order.items:
+
+        for i in order_items:
             status = new_status if i.id == item_id else i.status
             if status == OrderStatus.PREPARING:
                 any_preparing = True
@@ -450,115 +380,110 @@ async def update_order_item_status(
                 all_delivered = False
             if status != OrderStatus.CANCELLED:
                 all_cancelled = False
-                
+
         new_order_status = None
-        if all_cancelled and len(order.items) > 0:
+        if all_cancelled and len(order_items) > 0:
             new_order_status = OrderStatus.CANCELLED
             if order.table_id:
-                from pos_core.tables.models import Table
-                db_table = await session.get(Table, order.table_id)
-                if db_table:
-                    db_table.status = "Free"
-                    session.add(db_table)
-        elif all_delivered and len(order.items) > 0:
+                from pos_core.tables import service as table_service
+                await table_service.vacate_table_service(session, order.table_id)
+        elif all_delivered and len(order_items) > 0:
             new_order_status = OrderStatus.DELIVERED
-        elif all_completed and len(order.items) > 0:
+        elif all_completed and len(order_items) > 0:
             new_order_status = OrderStatus.READY
         elif any_preparing:
             new_order_status = OrderStatus.PREPARING
         elif any_pending:
             new_order_status = OrderStatus.PENDING
-            
+
         if new_order_status and new_order_status != order.status:
-            # Propagar identidad al padre si el padre aún no tiene responsable
             if cook_uuid and order.cook_uuid is None:
                 order.cook_uuid = cook_uuid
                 order.cook_name = cook_name
 
-            # Avoid downgrading from PAID if that was the state
             if order.status != OrderStatus.PAID:
-                is_becoming_ready = (new_order_status == OrderStatus.READY and order.status != OrderStatus.READY)
+                is_becoming_ready = (
+                    new_order_status == OrderStatus.READY
+                    and order.status != OrderStatus.READY
+                )
                 order.status = new_order_status
-                session.add(order)
+                await order_repo.save(session, order)
 
                 if is_becoming_ready and order.table_id:
-                    await trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100})
-            elif new_order_status == OrderStatus.CANCELLED:
-                # Cancelled can override PAID in some scenarios? 
-                # Usually not, but for now let's be conservative.
-                pass
-            
+                    await trigger_iot_broadcast(
+                        order.table_id, "order_update", "",
+                        data={"order_id": order.id, "status": "LISTO", "progress": 100},
+                    )
+
     await session.commit()
     await session.refresh(item)
     return item
 
+
+# ── Eliminación de Orden ───────────────────────────────────────────────────────
+
 async def delete_order(session: AsyncSession, order_id: int) -> bool:
     """
     Elimina físicamente una orden si NO tiene artículos.
-    Si tiene artículos, libera la mesa pero no borra por auditoría.
+    Si tiene artículos, lanza error para proteger la auditoría.
     """
-    from sqlalchemy.orm import selectinload
-    statement = select(Order).where(Order.id == order_id).options(selectinload(Order.items))
-    result = await session.execute(statement)
-    order = result.scalar_one_or_none()
-
+    order = await order_repo.get_with_relations(session, order_id)
     if not order:
         return False
-    
-    # Protección de auditoría: No borrar si tiene ítems
+
     if len(order.items) > 0:
-        raise ValueError("No se puede eliminar una orden que ya contiene artículos. Use Cancelar para mantener auditoría.")
+        raise InvalidOrderStateError(
+            "No se puede eliminar una orden que ya contiene artículos. "
+            "Use Cancelar para mantener auditoría."
+        )
 
-    # Liberar mesa antes de borrar
     if order.table_id:
-        from pos_core.tables.models import Table
-        db_table = await session.get(Table, order.table_id)
-        if db_table:
-            db_table.status = "Free"
-            session.add(db_table)
+        from pos_core.tables import service as table_service
+        await table_service.vacate_table_service(session, order.table_id)
 
-    await session.delete(order)
+    await order_repo.delete(session, order)
     await session.commit()
     return True
 
 
+# ── Dashboard ──────────────────────────────────────────────────────────────────
+
 async def get_dashboard_stats(session: AsyncSession) -> dict:
-    """Calcula las estadísticas para el Dashboard de POS centralizando la lógica."""
-    from datetime import datetime, timezone, timedelta
-    
-    # Obtener todas las ordenes (igual que el comportamiento original)
-    orders = await get_orders_json(session)
-    
-    preparing_count = len([o for o in orders if o["status"] in (OrderStatus.PREPARING.value, OrderStatus.PENDING.value)])
+    """Calcula estadísticas para el Dashboard de POS."""
+    from datetime import timedelta
+    from pos_core.sales.schemas import OrderRead
+
+    orders_db = await get_orders_json(session)
+    orders = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders_db]
+
+    preparing_count = len([
+        o for o in orders
+        if o["status"] in (OrderStatus.PREPARING.value, OrderStatus.PENDING.value)
+    ])
     ready_count = len([o for o in orders if o["status"] == OrderStatus.READY.value])
-    
+
     now = datetime.now(timezone.utc)
     start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
-    
-    # Start of week (Monday)
-    today = now.weekday() # 0 is Monday
-    start_of_week = start_of_today - timedelta(days=today)
-    
+    start_of_week = start_of_today - timedelta(days=now.weekday())
+
     def find_best_product(filtered_orders):
         product_counts = {}
         for o in filtered_orders:
             for item in o.get("items", []):
-                name = item.get("product", {}).get("name", "Producto") if item.get("product") else "Producto"
-                quantity = item.get("quantity", 0)
-                product_counts[name] = product_counts.get(name, 0) + quantity
-                
+                name = (
+                    item.get("product", {}).get("name", "Producto")
+                    if item.get("product")
+                    else "Producto"
+                )
+                product_counts[name] = product_counts.get(name, 0) + item.get("quantity", 0)
         if not product_counts:
             return "Ninguno aún"
-        
-        # sort by count descending
-        sorted_counts = sorted(product_counts.items(), key=lambda x: x[1], reverse=True)
-        return sorted_counts[0][0]
-        
+        return sorted(product_counts.items(), key=lambda x: x[1], reverse=True)[0][0]
+
     def ensure_utc(dt_str):
         dt = datetime.fromisoformat(dt_str)
         return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
 
-    # Date parsing since the json returns isoformat strings
     today_orders = [o for o in orders if ensure_utc(o["created_at"]) >= start_of_today]
     week_orders = [o for o in orders if ensure_utc(o["created_at"]) >= start_of_week]
 
@@ -566,5 +491,5 @@ async def get_dashboard_stats(session: AsyncSession) -> dict:
         "preparingCount": preparing_count,
         "readyCount": ready_count,
         "starProductToday": find_best_product(today_orders),
-        "starProductWeek": find_best_product(week_orders)
+        "starProductWeek": find_best_product(week_orders),
     }

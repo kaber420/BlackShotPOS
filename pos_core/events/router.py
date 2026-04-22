@@ -48,15 +48,18 @@ async def pos_websocket(websocket: WebSocket):
                 # Enviar el estado inicial inmediatamente para que el cliente no espere al siguiente broadcast
                 async for db in get_session():
                     initial_data = None
+                    from pos_core.sales.schemas import OrderRead
                     if topic == "kitchen_orders":
                         from pos_core.sales.service import get_kitchen_orders
-                        initial_data = await get_kitchen_orders(db)
+                        orders = await get_kitchen_orders(db)
+                        initial_data = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders]
                     elif topic == "dashboard_stats":
                         from pos_core.sales.service import get_dashboard_stats
                         initial_data = await get_dashboard_stats(db)
                     elif topic == "recent_orders":
                         from pos_core.sales.service import get_orders_json
-                        initial_data = await get_orders_json(db)
+                        orders = await get_orders_json(db)
+                        initial_data = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders]
                         initial_data = sorted(initial_data, key=lambda x: x["created_at"], reverse=True)
                     elif topic == "tables":
                         from pos_core.tables.service import get_tables
@@ -66,7 +69,7 @@ async def pos_websocket(websocket: WebSocket):
                         from pos_core.iot.service import get_all_devices
                         initial_data = await get_all_devices(db)
                         initial_data = [d.model_dump(mode="json") for d in initial_data]
-                    
+
                     if initial_data is not None:
                         await websocket.send_json({"topic": topic, "data": initial_data})
                     break

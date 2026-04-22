@@ -22,11 +22,13 @@ async def trigger_broadcast(topic: str, data: Any = None):
 
     async for db in get_session():
         try:
+            from pos_core.sales.schemas import OrderRead
             data = None
             
             if topic == "kitchen_orders":
                 from pos_core.sales.service import get_kitchen_orders
-                data = await get_kitchen_orders(db)
+                orders = await get_kitchen_orders(db)
+                data = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders]
                 
             elif topic == "dashboard_stats":
                 from pos_core.sales.service import get_dashboard_stats
@@ -34,7 +36,8 @@ async def trigger_broadcast(topic: str, data: Any = None):
                 
             elif topic == "recent_orders":
                 from pos_core.sales.service import get_orders_json
-                data = await get_orders_json(db)
+                orders = await get_orders_json(db)
+                data = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders]
                 # Ordenar por fecha de creación descendente (más recientes primero)
                 data = sorted(data, key=lambda x: x["created_at"], reverse=True)
                 
