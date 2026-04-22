@@ -179,6 +179,25 @@ export function removeFromCart(itemId: string) {
     appState.cart = appState.cart.filter(i => i.id !== itemId);
 }
 
+export function updateCartItemQuantity(itemId: string, delta: number) {
+    const index = appState.cart.findIndex(i => i.id === itemId);
+    if (index === -1) return;
+
+    const item = appState.cart[index];
+    if (item.db_id) return; // No permitir editar items ya guardados en DB desde aquí
+
+    const newQty = item.quantity + delta;
+    
+    if (newQty <= 0) {
+        removeFromCart(itemId);
+    } else {
+        item.quantity = newQty;
+        const modifierTotal = item.modifiers.reduce((acc: number, m: any) => acc + (m.extra_price || 0), 0);
+        item.total_price = (item.base_price + modifierTotal) * item.quantity;
+        appState.cart = [...appState.cart];
+    }
+}
+
 export function clearCart() {
     appState.cart = [];
 }

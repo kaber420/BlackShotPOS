@@ -1,7 +1,7 @@
 <!-- FloatingCart.svelte -->
 <script lang="ts">
 	import { slide, fade, fly } from 'svelte/transition';
-	import { appState, removeFromCart, clearCart, setActiveTable } from '$lib/app_state.svelte';
+	import { appState, removeFromCart, clearCart, setActiveTable, updateCartItemQuantity } from '$lib/app_state.svelte';
 	import { fetchApi } from '$lib/api';
 	import { OrderService } from '$lib/api/orders';
 	import { addToast } from '$lib/toast.svelte.js';
@@ -224,85 +224,121 @@
                 </Button>
 			</div>
 			
-			<!-- Items in Cart -->
-			<div class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 min-h-0">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-xs font-bold opacity-50 uppercase">{itemCount} items</span>
-                    <Button variant="ghost" size="xs" danger onclick={() => { clearCart(); setActiveTable(null); appState.cartVisible = false; }}>
+			<div class="flex-1 overflow-y-auto p-5 flex flex-col gap-4 min-h-0 elegant-scroll bg-base-200/30">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-[10px] font-black opacity-40 uppercase tracking-[0.2em]">{itemCount} Artículos en Pedido</span>
+                    <button class="text-[10px] font-black text-error/60 hover:text-error uppercase tracking-widest transition-colors" onclick={() => { clearCart(); setActiveTable(null); appState.cartVisible = false; }}>
                         Vaciar Todo
-                    </Button>
+                    </button>
                 </div>
+
 					{#each appState.cart as item (item.id)}
-						<div class="flex justify-between items-start {item.db_id ? 'bg-base-300/20 opacity-70' : 'bg-base-200/40'} p-3 rounded-lg border {item.db_id ? 'border-base-300' : 'border-base-200/50'}">
-							<div class="flex flex-col flex-1 pl-1 pr-2">
-                                <div class="flex items-center gap-2 flex-wrap">
-    								<span class="font-bold text-sm uppercase leading-tight {item.status === 'CANCELLED' ? 'line-through text-error' : ''}">
+						<div class="flex flex-col gap-3 p-4 rounded-[1.5rem] bg-base-100 border border-base-200 shadow-sm transition-all hover:shadow-md {item.db_id ? 'opacity-80 grayscale-[0.3]' : ''}">
+							<div class="flex justify-between items-start">
+                                <div class="flex flex-col gap-1 flex-1">
+    								<span class="font-black text-sm uppercase leading-tight tracking-tight {item.status === 'CANCELLED' ? 'line-through text-error' : 'text-base-content'}">
                                         {item.name}
                                     </span>
-                                    {#if item.status === 'CANCELLED'}
-                                        <span class="badge badge-error badge-xs text-[8px] font-black tracking-tighter uppercase px-1">ANULADO</span>
-                                    {:else if item.status === 'READY'}
-                                        <span class="badge badge-success badge-xs text-[8px] font-black tracking-tighter uppercase px-1">LISTO</span>
-                                    {:else if item.status === 'PREPARANDO'}
-                                        <span class="badge badge-primary badge-xs text-[8px] font-black tracking-tighter uppercase px-1 animated-pulse">COCINANDO</span>
-                                    {:else if item.db_id}
-                                        <span class="badge badge-ghost badge-xs text-[8px] font-black tracking-tighter uppercase px-1">EN COLA</span>
+                                    {#if item.status || item.db_id}
+                                        <div class="flex gap-1">
+                                            {#if item.status === 'CANCELLED'}
+                                                <span class="badge badge-error badge-xs text-[8px] font-black tracking-tighter uppercase px-1">ANULADO</span>
+                                            {:else if item.status === 'READY'}
+                                                <span class="badge badge-success badge-xs text-[8px] font-black tracking-tighter uppercase px-1">LISTO</span>
+                                            {:else if item.status === 'PREPARANDO'}
+                                                <span class="badge badge-primary badge-xs text-[8px] font-black tracking-tighter uppercase px-1">EN COCINA</span>
+                                            {:else if item.db_id}
+                                                <span class="badge badge-ghost badge-xs text-[8px] font-black tracking-tighter uppercase px-1">EN COLA</span>
+                                            {/if}
+                                        </div>
                                     {/if}
                                 </div>
-								{#each item.modifiers as mod}
-									<span class="text-[10px] opacity-60 leading-none mt-1">+ {mod.name}</span>
-								{/each}
-							</div>
-							<div class="flex flex-col items-end gap-1">
-								<span class="font-bold text-sm {item.db_id ? 'opacity-50' : 'text-primary'}">${item.total_price.toFixed(2)}</span>
+                                <span class="font-mono font-black text-sm text-primary tracking-tighter">${item.total_price.toFixed(0)}</span>
+                            </div>
+
+                            {#if item.modifiers.length > 0}
+                                <div class="flex flex-wrap gap-1.5 border-t border-base-200/50 pt-2 opacity-60">
+                                    {#each item.modifiers as mod}
+                                        <span class="text-[9px] font-bold uppercase bg-base-200 px-2 py-0.5 rounded-full">+ {mod.name}</span>
+                                    {/each}
+                                </div>
+                            {/if}
+
+                            <div class="flex justify-between items-center mt-1">
                                 {#if !item.db_id}
-								    <Button variant="ghost" size="xs" danger circle onclick={() => removeFromCart(item.id)}>×</Button>
+                                    <!-- Quantity Selector Premium -->
+                                    <div class="flex items-center bg-base-200/50 rounded-full p-1 gap-3">
+                                        <button 
+                                            class="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm text-primary hover:bg-primary hover:text-white transition-all active:scale-90 font-black"
+                                            onclick={() => updateCartItemQuantity(item.id, -1)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 12h-15" /></svg>
+                                        </button>
+                                        <span class="font-black text-sm w-4 text-center">{item.quantity}</span>
+                                        <button 
+                                            class="w-7 h-7 flex items-center justify-center bg-white rounded-full shadow-sm text-primary hover:bg-primary hover:text-white transition-all active:scale-90 font-black"
+                                            onclick={() => updateCartItemQuantity(item.id, 1)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-3 h-3"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                        </button>
+                                    </div>
+                                    
+                                    <button 
+                                        class="text-[10px] font-black text-error/40 hover:text-error transition-colors uppercase tracking-widest px-2"
+                                        onclick={() => removeFromCart(item.id)}
+                                    >
+                                        Eliminar
+                                    </button>
+                                {:else}
+                                    <span class="text-[9px] font-black opacity-30 uppercase tracking-widest italic ml-auto">Enviado</span>
                                 {/if}
-							</div>
+                            </div>
 						</div>
 					{/each}
 			</div>
 
 			<!-- Cart Totals & Pay Button -->
-			<div class="p-4 border-t border-base-200 bg-base-200/20 pb-safe shrink-0">
-				<div class="flex justify-between mb-1 text-xs opacity-70 uppercase font-medium">
+			<div class="p-6 lg:p-8 border-t border-base-200 bg-base-100 pb-safe shrink-0 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
+				<div class="flex justify-between mb-2 text-[10px] opacity-40 uppercase font-black tracking-widest">
 					<span>Subtotal</span>
-					<span>${cartTotal.toFixed(2)}</span>
+					<span class="font-mono">${cartTotal.toFixed(0)}</span>
 				</div>
-				<div class="flex justify-between mb-3 text-xs opacity-70 uppercase font-medium">
+				<div class="flex justify-between mb-4 text-[10px] opacity-40 uppercase font-black tracking-widest">
 					<span>IVA ({appState.settings?.tax_rate ? (appState.settings.tax_rate * 100).toFixed(0) : 16}%)</span>
-					<span>${taxTotal.toFixed(2)}</span>
+					<span class="font-mono">${taxTotal.toFixed(0)}</span>
 				</div>
-				<div class="flex justify-between mb-4 items-end">
-					<span class="text-sm font-bold opacity-60 uppercase">Total Cobrar</span>
-					<span class="text-3xl font-black text-primary font-serif">{appState.settings?.currency_symbol}{finalTotal.toFixed(2)}</span>
+				<div class="flex justify-between mb-8 items-end border-b border-base-200 pb-4">
+					<span class="text-xs font-black opacity-60 uppercase tracking-[0.2em]">Total a Pagar</span>
+					<span class="text-4xl font-black text-primary font-mono tracking-tighter">{appState.settings?.currency_symbol}{finalTotal.toFixed(0)}</span>
 				</div>
 				
-				<div class="flex flex-col gap-2 relative">
-                    <Button 
-                        variant="primary" 
-                        size="lg" 
-                        class="w-full shadow-lg shadow-primary/20" 
-                        disabled={appState.cart.length === 0}
-                        {isLoading}
+				<div class="flex flex-col gap-3 relative mb-2">
+                    <button 
+                        class="w-full bg-primary hover:bg-primary/90 text-white rounded-2xl py-5 px-6 font-black uppercase tracking-[0.1em] text-lg shadow-xl shadow-primary/20 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
+                        disabled={appState.cart.length === 0 || isLoading}
                         onclick={openCheckout}
                     >
-                        Cobrar {appState.settings?.currency_symbol}{finalTotal.toFixed(2)}
-                    </Button>
+                        {#if isLoading}
+                            <span class="loading loading-spinner loading-md"></span>
+                        {:else}
+                            <span>Cobrar Orden</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:scale-150 transition-transform"></span>
+                            <span class="font-mono">${finalTotal.toFixed(0)}</span>
+                        {/if}
+                    </button>
 
-                    <Button 
-                        variant="outline"
-                        size="lg" 
-                        class="w-full" 
-                        disabled={appState.cart.length === 0}
-                        {isLoading}
+                    <button 
+                        class="w-full bg-base-200 hover:bg-base-300 text-base-content/70 rounded-2xl py-4 px-6 font-black uppercase tracking-[0.1em] text-xs transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                        disabled={appState.cart.length === 0 || isLoading}
                         onclick={sendToKitchen}
                     >
-                        <svelte:fragment slot="icon">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-1.333-1.756A3.75 3.75 0 0012 18z" /></svg>
-                        </svelte:fragment>
-                        Enviar a Cocina
-                    </Button>
+                        {#if isLoading}
+                            <span class="loading loading-spinner loading-xs"></span>
+                        {:else}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" /><path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-1.333-1.756A3.75 3.75 0 0012 18z" /></svg>
+                            Enviar a Cocina
+                        {/if}
+                    </button>
                 </div>
 			</div>
 		</div>

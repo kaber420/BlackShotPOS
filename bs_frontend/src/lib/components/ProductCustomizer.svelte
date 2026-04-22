@@ -103,171 +103,145 @@
 </script>
 
 {#if isOpen}
-	<div class="modal modal-open">
-		<div class="modal-box max-w-3xl p-0 overflow-hidden bg-base-100 border border-base-300 shadow-2xl">
-			<!-- Header with Dynamic Image -->
-			<div class="relative h-64 w-full bg-base-200 overflow-hidden">
-				{#if currentImage}
-					<img src={currentImage} alt={product.name} class="w-full h-full object-cover animate-in fade-in duration-500" />
-				{:else}
-					<div class="flex items-center justify-center h-full text-base-content/20">
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-						</svg>
-					</div>
-				{/if}
-				<div class="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/80 via-black/40 to-transparent text-white">
-					<h2 class="text-3xl font-black uppercase tracking-tighter">{product?.name}</h2>
-					<p class="text-sm opacity-90 max-w-lg line-clamp-2">{product?.description || 'Personaliza tu pedido a tu gusto.'}</p>
-				</div>
-				<Button 
-                    variant="ghost"
-                    circle
-                    size="sm"
-                    class="absolute top-4 right-4 bg-black/20 border-none text-white hover:bg-black/40" 
+	<div class="modal modal-open backdrop-blur-md transition-all duration-300 ease-out z-[100]">
+		<div class="modal-box max-w-2xl p-0 overflow-hidden bg-base-100 border border-base-200 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] rounded-[2.5rem] animate-in zoom-in-95 duration-200">
+            
+            <!-- Hero Header (Panoramic) -->
+            <div class="relative h-56 w-full bg-base-300 overflow-hidden">
+                {#if currentImage}
+                    <img src={currentImage} alt={product.name} class="w-full h-full object-cover animate-in fade-in duration-700" />
+                {:else}
+                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-primary/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                {/if}
+                
+                <!-- Title Overlay -->
+                <div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent flex flex-col justify-end p-8">
+                    <h2 class="text-4xl font-black text-white uppercase tracking-tighter drop-shadow-lg leading-tight line-clamp-1">
+                        {product?.name}
+                    </h2>
+                    <p class="text-white/70 text-xs font-bold uppercase tracking-widest mt-1 opacity-80">
+                        Personaliza tu elección
+                    </p>
+                </div>
+
+                <!-- Close Button -->
+                <button 
+                    class="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 backdrop-blur-xl rounded-full text-white flex items-center justify-center transition-all border border-white/10 group active:scale-90"
                     onclick={onClose}
-                >✕</Button>
-			</div>
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 group-hover:rotate-90 transition-transform"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
 
-			<div class="p-8 overflow-y-auto max-h-[55vh] grid grid-cols-1 md:grid-cols-5 gap-8">
-				
-				<!-- Left Column: Options (3/5) -->
-				<div class="md:col-span-3 flex flex-col gap-8">
-					
-					<!-- Variants / Sizes Selection -->
-					{#if variants.length > 0}
-						<div class="animate-in fade-in slide-in-from-left-4">
-							<h3 class="text-xs font-black uppercase tracking-widest opacity-50 mb-4 flex items-center gap-2">
-								<span class="w-2 h-2 rounded-full bg-primary"></span>
-								Selecciona el Tamaño
-							</h3>
-							<div class="flex flex-wrap gap-3">
-								{#each variants as v}
-									<Button 
-										variant={selectedVariant?.id === v.id ? 'primary' : 'outline'}
-                                        size="lg"
-										class="h-auto py-4 px-6 flex flex-col gap-1 items-center {selectedVariant?.id === v.id ? 'scale-105' : ''}"
-										onclick={() => selectedVariant = v}
-									>
-										<span class="text-lg font-bold uppercase">{v.measure?.name}</span>
-										<span class="text-[10px] opacity-70">+{v.measure?.value}{v.measure?.unit}</span>
-									</Button>
-								{/each}
-							</div>
-						</div>
-					{/if}
+            <!-- Scrollable Options Area -->
+            <div class="p-8 flex flex-col gap-8 max-h-[55vh] overflow-y-auto elegant-scroll">
+                
+                <!-- Size Selection (Horizontal Price Chips) -->
+                {#if variants.length > 0}
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <h3 class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-4 px-1 flex items-center gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                            Tamaño del Producto
+                        </h3>
+                        <div class="flex flex-wrap gap-2.5">
+                            {#each variants as v}
+                                <button 
+                                    class="flex items-center gap-3 px-6 py-4 rounded-2xl border-2 transition-all duration-300 font-black
+                                    {selectedVariant?.id === v.id 
+                                        ? 'bg-primary border-primary text-white scale-105 shadow-xl shadow-primary/20' 
+                                        : 'bg-base-200/50 border-transparent text-base-content/70 hover:bg-base-200'}"
+                                    onclick={() => selectedVariant = v}
+                                >
+                                    <span class="uppercase text-sm tracking-tight">{v.measure?.name}</span>
+                                    <span class="text-xs font-mono opacity-60 bg-black/5 px-2 py-0.5 rounded-lg">${v.price.toFixed(0)}</span>
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                {/if}
 
-					<!-- Modifier Groups -->
-					{#each modifierGroups as group}
-						<div class="animate-in fade-in slide-in-from-left-4">
-							<div class="flex justify-between items-end mb-4 border-b border-base-200 pb-2">
-								<h3 class="font-black text-xs uppercase tracking-widest opacity-50 flex items-center gap-2">
-									<span class="w-2 h-2 rounded-full bg-secondary"></span>
-									{group.name}
-								</h3>
-								<span class="text-[10px] font-bold opacity-40 uppercase">
-									{group.is_required ? 'Obligatorio' : 'Opcional'} • Max {group.max_selection}
-								</span>
-							</div>
-							<div class="grid grid-cols-2 gap-3">
-								{#each group.modifiers as mod}
-									<Button 
-										variant={isSelected(mod.id) ? 'secondary' : 'outline'}
-                                        class="h-auto py-4 px-4 justify-between font-bold {isSelected(mod.id) ? 'scale-[1.02]' : ''}"
-										onclick={() => toggleModifier(mod, group)}
-									>
-										<span class="text-sm uppercase">{mod.name}</span>
-										{#if mod.extra_price > 0}
-											<span class="badge badge-sm bg-base-200 border-none font-mono">+${mod.extra_price}</span>
-										{/if}
-									</Button>
-								{/each}
-							</div>
-						</div>
-					{/each}
-				</div>
+                <!-- Modifiers (Modern Two-Column Grid) -->
+                {#each modifierGroups as group}
+                    <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                        <div class="flex justify-between items-end mb-4 px-1 border-b border-base-200 pb-2">
+                            <h3 class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">{group.name}</h3>
+                            <span class="text-[9px] font-bold opacity-30 uppercase tracking-tighter">
+                                {group.is_required ? 'Obligatorio' : 'Opcional'} • Máx {group.max_selection}
+                            </span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {#each group.modifiers as mod}
+                                <button 
+                                    class="flex items-center justify-between px-5 py-4 rounded-2xl border-2 transition-all duration-300 font-bold group/mod
+                                    {isSelected(mod.id) 
+                                        ? 'bg-secondary/10 border-secondary text-secondary shadow-lg shadow-secondary/5' 
+                                        : 'bg-base-200/50 border-transparent text-base-content/70 hover:bg-base-200 hover:border-base-300'}"
+                                    onclick={() => toggleModifier(mod, group)}
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-4 h-4 rounded-full border-2 border-current flex items-center justify-center transition-all {isSelected(mod.id) ? 'bg-secondary' : 'bg-transparent'}">
+                                            {#if isSelected(mod.id)}
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="4" stroke="white" class="w-2.5 h-2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                                            {/if}
+                                        </div>
+                                        <span class="uppercase text-[11px] tracking-tight">{mod.name}</span>
+                                    </div>
+                                    {#if mod.extra_price > 0}
+                                        <span class="text-[10px] font-mono opacity-50 bg-black/5 px-2 py-0.5 rounded-lg">
+                                            +${mod.extra_price.toFixed(0)}
+                                        </span>
+                                    {/if}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                {/each}
 
-				<!-- Right Column: Info & Summary (2/5) -->
-				<div class="md:col-span-2 flex flex-col gap-6">
-					
-					<!-- Nutritional Info Card -->
-					{#if nutrition.calories > 0}
-						<div class="bg-base-200/50 rounded-2xl p-6 border border-base-300 animate-in fade-in slide-in-from-right-4">
-							<h3 class="text-[10px] font-black uppercase tracking-widest opacity-40 mb-4 italic">Información Nutricional Est.</h3>
-							<div class="grid grid-cols-2 gap-4">
-								<div class="flex flex-col">
-									<span class="text-2xl font-black font-mono text-orange-500 leading-none">{nutrition.calories}</span>
-									<span class="text-[9px] uppercase font-bold opacity-60">Calorías</span>
-								</div>
-								<div class="flex flex-col">
-									<span class="text-2xl font-black font-mono text-primary leading-none">{nutrition.protein}g</span>
-									<span class="text-[9px] uppercase font-bold opacity-60">Proteína</span>
-								</div>
-								<div class="flex flex-col">
-									<span class="text-xl font-black font-mono text-blue-500 leading-none">{nutrition.carbs}g</span>
-									<span class="text-[9px] uppercase font-bold opacity-60">Carbos</span>
-								</div>
-								<div class="flex flex-col">
-									<span class="text-xl font-black font-mono text-emerald-500 leading-none">{nutrition.fats}g</span>
-									<span class="text-[9px] uppercase font-bold opacity-60">Grasas</span>
-								</div>
-							</div>
-						</div>
-					{/if}
+                <!-- Special Instructions Field -->
+                <div class="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200 pb-4">
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-4 px-1 flex items-center gap-2">
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-3.5 h-3.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+                        Instrucciones Especiales
+                    </h3>
+                    <textarea 
+                        placeholder="Ej: Sin popote, extra caliente, sin hielo..."
+                        class="textarea textarea-bordered w-full rounded-3xl bg-base-200/50 border-transparent focus:border-primary/30 focus:bg-base-100 transition-all font-bold text-sm h-28 elegant-scroll p-6 shadow-inner"
+                        bind:value={presetName}
+                    ></textarea>
+                </div>
+            </div>
 
-					<!-- Presets -->
-					{#if presets.length > 0}
-						<div class="animate-in fade-in slide-in-from-right-4">
-							<h3 class="text-[10px] font-black uppercase tracking-widest opacity-40 mb-3">Tus Favoritos</h3>
-							<div class="flex flex-col gap-2">
-								{#each presets as preset}
-									<Button variant="outline" size="sm" class="justify-between font-bold" onclick={() => applyPreset(preset)}>
-										{preset.name}
-										<span>✨</span>
-									</Button>
-								{/each}
-							</div>
-						</div>
-					{/if}
-				</div>
-			</div>
-
-			<!-- Footer -->
-			<div class="p-8 bg-base-200/80 flex flex-col gap-6 border-t border-base-300">
-				{#if showSavePreset}
-					<div class="flex gap-2 animate-in slide-in-from-bottom-4">
-						<input type="text" placeholder="Nombre favorito (ej: Mid Vainilla)" class="input input-bordered flex-1 font-bold" bind:value={presetName} />
-						<Button variant="success" class="px-6 font-bold" onclick={saveCurrentAsPreset}>Guardar</Button>
-						<Button variant="ghost" onclick={() => showSavePreset = false}>×</Button>
-					</div>
-				{:else}
-					<div class="flex justify-between items-center">
-						<button class="btn btn-ghost btn-sm text-[10px] font-black uppercase tracking-widest" onclick={() => showSavePreset = true}>
-							<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-							</svg>
-							Guardar Favorito
-						</button>
-						<div class="text-right">
-							<span class="text-[10px] block opacity-40 uppercase font-black tracking-widest mb-1">Precio Final</span>
-							<span class="text-4xl font-black text-primary font-mono">${currentPrice().toFixed(2)}</span>
-						</div>
-					</div>
-				{/if}
-
-				<div class="flex gap-4">
-					<Button variant="ghost" class="flex-1 font-bold uppercase" onclick={onClose}>Cancelar</Button>
-					<Button 
-						variant="primary" 
-                        size="lg"
-                        class="flex-[2] shadow-xl shadow-primary/30 font-black uppercase tracking-widest" 
-						onclick={handleConfirm}
-						disabled={variants.length > 0 && !selectedVariant}
-					>
-						Añadir al Carrito
-					</Button>
-				</div>
-			</div>
-		</div>
+            <!-- Fixed Footer with Integrated Totalizer -->
+            <div class="p-8 bg-base-100 border-t border-base-200 flex items-center gap-4">
+                <button 
+                    class="flex-1 bg-primary hover:bg-primary/90 text-white rounded-[1.8rem] py-5 px-8 font-black uppercase tracking-[0.1em] text-lg shadow-2xl shadow-primary/30 transition-all active:scale-[0.97] disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-3 group"
+                    onclick={handleConfirm}
+                    disabled={variants.length > 0 && !selectedVariant}
+                >
+                    <span>Añadir al Pedido</span>
+                    <span class="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:scale-150 transition-transform"></span>
+                    <span class="font-mono text-2xl tracking-tighter">${currentPrice().toFixed(2)}</span>
+                </button>
+            </div>
+        </div>
 	</div>
 {/if}
+
+<style>
+    .elegant-scroll::-webkit-scrollbar {
+        width: 4px;
+    }
+    .elegant-scroll::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.1);
+        border-radius: 10px;
+    }
+    .elegant-scroll::-webkit-scrollbar-track {
+        background: transparent;
+    }
+</style>
+
+
