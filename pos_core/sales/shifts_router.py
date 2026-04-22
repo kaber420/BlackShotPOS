@@ -4,7 +4,8 @@ from typing import Optional
 from pydantic import BaseModel
 
 from pos_core.database import get_session
-from omni_auth.security import require_role
+from omni_auth.security import require_permission
+from pos_core.roles import Permission
 from .shifts_service import open_shift, close_shift, get_active_shift, get_shift_report, list_shifts
 
 router = APIRouter()
@@ -22,7 +23,7 @@ class CloseShiftRequest(BaseModel):
 async def api_open_shift(
     req: OpenShiftRequest,
     session: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager", "cashier"])),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
 ):
     """Abre un nuevo turno de caja con el fondo inicial indicado."""
     shift = await open_shift(session, req.initial_cash)
@@ -34,7 +35,7 @@ async def api_close_shift(
     shift_id: int,
     req: CloseShiftRequest,
     session: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager", "cashier"])),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
 ):
     """Cierra el turno especificado registrando el efectivo físico contado."""
     shift = await close_shift(session, shift_id, req.actual_cash)
@@ -53,7 +54,7 @@ async def api_get_active_shift(session: AsyncSession = Depends(get_session)):
 @router.get("/")
 async def api_list_shifts(
     session: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager"])),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
 ):
     """
     Lista todos los turnos históricos (abiertos y cerrados).
@@ -67,7 +68,7 @@ async def api_list_shifts(
 async def api_get_shift_report(
     shift_id: int,
     session: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager", "cashier"])),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
 ):
     """
     Reporte completo y auditable de un turno específico.

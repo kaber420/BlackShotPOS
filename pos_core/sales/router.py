@@ -3,10 +3,11 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.database import get_session
 from .models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMethod
-from . import service
+from pos_core.sales import order_service, payment_service, analytics_service
 from pos_core.tables import service as table_service
 from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast
 from omni_auth.security import require_role, require_permission
+from pos_core.roles import Permission
 from typing import List, Optional
 from pydantic import BaseModel
 import asyncio
@@ -37,10 +38,10 @@ class PaymentCreate(BaseModel):
 async def create_new_order(
     order_in: OrderCreate,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_take_orders")),
+    user=Depends(require_permission(Permission.TAKE_ORDERS)),
 ):
     """Crea una nueva orden y registra al mesero creador."""
-    order = await service.create_order(
+    order = await order_service.create_order(
         db,
         order_in.type,
         order_in.table_id,
@@ -58,19 +59,19 @@ async def create_new_order(
 async def list_orders(
     status: Optional[OrderStatus] = None,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_view_orders")) 
+    user=Depends(require_permission(Permission.VIEW_ORDERS)) 
 ):
     """Lista las órdenes serializadas con ítems."""
-    return await service.get_orders_json(db, status)
+    return await order_service.get_orders(db, status)
 
 @router.get("/orders/{order_id}", response_model=OrderRead)
 async def get_order(
     order_id: int,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_view_orders"))
+    user=Depends(require_permission(Permission.VIEW_ORDERS))
 ):
     """Obtiene el detalle completo de una orden serializada."""
-    order = await service.get_order_json(db, order_id)
+    order = await order_service.get_order_with_relations(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
     return order
@@ -80,18 +81,18 @@ async def add_item(
     order_id: int,
     item_in: OrderItemCreate,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_take_orders"))
+    user=Depends(require_permission(Permission.TAKE_ORDERS))
 ):
     """Añade un producto a la orden."""
-    order = await service.get_order_by_id(db, order_id)
+    order = await order_service.get_order_by_id(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-        
+
     try:
-        item = await service.add_item_to_order(
-            db, 
-            order_id, 
-            item_in.product_id, 
+        item = await order_service.add_item_to_order(
+            db,
+            order_id,
+            item_in.product_id,
             item_in.quantity,
             product_variant_id=item_in.product_variant_id,
             modifier_ids=item_in.modifier_ids
@@ -109,12 +110,12 @@ async def update_status(
     order_id: int,
     status: OrderStatus,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_view_orders")),
+    user=Depends(require_permission(Permission.VIEW_ORDERS)),
 ):
     """Actualiza el estado de una orden. Registra cocinero o mesero según la transición."""
     is_kitchen = status in (OrderStatus.PREPARING, OrderStatus.READY)
     is_delivery = status == OrderStatus.DELIVERED
-    order = await service.update_order_status(
+    order = await order_service.update_order_status(
         db,
         order_id,
         status,
@@ -161,12 +162,12 @@ async def update_item_status(
     item_id: int,
     status: OrderStatus,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_view_orders")),
+    user=Depends(require_permission(Permission.VIEW_ORDERS)),
 ):
     """Actualiza el estado de un ítem individual. Registra cocinero o mesero según la transición."""
     is_kitchen = status in (OrderStatus.PREPARING, OrderStatus.READY)
     is_delivery = status == OrderStatus.DELIVERED
-    item = await service.update_order_item_status(
+    item = await order_service.update_order_item_status(
         db,
         order_id,
         item_id,
@@ -231,14 +232,14 @@ async def update_item_status(
 async def delete_order(
     order_id: int,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_take_orders"))
+    user=Depends(require_permission(Permission.TAKE_ORDERS))
 ):
     """
     Elimina físicamente una orden vacía. 
     Lanza error 400 si tiene artículos para proteger auditoría.
     """
     try:
-        success = await service.delete_order(db, order_id)
+        success = await order_service.delete_order(db, order_id)
         if not success:
             raise HTTPException(status_code=404, detail="Order not found")
         
@@ -255,18 +256,18 @@ async def pay_order(
     order_id: int,
     payment_in: PaymentCreate,
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission("can_charge")),
+    user=Depends(require_permission(Permission.CHARGE)),
 ):
     """
     Registra un pago. Si vacate_table=True, libera la mesa en una operación separada.
     El Router orquesta ambos dominios (pagos + mesas) sin acoplarlos entre sí.
     """
-    order = await service.get_order_by_id(db, order_id)
+    order = await order_service.get_order_by_id(db, order_id)
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
 
     # 1. Registrar el pago (dominio financiero puro)
-    payment = await service.add_payment(db, order_id, payment_in.method, payment_in.amount)
+    payment = await payment_service.add_payment(db, order_id, payment_in.method, payment_in.amount)
 
     # 2. Si el cliente se va, liberar la mesa (dominio de mesas, independiente)
     if order.table_id and payment_in.vacate_table:

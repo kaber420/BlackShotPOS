@@ -17,8 +17,9 @@ from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Order, OrderItem, OrderStatus, OrderType
+from .models import Order, OrderItem, OrderStatus, OrderType, AuditAction
 from .repository import order_repo, item_repo
+from . import audit_service
 from pos_core.inventory.service import process_inventory_depletion
 from pos_core.sales.shifts_service import get_active_shift
 from pos_core.events.service import trigger_iot_broadcast
@@ -364,3 +365,104 @@ async def delete_order(session: AsyncSession, order_id: int) -> bool:
     await order_repo.delete(session, order)
     await session.commit()
     return True
+# ── Cancelación y Auditoría ────────────────────────────────────────────────────
+
+async def cancel_order(
+    session: AsyncSession,
+    order_id: int,
+    reason: str,
+    actor_uuid: str,
+    actor_name: str,
+) -> Order:
+    """
+    Cancela una orden completa, registra el motivo en auditoría y libera la mesa.
+    """
+    order = await order_repo.get_by_id(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
+    
+    if order.status == OrderStatus.CANCELLED:
+        return order
+
+    # 1. Cambiar estado
+    order.status = OrderStatus.CANCELLED
+    await order_repo.save(session, order)
+
+    # 2. Cancelar todos los ítems que no estén cancelados
+    items = await item_repo.get_items_for_order(session, order_id)
+    for item in items:
+        if item.status != OrderStatus.CANCELLED:
+            item.status = OrderStatus.CANCELLED
+            await item_repo.save(session, item)
+
+    # 3. Liberar mesa si aplica
+    if order.table_id:
+        from pos_core.tables import service as table_service
+        await table_service.vacate_table_service(session, order.table_id)
+
+    # 4. Registrar auditoría
+    await audit_service.log_action(
+        session,
+        action=AuditAction.ORDER_CANCELLED,
+        reason=reason,
+        actor_uuid=actor_uuid,
+        actor_name=actor_name,
+        order_id=order_id,
+    )
+
+    await session.commit()
+    await session.refresh(order)
+    return order
+
+
+async def cancel_order_item(
+    session: AsyncSession,
+    order_id: int,
+    item_id: int,
+    reason: str,
+    actor_uuid: str,
+    actor_name: str,
+) -> OrderItem:
+    """
+    Cancela un ítem individual de una orden y lo registra en auditoría.
+    """
+    item = await item_repo.get_by_id(session, order_id, item_id)
+    if not item:
+        raise ValueError(f"OrderItem {item_id} not found in order {order_id}")
+
+    if item.status == OrderStatus.CANCELLED:
+        return item
+
+    # 1. Cambiar estado del ítem
+    item.status = OrderStatus.CANCELLED
+    await item_repo.save(session, item)
+
+    # 2. Registrar auditoría
+    await audit_service.log_action(
+        session,
+        action=AuditAction.ITEM_CANCELLED,
+        reason=reason,
+        actor_uuid=actor_uuid,
+        actor_name=actor_name,
+        order_id=order_id,
+        order_item_id=item_id,
+    )
+
+    # 3. Recalcular estado de la orden (si todos los ítems están cancelados, cancelar orden)
+    # Reutilizamos la lógica existente en update_order_item_status si fuera necesario, 
+    # pero aquí lo hacemos explícito para mayor claridad.
+    items = await item_repo.get_items_for_order(session, order_id)
+    all_cancelled = all(i.status == OrderStatus.CANCELLED for i in items)
+    
+    if all_cancelled:
+        order = await order_repo.get_by_id(session, order_id)
+        if order and order.status != OrderStatus.CANCELLED:
+            order.status = OrderStatus.CANCELLED
+            await order_repo.save(session, order)
+            if order.table_id:
+                from pos_core.tables import service as table_service
+                await table_service.vacate_table_service(session, order.table_id)
+
+    await session.commit()
+    await session.refresh(item)
+    return item

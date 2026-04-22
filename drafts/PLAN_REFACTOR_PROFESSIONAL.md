@@ -111,7 +111,7 @@ Para evitar el temido "Big Bang Rewrite" (donde nada funciona por semanas), la m
 1.  Modificar los eventos de WebSocket (`trigger_broadcast`) para que serialicen el modelo ORM pasándolo directamente a través del Pydantic Schema de la Fase 1.
 2.  Generar (o actualizar) los tipos de TypeScript en SvelteKit para que hagan "mirror" exacto de los Schemas de Python.
 
-### Fase 5: Auditoría y Roles Desacoplados
+### Fase 5: Auditoría y Roles Desacoplados [COMPLETADO]
 **Por qué:** La seguridad no debe depender de que un desarrollador "recuerde" poner el chequeo en su código.
 1.  Centralizar la función `AuditLog` para que reaccione a eventos del Repositorio (Observer Pattern) o se ejecute como un proceso background, sin ensuciar el servicio de órdenes.
 2.  Migrar la validación de roles a Dependencias de FastAPI puras (`Depends(require_permission('void_order'))`), blindando los endpoints desde la frontera de la aplicación.

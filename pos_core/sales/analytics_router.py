@@ -6,7 +6,8 @@ from typing import Optional
 
 from pos_core.database import get_session
 from .models import Order, Payment, PaymentMethod, OrderStatus, OrderItem, Shift, ShiftStatus
-from omni_auth.security import require_role
+from omni_auth.security import require_permission
+from pos_core.roles import Permission
 
 router = APIRouter()
 
@@ -72,7 +73,7 @@ async def get_business_summary(
         description="Fecha de fin (solo con period='custom'). Formato: YYYY-MM-DD.",
     ),
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager"])),
+    user=Depends(require_permission(Permission.VIEW_REPORTS)),
 ):
     """
     Resumen de negocio filtrable por período.
@@ -199,7 +200,7 @@ async def get_business_summary(
 @router.get("/waiters/performance")
 async def get_waiter_performance(
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager"])),
+    user=Depends(require_permission(Permission.VIEW_REPORTS)),
 ):
     """
     Estadísticas de desempeño por mesero — órdenes creadas, ventas totales
@@ -264,7 +265,7 @@ async def get_waiter_performance(
 @router.get("/kitchen/performance")
 async def get_kitchen_performance(
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager"])),
+    user=Depends(require_permission(Permission.VIEW_REPORTS)),
 ):
     """
     Estadísticas de desempeño por cocinero — órdenes manejadas, ítems preparados
@@ -338,7 +339,7 @@ async def get_kitchen_performance(
 @router.get("/kitchen/dish-speed")
 async def get_dish_speed(
     db: AsyncSession = Depends(get_session),
-    user=Depends(require_role(["admin", "manager"])),
+    user=Depends(require_permission(Permission.VIEW_REPORTS)),
 ):
     """
     Tiempo promedio de preparación por platillo (preparing_at → ready_at por ítem).
@@ -390,4 +391,3 @@ async def get_dish_speed(
         }
         for row in rows
     ]
-

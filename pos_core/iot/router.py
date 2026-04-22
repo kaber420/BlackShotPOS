@@ -4,7 +4,8 @@ from pos_core.events.manager import pos_broadcaster, iot_broadcaster
 from pos_core.events.service import trigger_broadcast
 from .service import get_device_by_token, update_device_last_seen, update_device_health
 from pos_core.settings.service import get_settings
-from pos_core.sales.service import get_orders_json
+from pos_core.sales.order_service import get_orders
+from pos_core.sales.schemas import OrderRead
 from pos_core.sales.models import OrderStatus
 import logging
 import asyncio
@@ -102,8 +103,14 @@ async def iot_websocket(websocket: WebSocket):
                 elif action == "sync_orders":
                     # Recuperar órdenes activas para esta mesa
                     logger.info(f"🔄 Mesa {table_id} solicitó sincronización de órdenes")
-                    orders = await get_orders_json(db)
-                    active_orders = [o for o in orders if o["table_id"] == table_id and o["status"] not in [OrderStatus.PAID.value, OrderStatus.CANCELLED.value]]
+                    raw_orders = await get_orders(db)
+                    order_dicts = [OrderRead.model_validate(o).model_dump(mode="json") for o in raw_orders]
+                    active_orders = [
+                        o for o in order_dicts
+                        if o["table_id"] == table_id
+                        and o["status"] not in [OrderStatus.CANCELLED.value]
+                        and not o["is_paid"]
+                    ]
                     
                     logger.info(f"📤 Enviando {len(active_orders)} órdenes activas a Mesa {table_id}")
                     for order in active_orders:
@@ -143,9 +150,9 @@ async def iot_websocket(websocket: WebSocket):
                     logger.info(f"🧾 Mesa {table_id} solicitó la cuenta")
 
                 elif action == "clear_table":
-                    from pos_core.sales.service import vacate_table_service
+                    from pos_core.tables.service import vacate_table_service
                     await vacate_table_service(db, table_id)
-                    await trigger_broadcast("tables") # Notificar al POS central la actualización de mesas
+                    await trigger_broadcast("tables")  # Notificar al POS central la actualización de mesas
                     logger.info(f"🧹 Mesa {table_id} liberada desde TablePad")
 
         except WebSocketDisconnect:

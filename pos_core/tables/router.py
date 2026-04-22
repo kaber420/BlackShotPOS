@@ -61,7 +61,7 @@ async def delete_table(table_id: int, db: AsyncSession = Depends(get_session)):
 @router.post("/tables/{table_id}/vacate")
 async def vacate_table(table_id: int, db: AsyncSession = Depends(get_session)):
     """Libera una mesa manualmente."""
-    from pos_core.sales.service import vacate_table_service
+    from pos_core.tables.service import vacate_table_service
     res = await vacate_table_service(db, table_id)
     if not res:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
