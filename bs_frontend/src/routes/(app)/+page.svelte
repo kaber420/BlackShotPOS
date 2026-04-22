@@ -122,46 +122,39 @@
 </script>
 
 <div class="p-4 md:p-6 lg:p-8 flex flex-col gap-6 h-full">
-	<!-- Top Operational Row -->
-	<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200">
-			<div class="stat-title uppercase text-[10px] font-black tracking-widest opacity-60">En Cocina</div>
-			<div class="stat-value text-warning font-serif">{preparingCount}</div>
-			<div class="stat-desc">Órdenes pendientes</div>
-		</div>
-		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200">
-			<div class="stat-title uppercase text-[10px] font-black tracking-widest opacity-60">Listos</div>
-			<div class="stat-value text-success">{readyCount}</div>
-			<div class="stat-desc">Para entregar</div>
-		</div>
-		<div class="stat bg-base-100 rounded-box shadow-sm border border-base-200 overflow-hidden">
-			<div class="stat-title uppercase text-[10px] font-black tracking-widest opacity-60">
-                ⭐ Producto Estrella ({showWeeklyStar ? 'Semana' : 'Hoy'})
-            </div>
-			<div class="stat-value text-accent text-2xl font-bold truncate">
-                {showWeeklyStar ? starProductWeek : starProductToday}
-            </div>
-			<div class="stat-desc">Rotando cada 8 segundos</div>
-		</div>
-	</div>
 
 	<!-- Main POS View Layout -->
 	<div class="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
 		
 		<!-- Left: Categories & Products (100%) -->
 		<div class="w-full flex flex-col gap-4 h-full min-h-0">
-			<!-- Categories Tabs -->
-			<div class="flex gap-2 bg-base-100 shadow-sm p-2 rounded-xl border border-base-200 overflow-x-auto whitespace-nowrap elegant-scroll">
-				{#each categories as cat}
-					<Button 
-						variant={selectedCategory === (cat.id ?? null) ? 'primary' : 'ghost'}
-                        size="sm"
-                        class="rounded-lg transition-all"
-						onclick={() => loadProducts(cat.id ?? null)}
-					>
-						{cat.name}
-					</Button>
-				{/each}
+			<!-- Categories & Compact Stats Row -->
+			<div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200">
+                <!-- Categories Tabs -->
+                <div class="flex gap-2 overflow-x-auto whitespace-nowrap elegant-scroll no-scrollbar flex-1 pr-4">
+                    {#each categories as cat}
+                        <Button 
+                            variant={selectedCategory === (cat.id ?? null) ? 'primary' : 'ghost'}
+                            size="sm"
+                            class="rounded-lg transition-all"
+                            onclick={() => loadProducts(cat.id ?? null)}
+                        >
+                            {cat.name}
+                        </Button>
+                    {/each}
+                </div>
+
+                <!-- Compact Live Status -->
+                <div class="flex items-center gap-2 pl-4 border-l border-base-200">
+                    <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warning/10 text-warning border border-warning/20" title="Órdenes en cocina">
+                        <span class="text-xs font-black">🍳</span>
+                        <span class="text-sm font-black font-mono">{preparingCount}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/10 text-success border border-success/20" title="Listos para entrega">
+                        <span class="text-xs font-black">✅</span>
+                        <span class="text-sm font-black font-mono">{readyCount}</span>
+                    </div>
+                </div>
 			</div>
 			
 			<!-- Product Grid -->
@@ -179,6 +172,15 @@
 							>
 								<div class="flex flex-col h-full">
 									<div class="aspect-square w-full relative overflow-hidden bg-base-200">
+                                        <!-- Top Seller Badges -->
+                                        <div class="absolute top-2 left-2 z-20 flex flex-col gap-1 items-start">
+                                            {#if prod.name === starProductToday}
+                                                <span class="bg-orange-600/90 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-lg backdrop-blur-sm uppercase tracking-tighter">🔥 TOP HOY</span>
+                                            {/if}
+                                            {#if prod.name === starProductWeek}
+                                                <span class="bg-amber-600/90 text-white text-[9px] font-black px-2 py-0.5 rounded shadow-lg backdrop-blur-sm uppercase tracking-tighter">⭐ TOP SEMANA</span>
+                                            {/if}
+                                        </div>
 										{#if prod.image_url}
 											<img src={prod.image_url} alt={prod.name} class="w-full h-full object-cover transition-transform duration-700 {prod.is_active ? 'group-hover:scale-110' : ''}" />
 										{:else}
@@ -287,7 +289,8 @@
 
 
 <style>
-	.tabs-box::-webkit-scrollbar {
+	.tabs-box::-webkit-scrollbar,
+    .no-scrollbar::-webkit-scrollbar {
 		display: none;
 	}
 
