@@ -21,7 +21,7 @@
     function getDuration(occupiedAt: string | undefined): string {
         if (!occupiedAt) return '';
         const start = new Date(occupiedAt);
-        const diff = Math.floor((now.getTime() - start.getTime()) / 60000);
+        const diff = Math.max(0, Math.floor((now.getTime() - start.getTime()) / 60000));
         
         if (diff < 60) return `${diff}m`;
         const hours = Math.floor(diff / 60);

@@ -4,7 +4,7 @@ from sqlalchemy import func as sqlfunc
 from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from fastapi import HTTPException
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .models import Shift, ShiftStatus, Order, Payment, PaymentMethod
 
@@ -49,7 +49,7 @@ async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) 
     shift.actual_cash = actual_cash
     shift.difference = actual_cash - shift.expected_cash
     shift.status = ShiftStatus.CLOSED
-    shift.end_time = datetime.utcnow()
+    shift.end_time = datetime.now(timezone.utc)
 
     await session.commit()
     await session.refresh(shift)
@@ -85,14 +85,20 @@ async def list_shifts(session: AsyncSession) -> list:
         # Duración del turno en minutos (None si aún está abierto)
         duration_minutes: Optional[int] = None
         if shift.end_time and shift.start_time:
-            delta = shift.end_time - shift.start_time
+            # Normalizar a aware si vienen naive de la DB
+            start = shift.start_time
+            if start.tzinfo is None: start = start.replace(tzinfo=timezone.utc)
+            end = shift.end_time
+            if end.tzinfo is None: end = end.replace(tzinfo=timezone.utc)
+            
+            delta = end - start
             duration_minutes = int(delta.total_seconds() // 60)
 
         out.append({
             "id": shift.id,
             "status": shift.status,
-            "start_time": shift.start_time.isoformat() if shift.start_time else None,
-            "end_time": shift.end_time.isoformat() if shift.end_time else None,
+            "start_time": (shift.start_time.replace(tzinfo=timezone.utc) if shift.start_time.tzinfo is None else shift.start_time).isoformat() if shift.start_time else None,
+            "end_time": (shift.end_time.replace(tzinfo=timezone.utc) if shift.end_time.tzinfo is None else shift.end_time).isoformat() if shift.end_time else None,
             "duration_minutes": duration_minutes,
             "initial_cash": shift.initial_cash,
             "expected_cash": shift.expected_cash,
@@ -150,7 +156,7 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "is_paid": o.is_paid,
             "table_id": o.table_id,
             "external_reference": o.external_reference,
-            "created_at": o.created_at.isoformat() if o.created_at else None,
+            "created_at": (o.created_at.replace(tzinfo=timezone.utc) if o.created_at.tzinfo is None else o.created_at).isoformat() if o.created_at else None,
             "items_count": len(o.items),
             "total": round(sum(p.amount for p in o.payments), 2),
         }
@@ -160,14 +166,20 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
     # Duración del turno
     duration_minutes: Optional[int] = None
     if shift.end_time and shift.start_time:
-        delta = shift.end_time - shift.start_time
+        # Normalizar a aware si vienen naive de la DB
+        start = shift.start_time
+        if start.tzinfo is None: start = start.replace(tzinfo=timezone.utc)
+        end = shift.end_time
+        if end.tzinfo is None: end = end.replace(tzinfo=timezone.utc)
+        
+        delta = end - start
         duration_minutes = int(delta.total_seconds() // 60)
 
     return {
         "shift_id": shift.id,
         "status": shift.status,
-        "start_time": shift.start_time.isoformat() if shift.start_time else None,
-        "end_time": shift.end_time.isoformat() if shift.end_time else None,
+        "start_time": (shift.start_time.replace(tzinfo=timezone.utc) if shift.start_time.tzinfo is None else shift.start_time).isoformat() if shift.start_time else None,
+        "end_time": (shift.end_time.replace(tzinfo=timezone.utc) if shift.end_time.tzinfo is None else shift.end_time).isoformat() if shift.end_time else None,
         "duration_minutes": duration_minutes,
         "initial_cash": shift.initial_cash,
         "expected_cash": shift.expected_cash,

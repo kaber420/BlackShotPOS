@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -31,12 +32,12 @@ async def create_order(
     
     if table_id:
         from pos_core.tables.models import Table
-        from datetime import datetime as _dt
+        from datetime import datetime, timezone
         db_table = await session.get(Table, table_id)
         if db_table:
             if db_table.status != "Occupied":
                 db_table.status = "Occupied"
-                db_table.occupied_at = _dt.utcnow()
+                db_table.occupied_at = datetime.now(timezone.utc)
             session.add(db_table)
             
     await session.commit()
@@ -141,7 +142,7 @@ async def vacate_table_service(session: AsyncSession, table_id: int) -> Optional
     Libera una mesa, calcula el tiempo de ocupación y retorna estadísticas.
     """
     from pos_core.tables.models import Table
-    from datetime import datetime as _dt
+    from datetime import datetime, timezone
     db_table = await session.get(Table, table_id)
     if not db_table:
         return None
@@ -149,13 +150,18 @@ async def vacate_table_service(session: AsyncSession, table_id: int) -> Optional
     res = {
         "table_id": table_id,
         "number": db_table.number,
-        "occupied_at": db_table.occupied_at.isoformat() if db_table.occupied_at else None,
-        "vacated_at": _dt.utcnow().isoformat(),
+        "occupied_at": (db_table.occupied_at.replace(tzinfo=timezone.utc) if db_table.occupied_at.tzinfo is None else db_table.occupied_at).isoformat() if db_table.occupied_at else None,
+        "vacated_at": datetime.now(timezone.utc).isoformat(),
         "duration_minutes": 0
     }
     
     if db_table.occupied_at:
-        delta = _dt.utcnow() - db_table.occupied_at
+        # Normalizar a aware si viene naive de la DB
+        occupied_at = db_table.occupied_at
+        if occupied_at.tzinfo is None:
+            occupied_at = occupied_at.replace(tzinfo=timezone.utc)
+            
+        delta = datetime.now(timezone.utc) - occupied_at
         res["duration_minutes"] = round(delta.total_seconds() / 60, 2)
     
     db_table.status = "Free"
@@ -193,9 +199,9 @@ def format_order_json(order: Order) -> dict:
             "delivered_by_uuid": item.delivered_by_uuid,
             "delivered_by_name": item.delivered_by_name,
             # ── Timestamps por ítem ───────────────────────────────────────────
-            "preparing_at": item.preparing_at.isoformat() if item.preparing_at else None,
-            "ready_at": item.ready_at.isoformat() if item.ready_at else None,
-            "delivered_at": item.delivered_at.isoformat() if item.delivered_at else None,
+            "preparing_at": (item.preparing_at.replace(tzinfo=timezone.utc) if item.preparing_at.tzinfo is None else item.preparing_at).isoformat() if item.preparing_at else None,
+            "ready_at": (item.ready_at.replace(tzinfo=timezone.utc) if item.ready_at.tzinfo is None else item.ready_at).isoformat() if item.ready_at else None,
+            "delivered_at": (item.delivered_at.replace(tzinfo=timezone.utc) if item.delivered_at.tzinfo is None else item.delivered_at).isoformat() if item.delivered_at else None,
         })
     return {
         "id": order.id,
@@ -205,8 +211,8 @@ def format_order_json(order: Order) -> dict:
         "table_id": order.table_id,
         "shift_id": order.shift_id,
         "external_reference": order.external_reference,
-        "created_at": order.created_at.isoformat(),
-        "updated_at": order.updated_at.isoformat(),
+        "created_at": (order.created_at.replace(tzinfo=timezone.utc) if order.created_at.tzinfo is None else order.created_at).isoformat(),
+        "updated_at": (order.updated_at.replace(tzinfo=timezone.utc) if order.updated_at.tzinfo is None else order.updated_at).isoformat(),
         # ── Rastreo del mesero ────────────────────────────────────────────────
         "waiter_uuid": order.waiter_uuid,
         "waiter_name": order.waiter_name,
@@ -214,9 +220,9 @@ def format_order_json(order: Order) -> dict:
         "cook_uuid": order.cook_uuid,
         "cook_name": order.cook_name,
         # ── Timestamps de la orden ────────────────────────────────────────────
-        "preparing_at": order.preparing_at.isoformat() if order.preparing_at else None,
-        "ready_at": order.ready_at.isoformat() if order.ready_at else None,
-        "delivered_at": order.delivered_at.isoformat() if order.delivered_at else None,
+        "preparing_at": (order.preparing_at.replace(tzinfo=timezone.utc) if order.preparing_at.tzinfo is None else order.preparing_at).isoformat() if order.preparing_at else None,
+        "ready_at": (order.ready_at.replace(tzinfo=timezone.utc) if order.ready_at.tzinfo is None else order.ready_at).isoformat() if order.ready_at else None,
+        "delivered_at": (order.delivered_at.replace(tzinfo=timezone.utc) if order.delivered_at.tzinfo is None else order.delivered_at).isoformat() if order.delivered_at else None,
         "items": items_data,
     }
 
@@ -282,7 +288,7 @@ async def update_order_status(
     delivered_by_uuid: Optional[str] = None,  # Mesero que marca DELIVERED
     delivered_by_name: Optional[str] = None,
 ) -> Optional[Order]:
-    from datetime import datetime as _dt
+    from datetime import datetime, timezone
     statement = select(Order).where(Order.id == order_id)
     result = await session.execute(statement)
     order = result.scalar_one_or_none()
@@ -293,14 +299,14 @@ async def update_order_status(
 
         # ── Timestamps de ciclo de vida ───────────────────────────────────────
         if new_status == OrderStatus.PREPARING and order.preparing_at is None:
-            order.preparing_at = _dt.utcnow()
+            order.preparing_at = datetime.now(timezone.utc)
             # Registrar el cocinero que tomó la orden (solo primera vez)
             if cook_uuid and order.cook_uuid is None:
                 order.cook_uuid = cook_uuid
                 order.cook_name = cook_name
 
         elif new_status == OrderStatus.READY and order.ready_at is None:
-            order.ready_at = _dt.utcnow()
+            order.ready_at = datetime.now(timezone.utc)
             # Si llegó directo a READY sin pasar por PREPARING, registrar cocinero
             if cook_uuid and order.cook_uuid is None:
                 order.cook_uuid = cook_uuid
@@ -311,7 +317,7 @@ async def update_order_status(
                 await trigger_iot_broadcast(order.table_id, "order_update", "", data={"order_id": order.id, "status": "LISTO", "progress": 100})
 
         elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
-            order.delivered_at = _dt.utcnow()
+            order.delivered_at = datetime.now(timezone.utc)
 
         session.add(order)
 
@@ -335,7 +341,7 @@ async def update_order_status(
         if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
             items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
             items_to_advance = [i for i in order_items if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY)]
-            now = _dt.utcnow()
+            now = datetime.now(timezone.utc)
             for i in items_to_advance:
                 i.status = new_status
                 # Propagar timestamps a los ítems que aún no los tienen
@@ -357,7 +363,7 @@ async def update_order_status(
 
         elif old_status == OrderStatus.PENDING and new_status == OrderStatus.PREPARING:
             items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-            now = _dt.utcnow()
+            now = datetime.now(timezone.utc)
             for i in items_to_deplete:
                 i.status = OrderStatus.PREPARING
                 if i.preparing_at is None:
@@ -382,7 +388,7 @@ async def update_order_item_status(
     delivered_by_uuid: Optional[str] = None,  # Mesero que entrega el ítem
     delivered_by_name: Optional[str] = None,
 ) -> Optional[OrderItem]:
-    from datetime import datetime as _dt
+    from datetime import datetime, timezone
     from sqlalchemy.orm import selectinload
     statement = select(OrderItem).where(OrderItem.id == item_id, OrderItem.order_id == order_id).options(selectinload(OrderItem.modifiers))
     result = await session.execute(statement)
@@ -398,7 +404,7 @@ async def update_order_item_status(
     item.status = new_status
 
     # ── Timestamps y rastreo por ítem ─────────────────────────────────────────
-    now = _dt.utcnow()
+    now = datetime.now(timezone.utc)
     if new_status == OrderStatus.PREPARING and item.preparing_at is None:
         item.preparing_at = now
         if cook_uuid and item.cook_uuid is None:
@@ -518,7 +524,7 @@ async def delete_order(session: AsyncSession, order_id: int) -> bool:
 
 async def get_dashboard_stats(session: AsyncSession) -> dict:
     """Calcula las estadísticas para el Dashboard de POS centralizando la lógica."""
-    import datetime
+    from datetime import datetime, timezone, timedelta
     
     # Obtener todas las ordenes (igual que el comportamiento original)
     orders = await get_orders_json(session)
@@ -526,12 +532,12 @@ async def get_dashboard_stats(session: AsyncSession) -> dict:
     preparing_count = len([o for o in orders if o["status"] in (OrderStatus.PREPARING.value, OrderStatus.PENDING.value)])
     ready_count = len([o for o in orders if o["status"] == OrderStatus.READY.value])
     
-    now = datetime.datetime.now()
-    start_of_today = datetime.datetime(now.year, now.month, now.day)
+    now = datetime.now(timezone.utc)
+    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
     
     # Start of week (Monday)
     today = now.weekday() # 0 is Monday
-    start_of_week = start_of_today - datetime.timedelta(days=today)
+    start_of_week = start_of_today - timedelta(days=today)
     
     def find_best_product(filtered_orders):
         product_counts = {}
@@ -548,9 +554,13 @@ async def get_dashboard_stats(session: AsyncSession) -> dict:
         sorted_counts = sorted(product_counts.items(), key=lambda x: x[1], reverse=True)
         return sorted_counts[0][0]
         
+    def ensure_utc(dt_str):
+        dt = datetime.fromisoformat(dt_str)
+        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+
     # Date parsing since the json returns isoformat strings
-    today_orders = [o for o in orders if datetime.datetime.fromisoformat(o["created_at"]).replace(tzinfo=None) >= start_of_today]
-    week_orders = [o for o in orders if datetime.datetime.fromisoformat(o["created_at"]).replace(tzinfo=None) >= start_of_week]
+    today_orders = [o for o in orders if ensure_utc(o["created_at"]) >= start_of_today]
+    week_orders = [o for o in orders if ensure_utc(o["created_at"]) >= start_of_week]
 
     return {
         "preparingCount": preparing_count,

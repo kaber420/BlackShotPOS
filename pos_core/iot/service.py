@@ -1,6 +1,6 @@
 import logging
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select, delete
@@ -69,7 +69,7 @@ async def delete_device(session: AsyncSession, device_id: int) -> bool:
 async def update_device_last_seen(session: AsyncSession, device_id: int):
     device = await session.get(IoTDevice, device_id)
     if device:
-        device.last_seen = datetime.utcnow()
+        device.last_seen = datetime.now(timezone.utc)
         session.add(device)
         await session.commit()
 
@@ -78,7 +78,7 @@ async def update_device_health(session: AsyncSession, device_id: int, rssi: Opti
     if device:
         if rssi is not None: device.rssi = rssi
         if battery is not None: device.battery_level = battery
-        device.last_seen = datetime.utcnow()
+        device.last_seen = datetime.now(timezone.utc)
         session.add(device)
         await session.commit()
 
