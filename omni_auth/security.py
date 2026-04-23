@@ -125,6 +125,27 @@ def require_permission(permission: str):
 
         # 3. Verificar permiso específico
         if not effective_permissions.get(permission, False):
+            try:
+                from pos_core.database import async_session_maker
+                from pos_core.sales.audit_service import log_action
+                from pos_core.sales.models import AuditCategory
+                
+                async with async_session_maker() as session:
+                    await log_action(
+                        session=session,
+                        category=AuditCategory.SECURITY,
+                        action="PERMISSION_DENIED",
+                        reason=f"Intento de acceso denegado para el permiso: {permission}",
+                        actor_uuid=user_info.get("user_uuid", "unknown"),
+                        actor_name=user_info.get("username", "unknown"),
+                        target_id=permission,
+                        target_type="permission"
+                    )
+                    await session.commit()
+            except Exception as e:
+                import logging
+                logging.error(f"Failed to audit permission denied: {e}")
+
             raise HTTPException(
                 status_code=403,
                 detail=f"Acceso denegado. Requiere permiso: '{permission}'."

@@ -137,18 +137,22 @@ class Order(SQLModel, table=True):
     payments: List[Payment] = Relationship(back_populates="order")
     shift: Optional[Shift] = Relationship(back_populates="orders")
 
-class AuditAction(str, Enum):
-    ORDER_CANCELLED = "ORDER_CANCELLED"
-    ITEM_CANCELLED = "ITEM_CANCELLED"
+class AuditCategory(str, Enum):
+    SECURITY = "security"
+    SALES = "sales"
+    INVENTORY = "inventory"
+    CONFIG = "config"
 
 class AuditLog(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    action: AuditAction
-    reason: str
+    category: AuditCategory
+    action: str
+    reason: Optional[str] = Field(default=None)
     actor_uuid: str
     actor_name: str
-    order_id: Optional[int] = Field(default=None, foreign_key="order.id")
-    order_item_id: Optional[int] = Field(default=None, foreign_key="orderitem.id")
+    target_id: Optional[str] = Field(default=None)
+    target_type: Optional[str] = Field(default=None)
+    changes_json: Optional[str] = Field(default=None)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @field_serializer("timestamp")

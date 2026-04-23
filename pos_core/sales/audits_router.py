@@ -5,7 +5,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from pos_core.database import get_session
-from .models import AuditLog, AuditAction, Order, OrderStatus
+from .models import AuditLog, Order, OrderStatus
 from omni_auth.security import require_permission
 from pos_core.roles import Permission
 from pos_core.sales import order_service

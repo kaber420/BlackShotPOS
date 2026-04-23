@@ -1,5 +1,9 @@
 # Plan: Sistema de Auditoría Global 360° - Blackshot POS
 
+> [!NOTE]
+> **Contexto de Refactorización (Abril 2026):** 
+> Este plan es la continuación directa del *Master Plan de Refactorización Arquitectónica*. Habiendo completado con éxito la desintegración del monolito, la implementación del Patrón Repositorio y la migración a DTOs de Pydantic, este sistema de auditoría utilizará esa nueva base sólida para capturar eventos en las capas de Servicio y Seguridad de forma limpia y desacoplada.
+
 ## 1. Visión General
 El objetivo es transformar el log de auditoría actual (que solo registra cancelaciones) en un sistema centralizado que capture todos los eventos críticos del negocio. Esto permite detectar fraudes, errores operativos y cambios no autorizados en la configuración.
 
@@ -53,6 +57,9 @@ class AuditLog(SQLModel, table=True):
 ## 4. Hoja de Ruta de Implementación
 
 ### Fase A: Auditoría de Usuarios y Seguridad (Alta Prioridad)
+> [!IMPORTANT]
+> **GAP Detectado:** La Fase 5 del refactor migró la seguridad a dependencias de FastAPI (`require_permission`), pero actualmente estas fallan "en silencio" (solo devuelven 403 al cliente). Es imperativo que el `permission_checker` en `omni_auth/security.py` se integre con este nuevo sistema de auditoría.
+
 1.  Modificar el modelo `AuditLog` para incluir `category` y `changes_json`.
 2.  Actualizar `omni_auth` para registrar inicios de sesión y cambios en usuarios.
 3.  Implementar el log de "Permiso Denegado" en el middleware de seguridad.

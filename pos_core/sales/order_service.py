@@ -17,7 +17,7 @@ from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import Order, OrderItem, OrderStatus, OrderType, AuditAction
+from .models import Order, OrderItem, OrderStatus, OrderType, AuditCategory
 from .repository import order_repo, item_repo
 from . import audit_service
 from pos_core.inventory.service import process_inventory_depletion
@@ -403,11 +403,13 @@ async def cancel_order(
     # 4. Registrar auditoría
     await audit_service.log_action(
         session,
-        action=AuditAction.ORDER_CANCELLED,
+        category=AuditCategory.SALES,
+        action="ORDER_CANCELLED",
         reason=reason,
         actor_uuid=actor_uuid,
         actor_name=actor_name,
-        order_id=order_id,
+        target_id=str(order_id),
+        target_type="order",
     )
 
     await session.commit()
@@ -438,14 +440,17 @@ async def cancel_order_item(
     await item_repo.save(session, item)
 
     # 2. Registrar auditoría
+    import json
     await audit_service.log_action(
         session,
-        action=AuditAction.ITEM_CANCELLED,
+        category=AuditCategory.SALES,
+        action="ITEM_CANCELLED",
         reason=reason,
         actor_uuid=actor_uuid,
         actor_name=actor_name,
-        order_id=order_id,
-        order_item_id=item_id,
+        target_id=str(item_id),
+        target_type="order_item",
+        changes_json=json.dumps({"order_id": order_id})
     )
 
     # 3. Recalcular estado de la orden (si todos los ítems están cancelados, cancelar orden)
