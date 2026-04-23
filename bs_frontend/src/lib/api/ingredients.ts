@@ -3,6 +3,7 @@ import { fetchApi } from '../api';
 export interface Ingredient {
 	id?: number;
 	name: string;
+	measure_type: 'weight' | 'volume' | 'unit';
 	unit: string;
 	current_stock: number;
 	minimum_stock: number;

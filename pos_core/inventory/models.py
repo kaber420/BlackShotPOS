@@ -22,7 +22,8 @@ class CategoryUpdate(SQLModel):
 
 class IngredientBase(SQLModel):
     name: str = Field(index=True, unique=True)
-    unit: str = Field(description="Unidad de medida (kg, g, l, ml, ud)")
+    measure_type: str = Field(default="unit", description="Tipo de medida: weight, volume, unit")
+    unit: str = Field(description="Unidad base de almacenamiento (g, ml, pz)")
     current_stock: float = Field(default=0.0)
     minimum_stock: float = Field(default=0.0)
     
@@ -44,6 +45,7 @@ class IngredientCreate(IngredientBase):
 
 class IngredientUpdate(SQLModel):
     name: Optional[str] = None
+    measure_type: Optional[str] = None
     unit: Optional[str] = None
     current_stock: Optional[float] = None
     minimum_stock: Optional[float] = None
@@ -106,7 +108,9 @@ class RecipeItemBase(SQLModel):
     variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id", nullable=True)
     ingredient_id: Optional[int] = Field(default=None, foreign_key="ingredient.id", nullable=True)
     modifier_group_id: Optional[int] = Field(default=None, foreign_key="modifiergroup.id", ondelete="CASCADE", nullable=True)
-    quantity: float  # porción necesaria (ej: 0.150 kg o 250 ml)
+    quantity: float = Field(default=0.0, description="Cantidad en la unidad base del ingrediente (g, ml, pz)")
+    input_quantity: float = Field(default=0.0, description="Cantidad original ingresada por el chef")
+    input_unit: str = Field(default="", description="Unidad original ingresada por el chef (ej: L, oz, kg)")
 
 class RecipeItem(RecipeItemBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -125,6 +129,8 @@ class RecipeItemUpdate(SQLModel):
     ingredient_id: Optional[int] = None
     modifier_group_id: Optional[int] = None
     quantity: Optional[float] = None
+    input_quantity: Optional[float] = None
+    input_unit: Optional[str] = None
 
 class ProductModifierLink(SQLModel, table=True):
     """Vínculo entre productos y grupos de modificadores (Categorías de opciones)."""
@@ -159,7 +165,9 @@ class ModifierBase(SQLModel):
     extra_price: float = Field(default=0.0)
     modifier_group_id: int = Field(foreign_key="modifiergroup.id", ondelete="CASCADE")
     ingredient_id: Optional[int] = Field(default=None, foreign_key="ingredient.id")
-    quantity: float = Field(default=0.0, description="Cantidad base a descontar")
+    quantity: float = Field(default=0.0, description="Cantidad base a descontar en unidad base")
+    input_quantity: float = Field(default=0.0, description="Cantidad original ingresada")
+    input_unit: str = Field(default="", description="Unidad original ingresada")
 
 class Modifier(ModifierBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -177,6 +185,8 @@ class ModifierUpdate(SQLModel):
     modifier_group_id: Optional[int] = None
     ingredient_id: Optional[int] = None
     quantity: Optional[float] = None
+    input_quantity: Optional[float] = None
+    input_unit: Optional[str] = None
 
 class ModifierQuantityBase(SQLModel):
     modifier_id: int = Field(foreign_key="modifier.id", primary_key=True, ondelete="CASCADE")

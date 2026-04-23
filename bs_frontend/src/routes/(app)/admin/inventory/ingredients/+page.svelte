@@ -10,22 +10,48 @@
 	let activeTab = $state<'ingredients' | 'groups'>('ingredients');
 	let error = $state('');
 
-	// Unidades de medida
-	const UNIDADES = [
-		{ id: 'kg', name: 'Kilogramos (kg)' },
-		{ id: 'g', name: 'Gramos (g)' },
-		{ id: 'l', name: 'Litros (L)' },
-		{ id: 'ml', name: 'Mililitros (ml)' },
-		{ id: 'oz', name: 'Onzas (oz)' },
-		{ id: 'ud', name: 'Unidades/Piezas' },
-		{ id: 'porcion', name: 'Porción' },
-		{ id: 'taza', name: 'Tazas' }
+	// Unidades de medida restringidas por tipo
+	const UNIT_OPTIONS = {
+		weight: [
+			{ id: 'g', name: 'Gramos (g)' },
+			{ id: 'kg', name: 'Kilogramos (kg)' },
+			{ id: 'oz', name: 'Onzas (oz)' },
+			{ id: 'lb', name: 'Libras (lb)' }
+		],
+		volume: [
+			{ id: 'ml', name: 'Mililitros (ml)' },
+			{ id: 'L', name: 'Litros (L)' },
+			{ id: 'fl_oz', name: 'Onzas Líquidas (fl oz)' }
+		],
+		unit: [
+			{ id: 'pz', name: 'Piezas (pz)' },
+			{ id: 'ud', name: 'Unidades' },
+			{ id: 'porcion', name: 'Porción' }
+		]
+	};
+
+	const MEASURE_TYPES = [
+		{ id: 'weight', name: 'Sólido / Peso', icon: '⚖️' },
+		{ id: 'volume', name: 'Líquido / Volumen', icon: '💧' },
+		{ id: 'unit', name: 'Pieza / Unidad', icon: '📦' }
 	];
 
 	// Formularios
-	let ingredientForm = $state<Partial<Ingredient>>({ name: '', unit: 'g', current_stock: 0, minimum_stock: 0 });
+	let ingredientForm = $state<Partial<Ingredient>>({ 
+		name: '', 
+		measure_type: 'weight', 
+		unit: 'g', 
+		current_stock: 0, 
+		minimum_stock: 0 
+	});
 	let groupForm = $state<Partial<ModifierGroup>>({ name: '', min_selection: 0, max_selection: 1, is_required: false });
-	let modifierForm = $state<Partial<Modifier>>({ name: '', extra_price: 0, ingredient_id: undefined, quantity: 1 });
+	let modifierForm = $state<Partial<Modifier>>({ 
+		name: '', 
+		extra_price: 0, 
+		ingredient_id: undefined, 
+		input_quantity: 1, 
+		input_unit: 'ml' 
+	});
 
 	let editingId = $state<number | null>(null);
 	let selectedGroupId = $state<number | null>(null);
@@ -66,7 +92,7 @@
 			ingredientForm = { ...ing };
 		} else {
 			editingId = null;
-			ingredientForm = { name: '', unit: 'g', current_stock: 0, minimum_stock: 0 };
+			ingredientForm = { name: '', measure_type: 'weight', unit: 'g', current_stock: 0, minimum_stock: 0 };
 		}
 		(document.getElementById('modal_ingrediente') as HTMLDialogElement).showModal();
 	}
@@ -123,7 +149,14 @@
 	// --- Lógica de Modificadores (Opciones) ---
 	function openModifierModal(groupId: number) {
 		selectedGroupId = groupId;
-		modifierForm = { name: '', extra_price: 0, ingredient_id: ingredients[0]?.id, quantity: 1 };
+		const firstIng = ingredients[0];
+		modifierForm = { 
+			name: '', 
+			extra_price: 0, 
+			ingredient_id: firstIng?.id, 
+			input_quantity: 1, 
+			input_unit: firstIng ? UNIT_OPTIONS[firstIng.measure_type][0].id : 'ml' 
+		};
 		(document.getElementById('modal_modificador') as HTMLDialogElement).showModal();
 	}
 
@@ -198,7 +231,13 @@
 						<div class="flex justify-between items-start mb-4">
 							<div>
 								<h3 class="font-black text-lg truncate w-40">{ing.name}</h3>
-								<span class="text-[10px] uppercase font-bold opacity-40">{ing.unit}</span>
+								<div class="flex items-center gap-1">
+									<span class="text-[10px] uppercase font-bold opacity-40">{ing.unit}</span>
+									<span class="text-[10px] opacity-40">•</span>
+									<span class="text-[10px] uppercase font-bold opacity-40">
+										{MEASURE_TYPES.find(t => t.id === ing.measure_type)?.icon} {ing.measure_type}
+									</span>
+								</div>
 							</div>
 							<div class="flex gap-1">
 								<Button variant="ghost" square size="xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</Button>
@@ -294,11 +333,32 @@
 				<label class="label p-0 mb-1" for="ing_name"><span class="label-text text-[10px] uppercase font-black opacity-40">Nombre</span></label>
 				<input type="text" id="ing_name" bind:value={ingredientForm.name} class="input input-bordered focus:input-primary rounded-xl font-bold" required />
 			</div>
+			<div class="form-control">
+				<label class="label p-0 mb-1"><span class="label-text text-[10px] uppercase font-black opacity-40">Naturaleza del Insumo</span></label>
+				<div class="grid grid-cols-3 gap-2">
+					{#each MEASURE_TYPES as type}
+						<button 
+							type="button"
+							class="flex flex-col items-center p-3 rounded-2xl border-2 transition-all {ingredientForm.measure_type === type.id ? 'border-primary bg-primary/5' : 'border-base-200'}"
+							onclick={() => {
+								ingredientForm.measure_type = type.id as any;
+								ingredientForm.unit = UNIT_OPTIONS[type.id as keyof typeof UNIT_OPTIONS][0].id;
+							}}
+						>
+							<span class="text-xl">{type.icon}</span>
+							<span class="text-[8px] font-black uppercase mt-1">{type.name}</span>
+						</button>
+					{/each}
+				</div>
+			</div>
+
 			<div class="grid grid-cols-2 gap-4">
 				<div class="form-control">
-					<label class="label p-0 mb-1" for="ing_unit"><span class="label-text text-[10px] uppercase font-black opacity-40">Unidad</span></label>
+					<label class="label p-0 mb-1" for="ing_unit"><span class="label-text text-[10px] uppercase font-black opacity-40">Unidad Base</span></label>
 					<select bind:value={ingredientForm.unit} class="select select-bordered rounded-xl font-bold">
-						{#each UNIDADES as u}<option value={u.id}>{u.name}</option>{/each}
+						{#each UNIT_OPTIONS[ingredientForm.measure_type as keyof typeof UNIT_OPTIONS] || [] as u}
+							<option value={u.id}>{u.name}</option>
+						{/each}
 					</select>
 				</div>
 				<div class="form-control">
@@ -346,6 +406,28 @@
 					{#each ingredients as ing}<option value={ing.id}>{ing.name}</option>{/each}
 				</select>
 			</div>
+			<div class="grid grid-cols-2 gap-4">
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="m_qty"><span class="label-text text-[10px] uppercase font-black opacity-40">Cantidad</span></label>
+					<input type="number" step="0.01" bind:value={modifierForm.input_quantity} class="input input-bordered rounded-xl font-bold" />
+				</div>
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="m_unit"><span class="label-text text-[10px] uppercase font-black opacity-40">Unidad</span></label>
+					<select 
+						bind:value={modifierForm.input_unit} 
+						class="select select-bordered rounded-xl font-bold"
+					>
+						{#if ingredients.find(i => i.id === modifierForm.ingredient_id)}
+							{#each UNIT_OPTIONS[ingredients.find(i => i.id === modifierForm.ingredient_id)!.measure_type] as u}
+								<option value={u.id}>{u.name}</option>
+							{/each}
+						{:else}
+							<option value="ml">ml</option>
+						{/if}
+					</select>
+				</div>
+			</div>
+
 			<div class="form-control">
 				<label class="label p-0 mb-1" for="m_price"><span class="label-text text-[10px] uppercase font-black opacity-40">Precio Extra</span></label>
 				<input type="number" bind:value={modifierForm.extra_price} class="input input-bordered rounded-xl font-bold" />

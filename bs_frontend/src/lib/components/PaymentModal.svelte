@@ -93,12 +93,13 @@
 
                 {#if paymentMethod === 'CASH'}
                 <div class="animate-in fade-in slide-in-from-top-4 duration-300">
-                    <label class="label p-0 mb-2">
+                    <label class="label p-0 mb-2" for="cash_input">
                         <span class="label-text font-black uppercase text-[10px] tracking-widest opacity-60">Efectivo Recibido</span>
                     </label>
                     <div class="join w-full shadow-sm">
                         <span class="join-item btn btn-active pointer-events-none font-black text-lg bg-base-200">{appState.settings.currency_symbol}</span>
                         <input 
+                            id="cash_input"
                             type="number" 
                             step="0.01" 
                             bind:value={amountReceived} 

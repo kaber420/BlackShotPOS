@@ -32,6 +32,26 @@
     let availableIngredients = $state<Ingredient[]>([]);
     let availableModifierGroups = $state<ModifierGroup[]>([]);
     let selectedVariants = $state<(Partial<ProductVariant> & { recipe?: any[] })[]>([]);
+    
+    // Unidades de medida restringidas por tipo
+	const UNIT_OPTIONS = {
+		weight: [
+			{ id: 'g', name: 'Gramos (g)' },
+			{ id: 'kg', name: 'Kilogramos (kg)' },
+			{ id: 'oz', name: 'Onzas (oz)' },
+			{ id: 'lb', name: 'Libras (lb)' }
+		],
+		volume: [
+			{ id: 'ml', name: 'Mililitros (ml)' },
+			{ id: 'L', name: 'Litros (L)' },
+			{ id: 'fl_oz', name: 'Onzas Líquidas (fl oz)' }
+		],
+		unit: [
+			{ id: 'pz', name: 'Piezas (pz)' },
+			{ id: 'ud', name: 'Unidades' },
+			{ id: 'porcion', name: 'Porción' }
+		]
+	};
     let modMeasureQuantities = $state<Record<string, number>>({});
     let deletedVariantIds = $state<number[]>([]);
     let isSaving = $state(false);
@@ -140,13 +160,24 @@
 
     function addIngredientToVariant(vIndex: number) {
         if (!selectedVariants[vIndex].recipe) selectedVariants[vIndex].recipe = [];
-        selectedVariants[vIndex].recipe = [...selectedVariants[vIndex].recipe, { ingredient_id: availableIngredients[0]?.id, quantity: 0 }];
+        const firstIng = availableIngredients[0];
+        selectedVariants[vIndex].recipe = [...selectedVariants[vIndex].recipe, { 
+            ingredient_id: firstIng?.id, 
+            quantity: 1,
+            input_quantity: 1,
+            input_unit: firstIng ? UNIT_OPTIONS[firstIng.measure_type][0].id : 'ml'
+        }];
         selectedVariants = [...selectedVariants];
     }
 
     function addModifierGroupToVariantRecipe(vIndex: number) {
         if (!selectedVariants[vIndex].recipe) selectedVariants[vIndex].recipe = [];
-        selectedVariants[vIndex].recipe = [...selectedVariants[vIndex].recipe, { modifier_group_id: availableModifierGroups[0]?.id, quantity: 0 }];
+        selectedVariants[vIndex].recipe = [...selectedVariants[vIndex].recipe, { 
+            modifier_group_id: availableModifierGroups[0]?.id, 
+            quantity: 1,
+            input_quantity: 1,
+            input_unit: 'ml'
+        }];
         selectedVariants = [...selectedVariants];
     }
 
@@ -214,11 +245,23 @@
                         }
                         
                         for (const ri of variant.recipe) {
-                            if (ri.quantity > 0) {
+                            if (ri.input_quantity > 0 || ri.quantity > 0) {
                                 if (ri.ingredient_id) {
-                                    await ProductService.addIngredientToVariant(savedVariant.id!, ri.ingredient_id, ri.quantity);
+                                    await ProductService.addIngredientToVariant(
+                                        savedVariant.id!, 
+                                        ri.ingredient_id, 
+                                        ri.quantity,
+                                        ri.input_quantity,
+                                        ri.input_unit
+                                    );
                                 } else if (ri.modifier_group_id) {
-                                    await ProductService.addModifierGroupToVariant(savedVariant.id!, ri.modifier_group_id, ri.quantity);
+                                    await ProductService.addModifierGroupToVariant(
+                                        savedVariant.id!, 
+                                        ri.modifier_group_id, 
+                                        ri.quantity,
+                                        ri.input_quantity,
+                                        ri.input_unit
+                                    );
                                 }
                             }
                         }
@@ -541,7 +584,24 @@
                                                                 <label class="label p-0 mb-1" for="v-{i}-ri-{riIndex}-qty">
                                                                     <span class="label-text text-[9px] uppercase font-bold opacity-50 text-center w-full">Cantidad</span>
                                                                 </label>
-                                                                <input id="v-{i}-ri-{riIndex}-qty" type="number" step="0.001" class="input input-bordered input-xs text-center font-bold" bind:value={ri.quantity} />
+                                                                <input id="v-{i}-ri-{riIndex}-qty" type="number" step="0.001" class="input input-bordered input-xs text-center font-bold" bind:value={ri.input_quantity} />
+                                                            </div>
+                                                            <div class="form-control w-20">
+                                                                <label class="label p-0 mb-1">
+                                                                    <span class="label-text text-[9px] uppercase font-bold opacity-50 text-center w-full">Unidad</span>
+                                                                </label>
+                                                                <select class="select select-bordered select-xs w-full font-bold" bind:value={ri.input_unit}>
+                                                                    {#if ri.ingredient_id && availableIngredients.find(ingr => ingr.id === ri.ingredient_id)}
+                                                                        {#each UNIT_OPTIONS[availableIngredients.find(ingr => ingr.id === ri.ingredient_id).measure_type] as u}
+                                                                            <option value={u.id}>{u.id}</option>
+                                                                        {/each}
+                                                                    {:else}
+                                                                        <option value="ml">ml</option>
+                                                                        <option value="L">L</option>
+                                                                        <option value="g">g</option>
+                                                                        <option value="kg">kg</option>
+                                                                    {/if}
+                                                                </select>
                                                             </div>
                                                             <Button variant="ghost" size="sm" danger square onclick={() => removeIngredientFromVariant(i, riIndex)} title="Eliminar Componente">✕</Button>
                                                         </div>

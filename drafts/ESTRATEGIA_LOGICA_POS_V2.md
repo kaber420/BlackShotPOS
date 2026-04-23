@@ -40,7 +40,7 @@ Este documento detalla las recomendaciones críticas de lógica de negocio y arq
 
 ---
 
-## 3. Inventario Avanzado (Control de Pérdidas)
+## 3. Inventario Avanzado (Control de Pérdidas y Precisión)
 
 ### 3.1 Registro de Merma (Waste Management)
 **Problema:** El inventario solo baja por ventas, ignorando errores o productos caducados.
@@ -52,6 +52,14 @@ Este documento detalla las recomendaciones críticas de lógica de negocio y arq
 ### 3.2 Alertas de Stock Crítico
 **Problema:** El usuario solo se entera de que no hay leche cuando intenta vender un latte.
 *   **Solución:** Sistema de triggers en `inventory_service`. Cuando un stock baja del `minimum_stock`, emitir un evento vía WebSocket a todos los usuarios con rol `admin` o `manager`.
+
+### 3.3 Conversiones Multi-Unidad y Medidas Personalizadas
+**Problema:** Llevar el inventario en unidades base como mililitros o gramos genera números muy grandes y difíciles de leer (ej. 24,000 ml de leche de almendras). Esto complica el agregar medidas a recetas y opciones.
+*   **Solución:** Implementar un sistema selector de unidades donde el usuario elige explícitamente la unidad de medida (kg, g, L, ml, oz) tanto al agregar stock como al crear recetas.
+*   **Impacto Técnico:**
+    *   **Backend (Base de Datos):** El inventario siempre se mantiene y descuenta en la unidad mínima o base (`ml` o `g`) para máxima precisión en las recetas.
+    *   **Gestión de Inventario (Frontend):** Al agregar o consultar stock, el usuario tendrá un selector (dropdown) para elegir si está viendo/ingresando en `L`, `ml`, `kg`, `g`, o `oz`. El sistema convertirá explícitamente el valor ingresado a la unidad base antes de guardarlo.
+    *   **Recetas:** Al armar una receta, el chef podrá seleccionar la unidad deseada de un dropdown (ej. `2 L`, `200 ml`, `8 oz` para vasos tipo americano) y el backend se encargará de hacer la equivalencia exacta para restar la cantidad correcta de la unidad base del inventario.
 
 ---
 

@@ -15,7 +15,7 @@ from .models import (
     Measure, MeasureCreate, MeasureRead, 
     ProductVariant, ProductVariantCreate, ProductVariantUpdate, ProductVariantRead
 )
-from . import service
+from . import service, unit_converter
 from omni_auth.security import verify_omni_token, require_role
 from typing import List, Optional
 
@@ -133,9 +133,36 @@ async def delete_ingredient(ingredient_id: int, db: AsyncSession = Depends(get_s
 # --- Endpoints de Recetas ---
 
 @router.post("/products/{product_id}/ingredients", response_model=RecipeItem, dependencies=[Depends(require_role("admin"))])
-async def add_ingredient_to_recipe(product_id: int, ingredient_id: int, quantity: float, db: AsyncSession = Depends(get_session)):
+async def add_ingredient_to_recipe(
+    product_id: int, 
+    ingredient_id: int, 
+    quantity: float, 
+    input_quantity: Optional[float] = None,
+    input_unit: Optional[str] = None,
+    db: AsyncSession = Depends(get_session)
+):
     """Define cuánto de un ingrediente usa un producto específico."""
-    recipe_item = RecipeItem(product_id=product_id, ingredient_id=ingredient_id, quantity=quantity)
+    # Si no se proveen campos de entrada, usamos la cantidad directa (legacy support)
+    final_input_qty = input_quantity if input_quantity is not None else quantity
+    final_input_unit = input_unit or ""
+    final_quantity = quantity
+
+    # Si tenemos unidad de entrada, intentamos convertir
+    if input_unit:
+        ingredient = await db.get(Ingredient, ingredient_id)
+        if ingredient:
+            try:
+                final_quantity = unit_converter.convert_to_base(final_input_qty, input_unit, ingredient.measure_type)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+    recipe_item = RecipeItem(
+        product_id=product_id, 
+        ingredient_id=ingredient_id, 
+        quantity=final_quantity,
+        input_quantity=final_input_qty,
+        input_unit=final_input_unit
+    )
     return await service.add_ingredient_to_product(db, recipe_item)
 
 @router.get("/products/{product_id}/recipe", response_model=List[RecipeItem])
@@ -144,15 +171,55 @@ async def get_recipe(product_id: int, db: AsyncSession = Depends(get_session)):
     return await service.get_product_recipe(db, product_id)
 
 @router.post("/variants/{variant_id}/ingredients", response_model=RecipeItem, dependencies=[Depends(require_role("admin"))])
-async def add_ingredient_to_variant(variant_id: int, ingredient_id: int, quantity: float, db: AsyncSession = Depends(get_session)):
+async def add_ingredient_to_variant(
+    variant_id: int, 
+    ingredient_id: int, 
+    quantity: float, 
+    input_quantity: Optional[float] = None,
+    input_unit: Optional[str] = None,
+    db: AsyncSession = Depends(get_session)
+):
     """Define cuánto de un ingrediente usa una variante específica."""
-    recipe_item = RecipeItem(variant_id=variant_id, ingredient_id=ingredient_id, quantity=quantity)
+    final_input_qty = input_quantity if input_quantity is not None else quantity
+    final_input_unit = input_unit or ""
+    final_quantity = quantity
+
+    if input_unit:
+        ingredient = await db.get(Ingredient, ingredient_id)
+        if ingredient:
+            try:
+                final_quantity = unit_converter.convert_to_base(final_input_qty, input_unit, ingredient.measure_type)
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+    recipe_item = RecipeItem(
+        variant_id=variant_id, 
+        ingredient_id=ingredient_id, 
+        quantity=final_quantity,
+        input_quantity=final_input_qty,
+        input_unit=final_input_unit
+    )
     return await service.add_ingredient_to_product(db, recipe_item)
 
 @router.post("/variants/{variant_id}/modifier-groups", response_model=RecipeItem, dependencies=[Depends(require_role("admin"))])
-async def add_group_to_variant(variant_id: int, modifier_group_id: int, quantity: float, db: AsyncSession = Depends(get_session)):
+async def add_group_to_variant(
+    variant_id: int, 
+    modifier_group_id: int, 
+    quantity: float, 
+    input_quantity: Optional[float] = None,
+    input_unit: Optional[str] = None,
+    db: AsyncSession = Depends(get_session)
+):
     """Define cuánto de un grupo usa una variante específica (ej. 250ml de Leches)."""
-    recipe_item = RecipeItem(variant_id=variant_id, modifier_group_id=modifier_group_id, quantity=quantity)
+    # Para grupos de modificadores, asumimos que la unidad es compatible con los ingredientes del grupo.
+    # Por ahora guardamos tal cual, la validación de tipo se hace en el frontend o al descontar.
+    recipe_item = RecipeItem(
+        variant_id=variant_id, 
+        modifier_group_id=modifier_group_id, 
+        quantity=quantity,
+        input_quantity=input_quantity or quantity,
+        input_unit=input_unit or ""
+    )
     return await service.add_ingredient_to_product(db, recipe_item)
 
 @router.get("/variants/{variant_id}/recipe", response_model=List[RecipeItem])

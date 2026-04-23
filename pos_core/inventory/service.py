@@ -14,6 +14,7 @@ from .models import (
     ModifierQuantity
 )
 from typing import List, Optional
+from . import unit_converter
 
 def delete_local_image(url: Optional[str]):
     """Elimina físicamente un archivo de imagen si es local."""
@@ -173,6 +174,10 @@ async def delete_product(session: AsyncSession, product_id: int) -> bool:
 # --- Operaciones de Ingredientes (Materia Prima) ---
 
 async def create_ingredient(session: AsyncSession, ingredient: IngredientCreate) -> Ingredient:
+    # Asegurar que la unidad base sea la correcta para el tipo de medida si se omite o para validar
+    if not ingredient.unit:
+        ingredient.unit = unit_converter.get_base_unit(ingredient.measure_type)
+        
     db_ingredient = Ingredient.model_validate(ingredient)
     session.add(db_ingredient)
     await session.commit()
@@ -226,6 +231,20 @@ async def create_modifier_group(session: AsyncSession, group: ModifierGroupCreat
 
 async def create_modifier(session: AsyncSession, modifier: ModifierCreate) -> Modifier:
     db_modifier = Modifier.model_validate(modifier)
+    
+    # Calcular cantidad base si hay unidad de entrada
+    if db_modifier.input_unit and db_modifier.ingredient_id:
+        ingredient = await session.get(Ingredient, db_modifier.ingredient_id)
+        if ingredient:
+            db_modifier.quantity = unit_converter.convert_to_base(
+                db_modifier.input_quantity, 
+                db_modifier.input_unit, 
+                ingredient.measure_type
+            )
+    elif not db_modifier.input_quantity and db_modifier.quantity:
+        # Fallback para datos legacy o si solo se manda quantity
+        db_modifier.input_quantity = db_modifier.quantity
+
     session.add(db_modifier)
     await session.commit()
     await session.refresh(db_modifier)
@@ -286,6 +305,16 @@ async def update_modifier(session: AsyncSession, modifier_id: int, modifier_data
     update_data = modifier_data.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(db_modifier, key, value)
+    
+    # Recalcular quantity si es necesario
+    if db_modifier.input_unit and db_modifier.ingredient_id:
+        ingredient = await session.get(Ingredient, db_modifier.ingredient_id)
+        if ingredient:
+            db_modifier.quantity = unit_converter.convert_to_base(
+                db_modifier.input_quantity, 
+                db_modifier.input_unit, 
+                ingredient.measure_type
+            )
         
     session.add(db_modifier)
     await session.commit()

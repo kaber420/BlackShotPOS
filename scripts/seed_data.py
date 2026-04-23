@@ -12,6 +12,13 @@ from sqlmodel import select
 async def seed():
     print("--- Iniciando Sembrado de Datos ---")
     
+    # 0. Eliminar DB anterior para asegurar esquema fresco
+    db_path = os.path.join(os.path.dirname(__file__), "..", "pos_database.db")
+    if os.path.exists(db_path):
+        print("Eliminando base de datos antigua...")
+        os.remove(db_path)
+
+    
     # 1. Asegurar que las tablas existan
     await init_db()
     
@@ -49,12 +56,12 @@ async def seed():
         await session.refresh(m_grande)
         await session.refresh(m_unico)
 
-        # 4. Crear Ingredientes
+        # 4. Crear Ingredientes (con los nuevos campos multi-unidad)
         print("Creando ingredientes...")
-        i_grano = Ingredient(name="Café en Grano (Mezcla Casa)", unit="g", current_stock=10000, minimum_stock=1000)
-        i_leche = Ingredient(name="Leche Entera", unit="ml", current_stock=20000, minimum_stock=2000)
-        i_agua = Ingredient(name="Agua Purificada", unit="ml", current_stock=100000, minimum_stock=5000)
-        i_croissant = Ingredient(name="Croissant Mantequilla", unit="pz", current_stock=24, minimum_stock=5)
+        i_grano = Ingredient(name="Café en Grano (Mezcla Casa)", measure_type="weight", unit="g", current_stock=10000, minimum_stock=1000)
+        i_leche = Ingredient(name="Leche Entera", measure_type="volume", unit="ml", current_stock=20000, minimum_stock=2000)
+        i_agua = Ingredient(name="Agua Purificada", measure_type="volume", unit="ml", current_stock=100000, minimum_stock=5000)
+        i_croissant = Ingredient(name="Croissant Mantequilla", measure_type="unit", unit="pz", current_stock=24, minimum_stock=5)
         
         session.add_all([i_grano, i_leche, i_agua, i_croissant])
         await session.commit()
@@ -107,23 +114,23 @@ async def seed():
         print("Creando recetas por variante...")
         
         # Americano Chico: 15g café, 200ml agua
-        r1 = RecipeItem(variant_id=v_ame_chico.id, ingredient_id=i_grano.id, quantity=15)
-        r2 = RecipeItem(variant_id=v_ame_chico.id, ingredient_id=i_agua.id, quantity=200)
+        r1 = RecipeItem(variant_id=v_ame_chico.id, ingredient_id=i_grano.id, quantity=15, input_quantity=15, input_unit="g")
+        r2 = RecipeItem(variant_id=v_ame_chico.id, ingredient_id=i_agua.id, quantity=200, input_quantity=200, input_unit="ml")
         
         # Americano Grande: 20g café, 400ml agua
-        r3 = RecipeItem(variant_id=v_ame_grande.id, ingredient_id=i_grano.id, quantity=20)
-        r4 = RecipeItem(variant_id=v_ame_grande.id, ingredient_id=i_agua.id, quantity=400)
+        r3 = RecipeItem(variant_id=v_ame_grande.id, ingredient_id=i_grano.id, quantity=20, input_quantity=20, input_unit="g")
+        r4 = RecipeItem(variant_id=v_ame_grande.id, ingredient_id=i_agua.id, quantity=400, input_quantity=400, input_unit="ml")
         
         # Latte Chico: 15g café, 200ml leche
-        r5 = RecipeItem(variant_id=v_lat_chico.id, ingredient_id=i_grano.id, quantity=15)
-        r6 = RecipeItem(variant_id=v_lat_chico.id, ingredient_id=i_leche.id, quantity=200)
+        r5 = RecipeItem(variant_id=v_lat_chico.id, ingredient_id=i_grano.id, quantity=15, input_quantity=15, input_unit="g")
+        r6 = RecipeItem(variant_id=v_lat_chico.id, ingredient_id=i_leche.id, quantity=200, input_quantity=200, input_unit="ml")
         
-        # Latte Grande: 20g café, 400ml leche
-        r7 = RecipeItem(variant_id=v_lat_grande.id, ingredient_id=i_grano.id, quantity=20)
-        r8 = RecipeItem(variant_id=v_lat_grande.id, ingredient_id=i_leche.id, quantity=400)
+        # Latte Grande: 20g café, 0.4 Litros leche (ejemplo de conversión)
+        r7 = RecipeItem(variant_id=v_lat_grande.id, ingredient_id=i_grano.id, quantity=20, input_quantity=20, input_unit="g")
+        r8 = RecipeItem(variant_id=v_lat_grande.id, ingredient_id=i_leche.id, quantity=400, input_quantity=0.4, input_unit="L")
         
         # Croissant: 1 unidad
-        r9 = RecipeItem(variant_id=v_croissant.id, ingredient_id=i_croissant.id, quantity=1)
+        r9 = RecipeItem(variant_id=v_croissant.id, ingredient_id=i_croissant.id, quantity=1, input_quantity=1, input_unit="pz")
         
         session.add_all([r1, r2, r3, r4, r5, r6, r7, r8, r9])
         await session.commit()

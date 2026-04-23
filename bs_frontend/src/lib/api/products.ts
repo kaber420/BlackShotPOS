@@ -111,20 +111,24 @@ export const ProductService = {
     getVariantRecipe: (variantId: number) => 
         fetchApi<any[]>(`/api/v1/pos/variants/${variantId}/recipe`),
     
-    addIngredientToVariant: (variantId: number, ingredientId: number, quantity: number) =>
-        fetchApi<any>(`/api/v1/pos/variants/${variantId}/ingredients?ingredient_id=${ingredientId}&quantity=${quantity}`, {
-            method: 'POST'
-        }),
+    addIngredientToVariant: (variantId: number, ingredientId: number, quantity: number, input_quantity?: number, input_unit?: string) => {
+        let url = `/api/v1/pos/variants/${variantId}/ingredients?ingredient_id=${ingredientId}&quantity=${quantity}`;
+        if (input_quantity !== undefined) url += `&input_quantity=${input_quantity}`;
+        if (input_unit) url += `&input_unit=${input_unit}`;
+        return fetchApi<any>(url, { method: 'POST' });
+    },
 
     clearVariantRecipe: (variantId: number) =>
         fetchApi<{detail: string}>(`/api/v1/pos/variants/${variantId}/recipe`, {
             method: 'DELETE'
         }),
 
-    addModifierGroupToVariant: (variantId: number, groupId: number, quantity: number) =>
-        fetchApi<any>(`/api/v1/pos/variants/${variantId}/modifier-groups?modifier_group_id=${groupId}&quantity=${quantity}`, {
-            method: 'POST'
-        }),
+    addModifierGroupToVariant: (variantId: number, groupId: number, quantity: number, input_quantity?: number, input_unit?: string) => {
+        let url = `/api/v1/pos/variants/${variantId}/modifier-groups?modifier_group_id=${groupId}&quantity=${quantity}`;
+        if (input_quantity !== undefined) url += `&input_quantity=${input_quantity}`;
+        if (input_unit) url += `&input_unit=${input_unit}`;
+        return fetchApi<any>(url, { method: 'POST' });
+    },
 
     // Modificadores
     getModifierGroups: () => fetchApi<ModifierGroup[]>('/api/v1/pos/modifier-groups'),
@@ -156,10 +160,12 @@ export const ProductService = {
             method: 'POST'
         }),
     
-    updateModifierMeasureQuantity: (modifierId: number, measure_id: number, quantity: number) =>
-        fetchApi<any>(`/api/v1/pos/modifiers/${modifierId}/measures/${measure_id}/quantity?quantity=${quantity}`, {
-            method: 'POST'
-        }),
+    updateModifierMeasureQuantity: (modifierId: number, measure_id: number, quantity: number, input_quantity?: number, input_unit?: string) => {
+        let url = `/api/v1/pos/modifiers/${modifierId}/measures/${measure_id}/quantity?quantity=${quantity}`;
+        if (input_quantity !== undefined) url += `&input_quantity=${input_quantity}`;
+        if (input_unit) url += `&input_unit=${input_unit}`;
+        return fetchApi<any>(url, { method: 'POST' });
+    },
 
     // Gestión de Imágenes
     uploadImage: (file: File) => {

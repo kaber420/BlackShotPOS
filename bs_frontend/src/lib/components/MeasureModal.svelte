@@ -65,16 +65,16 @@
             <div class="p-8 flex flex-col gap-4">
                 <div class="grid grid-cols-3 gap-2">
                     <div class="form-control">
-                        <label class="label text-xs uppercase opacity-60 font-bold">Nombre</label>
-                        <input type="text" placeholder="Chico" class="input input-bordered input-sm" bind:value={newMeasure.name} />
+                        <label class="label text-xs uppercase opacity-60 font-bold" for="m_name">Nombre</label>
+                        <input id="m_name" type="text" placeholder="Chico" class="input input-bordered input-sm" bind:value={newMeasure.name} />
                     </div>
                     <div class="form-control">
-                        <label class="label text-xs uppercase opacity-60 font-bold">Cantidad/Capacidad</label>
-                        <input type="number" placeholder="Ej: 12" class="input input-bordered input-sm" bind:value={newMeasure.value} />
+                        <label class="label text-xs uppercase opacity-60 font-bold" for="m_val">Cantidad/Capacidad</label>
+                        <input id="m_val" type="number" placeholder="Ej: 12" class="input input-bordered input-sm" bind:value={newMeasure.value} />
                     </div>
                     <div class="form-control">
-                        <label class="label text-xs uppercase opacity-60 font-bold">Unidad</label>
-                        <select class="select select-bordered select-sm" bind:value={newMeasure.unit}>
+                        <label class="label text-xs uppercase opacity-60 font-bold" for="m_unit">Unidad</label>
+                        <select id="m_unit" class="select select-bordered select-sm" bind:value={newMeasure.unit}>
                             <option value="ml">ml</option>
                             <option value="oz">oz</option>
                             <option value="g">g</option>

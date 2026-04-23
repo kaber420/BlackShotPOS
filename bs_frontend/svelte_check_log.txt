@@ -1,0 +1,1494 @@
+Loading svelte-check in workspace: /home/kaber420/Documentos/proyectos/blackshot/bs_frontend
+Getting Svelte diagnostics...
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:67:28
+Error: Argument of type '{ id: number; message: string; type: "success" | "error" | "info"; }' is not assignable to parameter of type 'never'. 
+    const id = ++toastId;
+    toastState.toasts.push({ id, message, type });
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:77:29
+Error: Parameter 'id' implicitly has an 'any' type. 
+/** Removes a toast by its unique ID */
+export function removeToast(id) {
+    toastState.toasts = toastState.toasts.filter(t => t.id !== id);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:78:57
+Error: Property 'id' does not exist on type 'never'. 
+export function removeToast(id) {
+    toastState.toasts = toastState.toasts.filter(t => t.id !== id);
+}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:83:15
+Error: Parameter 'msg' implicitly has an 'any' type. 
+export const toast = {
+    success: (msg, duration) => addToast(msg, 'success', duration),
+    error: (msg, duration) => addToast(msg, 'error', duration),
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:83:20
+Error: Parameter 'duration' implicitly has an 'any' type. 
+export const toast = {
+    success: (msg, duration) => addToast(msg, 'success', duration),
+    error: (msg, duration) => addToast(msg, 'error', duration),
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:84:13
+Error: Parameter 'msg' implicitly has an 'any' type. 
+    success: (msg, duration) => addToast(msg, 'success', duration),
+    error: (msg, duration) => addToast(msg, 'error', duration),
+    info: (msg, duration) => addToast(msg, 'info', duration)
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:84:18
+Error: Parameter 'duration' implicitly has an 'any' type. 
+    success: (msg, duration) => addToast(msg, 'success', duration),
+    error: (msg, duration) => addToast(msg, 'error', duration),
+    info: (msg, duration) => addToast(msg, 'info', duration)
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:85:12
+Error: Parameter 'msg' implicitly has an 'any' type. 
+    error: (msg, duration) => addToast(msg, 'error', duration),
+    info: (msg, duration) => addToast(msg, 'info', duration)
+};
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/toast.svelte.js:85:17
+Error: Parameter 'duration' implicitly has an 'any' type. 
+    error: (msg, duration) => addToast(msg, 'error', duration),
+    info: (msg, duration) => addToast(msg, 'info', duration)
+};
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/app_state.svelte.ts:225:42
+Error: Parameter 'i' implicitly has an 'any' type. 
+export function removeFromCart(itemId: string) {
+    appState.cart = appState.cart.filter(i => i.id !== itemId);
+    persistSession();
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/app_state.svelte.ts:230:43
+Error: Parameter 'i' implicitly has an 'any' type. 
+export function updateCartItemQuantity(itemId: string, delta: number) {
+    const index = appState.cart.findIndex(i => i.id === itemId);
+    if (index === -1) return;
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/PermissionRow.svelte:62:9
+Warn: Quoted attributes on components and custom elements will be stringified in a future version of Svelte. If this isn't what you want, remove the quotes
+https://svelte.dev/e/attribute_quoted (svelte)
+        isLoading={saving}
+        title="{effective ? 'Activo — click para desactivar' : 'Inactivo — click para activar'}"
+    >
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/CategoryModal.svelte:131:45
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                            size="sm" 
+                                            danger 
+                                            circle
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/PaymentModal.svelte:118:59
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                        <Button variant="outline" size="sm" class="font-bold col-span-2" onclick={setExact}>Exacto</Button>
+                        <Button variant="ghost" size="sm" danger class="font-bold" onclick={() => addCash(0)}>Cero</Button>
+                    </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/FloatingCart.svelte:16:49
+Error: Parameter 'acc' implicitly has an 'any' type. (ts)
+
+	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
+	let taxTotal = $derived(cartTotal * (appState.settings?.tax_rate || 0.16));
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/FloatingCart.svelte:16:54
+Error: Parameter 'item' implicitly has an 'any' type. (ts)
+
+	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
+	let taxTotal = $derived(cartTotal * (appState.settings?.tax_rate || 0.16));
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/FloatingCart.svelte:220:67
+Error: Object literal may only specify known properties, and '"aria-label"' does not exist in type 'Props'. (ts)
+                </div>
+				<Button variant="ghost" circle size="sm" onclick={toggleCart} aria-label="Cerrar pedido">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:10:23
+Warn: This reference only captures the initial value of `device`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+
+    let name = $state(device?.name || '');
+    let device_id = $state(device?.device_id || '');
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:11:28
+Warn: This reference only captures the initial value of `device`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    let name = $state(device?.name || '');
+    let device_id = $state(device?.device_id || '');
+    let type = $state(device?.type || 'esp32');
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:12:23
+Warn: This reference only captures the initial value of `device`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    let device_id = $state(device?.device_id || '');
+    let type = $state(device?.type || 'esp32');
+    let table_id = $state(device?.table_id || null);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:13:27
+Warn: This reference only captures the initial value of `device`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    let type = $state(device?.type || 'esp32');
+    let table_id = $state(device?.table_id || null);
+    let is_active = $state(device?.is_active !== false);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:14:28
+Warn: This reference only captures the initial value of `device`. Did you mean to reference it inside a derived instead?
+https://svelte.dev/e/state_referenced_locally (svelte)
+    let table_id = $state(device?.table_id || null);
+    let is_active = $state(device?.is_active !== false);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:88:21
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-bold">Hardware ID (MAC/UUID)</span></label>
+                    <input type="text" bind:value={device_id} placeholder="ej: AA:BB:CC:11:22:33" class="input input-bordered font-mono" disabled={!!device} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:93:21
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                <div class="form-control">
+                    <label class="label"><span class="label-text font-bold">Nombre / Alias</span></label>
+                    <input type="text" bind:value={name} placeholder="ej: Pantalla Mesa 5" class="input input-bordered" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:99:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold">Tipo</span></label>
+                        <select bind:value={type} class="select select-bordered">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/IoTManagementModal.svelte:108:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold">Vincular a Mesa</span></label>
+                        <select bind:value={table_id} class="select select-bordered text-base">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/MeasureModal.svelte:121:9
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+        </div>
+        <button class="modal-backdrop bg-black/60" onclick={onClose}></button>
+    </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/OrderCard.svelte:261:75
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                            {#if item.status === 'PENDING'}
+                                                <Button variant="outline" danger square size="xs" onclick={() => onItemCancel?.(order, item)} title="Anular platillo">
+                                                    🗑️
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/OrderCard.svelte:349:63
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                        {#if onCancelOrder && order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
+                            <Button variant="ghost" size="sm" danger square onclick={() => onCancelOrder(order)} title={order.items && order.items.length > 0 ? "Cancelar Pedido" : "Eliminar Pedido Vacío"}>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/OrderCard.svelte:362:47
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                {#if order.status === 'PENDING'}
+                    <Button variant="outline" danger square onclick={() => onCancelOrder?.(order)} title="Anular toda la orden">
+                        🗑️
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductCustomizer.svelte:132:17
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+                <!-- Close Button -->
+                <button 
+                    class="absolute top-6 right-6 w-10 h-10 bg-black/20 hover:bg-black/40 backdrop-blur-xl rounded-full text-white flex items-center justify-center transition-all border border-white/10 group active:scale-90"
+                    onclick={onClose}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4 group-hover:rotate-90 transition-transform"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:378:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Nombre</label>
+                                <input type="text" placeholder="Ej: Café Americano" class="input input-bordered w-full focus:input-primary" bind:value={formData.name} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:382:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Categoría</label>
+                                <select class="select select-bordered w-full focus:select-primary" bind:value={formData.category_id}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:392:37
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                                <div class="form-control">
+                                    <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Precio (Sin Tallas) ($)</label>
+                                    <input type="number" step="0.01" class="input input-bordered w-full focus:input-primary" bind:value={formData.price} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:397:37
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                                <div class="form-control">
+                                    <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Stock Inicial</label>
+                                    <input type="number" class="input input-bordered w-full focus:input-primary" bind:value={formData.stock} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:404:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Foto del Producto</label>
+                                <div class="flex flex-col gap-3">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:434:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Descripción</label>
+                                <textarea class="textarea textarea-bordered h-28 focus:textarea-primary" placeholder="Descripción del producto..." bind:value={formData.description}></textarea>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:451:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase opacity-60 text-primary">Proteína (g)</label>
+                                <input type="number" class="input input-bordered text-center font-mono text-lg" bind:value={formData.protein} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:455:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase opacity-60 text-orange-500">Calorías (kcal)</label>
+                                <input type="number" class="input input-bordered text-center font-mono text-lg" bind:value={formData.calories} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:459:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase opacity-60 text-blue-500">Carbos (g)</label>
+                                <input type="number" class="input input-bordered text-center font-mono text-lg" bind:value={formData.carbs} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:463:33
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase opacity-60 text-emerald-500">Grasas (g)</label>
+                                <input type="number" class="input input-bordered text-center font-mono text-lg" bind:value={formData.fats} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:519:49
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                                            <div class="form-control md:col-span-2">
+                                                <label class="label font-bold text-[10px] uppercase opacity-50">Imagen de la Talla (Opcional)</label>
+                                                <div class="flex gap-3">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:590:65
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                                                            <div class="form-control w-20">
+                                                                <label class="label p-0 mb-1">
+                                                                    <span class="label-text text-[9px] uppercase font-bold opacity-50 text-center w-full">Unidad</span>
+                                                                </label>
+                                                                <select class="select select-bordered select-xs w-full font-bold" bind:value={ri.input_unit}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:714:9
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+        </div>
+        <button class="modal-backdrop bg-black/60" onclick={onClose}></button>
+    </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:410:73
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                                <Button variant="ghost" danger circle size="sm" onclick={removeImage} title="Eliminar Imagen">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:511:79
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                            <h5 class="font-black text-xl text-primary uppercase tracking-tighter">{variant.measure?.name}</h5>
+                                            <Button variant="ghost" size="sm" danger onclick={() => removeVariant(i)}>Eliminar Talla</Button>
+                                        </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:524:95
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                                            <img src={variant.image_url} alt={variant.measure?.name} class="w-full h-full object-cover" />
+                                                            <Button variant="ghost" size="xs" danger circle class="absolute inset-0 bg-error/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white" onclick={() => removeVariantImage(i)}>
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:595:93
+Error: Object is possibly 'undefined'. (ts)
+                                                                    {#if ri.ingredient_id && availableIngredients.find(ingr => ingr.id === ri.ingredient_id)}
+                                                                        {#each UNIT_OPTIONS[availableIngredients.find(ingr => ingr.id === ri.ingredient_id).measure_type] as u}
+                                                                            <option value={u.id}>{u.id}</option>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/ProductModal.svelte:606:95
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                                            </div>
+                                                            <Button variant="ghost" size="sm" danger square onclick={() => removeIngredientFromVariant(i, riIndex)} title="Eliminar Componente">✕</Button>
+                                                        </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:74:24
+Warn: `a11y-click-events-have-key-events` is no longer valid — please use `a11y_click_events_have_key_events` instead
+https://svelte.dev/e/legacy_code (svelte)
+{#if isOpen && table}
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onclick={onClose}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:75:5
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onclick={onClose}>
+        <div class="bg-base-100 w-full max-w-lg rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-base-200 animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+            
+            <!-- Header -->
+            <div class="bg-primary p-8 text-primary-content relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-4xl font-black tracking-tighter">Mesa {table.number}</h2>
+                            <span class="badge badge-outline text-white/70 font-black text-[10px] tracking-widest border-white/20 px-3">OCUPADA</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all active:scale-90" onclick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-8 overflow-y-auto flex-1 bg-base-200/20 elegant-scroll">
+                {#if order}
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <h3 class="font-black text-[10px] uppercase tracking-widest opacity-40">Consumo de la Mesa</h3>
+                        <span class="text-[10px] font-bold opacity-30 uppercase tracking-tighter">ORDEN #{order.id}</span>
+                    </div>
+                    
+                    {#if order.items && order.items.length > 0}
+                        <div class="flex flex-col gap-3">
+                            {#each order.items as item}
+                                <div class="flex justify-between items-center bg-base-100 p-4 rounded-[1.2rem] border border-base-200 shadow-sm transition-all hover:shadow-md">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-lg bg-base-200 flex items-center justify-center text-[10px] font-black">{item.quantity}</span>
+                                            <span class="font-black text-xs uppercase tracking-tight">{item.product?.name || 'Producto'}</span>
+                                        </div>
+                                        {#if item.modifiers?.length > 0}
+                                            <div class="flex flex-wrap gap-1 mt-2 ml-8">
+                                                {#each item.modifiers as mod}
+                                                    <span class="text-[8px] font-bold uppercase opacity-40 bg-base-200 px-1.5 py-0.5 rounded-md">+ {mod.name}</span>
+                                                {/each}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                    <span class="font-mono font-black text-sm text-primary tracking-tighter">${(item.unit_price * item.quantity).toFixed(0)}</span>
+                                </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="text-center py-12 bg-base-100 rounded-3xl border border-dashed border-base-300 opacity-40">
+                            <p class="font-bold text-sm uppercase tracking-widest">Sin productos aún</p>
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="flex flex-col items-center justify-center py-16 text-center gap-6 bg-base-100 rounded-3xl border border-dashed border-base-300 mx-1">
+                        <div class="w-20 h-20 bg-warning/10 text-warning rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <p class="text-xl font-black uppercase tracking-tight">Ocupada sin Pedido</p>
+                    </div>
+                {/if}
+            </div>
+
+            <!-- Footer -->
+            <div class="p-8 bg-base-100 border-t border-base-200 flex flex-col gap-6">
+                <div class="flex justify-between items-end px-1">
+                    <div>
+                        <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Total Final con IVA</span>
+                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${totalWithTax.toFixed(0)}</span>
+                        <div class="flex gap-3 mt-1 opacity-30 text-[9px] font-black uppercase tracking-widest">
+                            <span>Subtotal: ${subtotal.toFixed(0)}</span>
+                            <span>IVA: ${taxAmount.toFixed(0)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button 
+                        class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
+                        onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
+                    >
+                        Añadir Productos
+                    </button>
+                    
+                    <button 
+                        class="flex-1 bg-primary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50" 
+                        onclick={onCheckout}
+                        disabled={isProcessing || !order?.items?.length}
+                    >
+                        Cobrar Cuenta
+                    </button>
+                </div>
+
+                <div class="mt-2 p-4 bg-error/5 rounded-3xl border border-error/10 flex flex-col items-center gap-3">
+                    <p class="text-[9px] font-bold text-error/50 uppercase tracking-[0.2em] text-center">Zona Crítica de Control</p>
+                    <div class="flex gap-2 w-full">
+                        {#if order}
+                            <button 
+                                class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                                onclick={handleCancelOrDelete}
+                                disabled={isProcessing}
+                            >
+                                {order.items?.length ? "Anular Pedido" : "Borrar Orden"}
+                            </button>
+                        {/if}
+                        <button 
+                            class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                            onclick={handleVacate}
+                            disabled={isProcessing}
+                        >
+                            Liberar Mesa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:75:5
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onclick={onClose}>
+        <div class="bg-base-100 w-full max-w-lg rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-base-200 animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+            
+            <!-- Header -->
+            <div class="bg-primary p-8 text-primary-content relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-4xl font-black tracking-tighter">Mesa {table.number}</h2>
+                            <span class="badge badge-outline text-white/70 font-black text-[10px] tracking-widest border-white/20 px-3">OCUPADA</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all active:scale-90" onclick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-8 overflow-y-auto flex-1 bg-base-200/20 elegant-scroll">
+                {#if order}
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <h3 class="font-black text-[10px] uppercase tracking-widest opacity-40">Consumo de la Mesa</h3>
+                        <span class="text-[10px] font-bold opacity-30 uppercase tracking-tighter">ORDEN #{order.id}</span>
+                    </div>
+                    
+                    {#if order.items && order.items.length > 0}
+                        <div class="flex flex-col gap-3">
+                            {#each order.items as item}
+                                <div class="flex justify-between items-center bg-base-100 p-4 rounded-[1.2rem] border border-base-200 shadow-sm transition-all hover:shadow-md">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-lg bg-base-200 flex items-center justify-center text-[10px] font-black">{item.quantity}</span>
+                                            <span class="font-black text-xs uppercase tracking-tight">{item.product?.name || 'Producto'}</span>
+                                        </div>
+                                        {#if item.modifiers?.length > 0}
+                                            <div class="flex flex-wrap gap-1 mt-2 ml-8">
+                                                {#each item.modifiers as mod}
+                                                    <span class="text-[8px] font-bold uppercase opacity-40 bg-base-200 px-1.5 py-0.5 rounded-md">+ {mod.name}</span>
+                                                {/each}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                    <span class="font-mono font-black text-sm text-primary tracking-tighter">${(item.unit_price * item.quantity).toFixed(0)}</span>
+                                </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="text-center py-12 bg-base-100 rounded-3xl border border-dashed border-base-300 opacity-40">
+                            <p class="font-bold text-sm uppercase tracking-widest">Sin productos aún</p>
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="flex flex-col items-center justify-center py-16 text-center gap-6 bg-base-100 rounded-3xl border border-dashed border-base-300 mx-1">
+                        <div class="w-20 h-20 bg-warning/10 text-warning rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <p class="text-xl font-black uppercase tracking-tight">Ocupada sin Pedido</p>
+                    </div>
+                {/if}
+            </div>
+
+            <!-- Footer -->
+            <div class="p-8 bg-base-100 border-t border-base-200 flex flex-col gap-6">
+                <div class="flex justify-between items-end px-1">
+                    <div>
+                        <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Total Final con IVA</span>
+                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${totalWithTax.toFixed(0)}</span>
+                        <div class="flex gap-3 mt-1 opacity-30 text-[9px] font-black uppercase tracking-widest">
+                            <span>Subtotal: ${subtotal.toFixed(0)}</span>
+                            <span>IVA: ${taxAmount.toFixed(0)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button 
+                        class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
+                        onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
+                    >
+                        Añadir Productos
+                    </button>
+                    
+                    <button 
+                        class="flex-1 bg-primary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50" 
+                        onclick={onCheckout}
+                        disabled={isProcessing || !order?.items?.length}
+                    >
+                        Cobrar Cuenta
+                    </button>
+                </div>
+
+                <div class="mt-2 p-4 bg-error/5 rounded-3xl border border-error/10 flex flex-col items-center gap-3">
+                    <p class="text-[9px] font-bold text-error/50 uppercase tracking-[0.2em] text-center">Zona Crítica de Control</p>
+                    <div class="flex gap-2 w-full">
+                        {#if order}
+                            <button 
+                                class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                                onclick={handleCancelOrDelete}
+                                disabled={isProcessing}
+                            >
+                                {order.items?.length ? "Anular Pedido" : "Borrar Orden"}
+                            </button>
+                        {/if}
+                        <button 
+                            class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                            onclick={handleVacate}
+                            disabled={isProcessing}
+                        >
+                            Liberar Mesa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{/if}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:76:9
+Warn: Visible, non-interactive elements with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onclick={onClose}>
+        <div class="bg-base-100 w-full max-w-lg rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-base-200 animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+            
+            <!-- Header -->
+            <div class="bg-primary p-8 text-primary-content relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-4xl font-black tracking-tighter">Mesa {table.number}</h2>
+                            <span class="badge badge-outline text-white/70 font-black text-[10px] tracking-widest border-white/20 px-3">OCUPADA</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all active:scale-90" onclick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-8 overflow-y-auto flex-1 bg-base-200/20 elegant-scroll">
+                {#if order}
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <h3 class="font-black text-[10px] uppercase tracking-widest opacity-40">Consumo de la Mesa</h3>
+                        <span class="text-[10px] font-bold opacity-30 uppercase tracking-tighter">ORDEN #{order.id}</span>
+                    </div>
+                    
+                    {#if order.items && order.items.length > 0}
+                        <div class="flex flex-col gap-3">
+                            {#each order.items as item}
+                                <div class="flex justify-between items-center bg-base-100 p-4 rounded-[1.2rem] border border-base-200 shadow-sm transition-all hover:shadow-md">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-lg bg-base-200 flex items-center justify-center text-[10px] font-black">{item.quantity}</span>
+                                            <span class="font-black text-xs uppercase tracking-tight">{item.product?.name || 'Producto'}</span>
+                                        </div>
+                                        {#if item.modifiers?.length > 0}
+                                            <div class="flex flex-wrap gap-1 mt-2 ml-8">
+                                                {#each item.modifiers as mod}
+                                                    <span class="text-[8px] font-bold uppercase opacity-40 bg-base-200 px-1.5 py-0.5 rounded-md">+ {mod.name}</span>
+                                                {/each}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                    <span class="font-mono font-black text-sm text-primary tracking-tighter">${(item.unit_price * item.quantity).toFixed(0)}</span>
+                                </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="text-center py-12 bg-base-100 rounded-3xl border border-dashed border-base-300 opacity-40">
+                            <p class="font-bold text-sm uppercase tracking-widest">Sin productos aún</p>
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="flex flex-col items-center justify-center py-16 text-center gap-6 bg-base-100 rounded-3xl border border-dashed border-base-300 mx-1">
+                        <div class="w-20 h-20 bg-warning/10 text-warning rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <p class="text-xl font-black uppercase tracking-tight">Ocupada sin Pedido</p>
+                    </div>
+                {/if}
+            </div>
+
+            <!-- Footer -->
+            <div class="p-8 bg-base-100 border-t border-base-200 flex flex-col gap-6">
+                <div class="flex justify-between items-end px-1">
+                    <div>
+                        <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Total Final con IVA</span>
+                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${totalWithTax.toFixed(0)}</span>
+                        <div class="flex gap-3 mt-1 opacity-30 text-[9px] font-black uppercase tracking-widest">
+                            <span>Subtotal: ${subtotal.toFixed(0)}</span>
+                            <span>IVA: ${taxAmount.toFixed(0)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button 
+                        class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
+                        onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
+                    >
+                        Añadir Productos
+                    </button>
+                    
+                    <button 
+                        class="flex-1 bg-primary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50" 
+                        onclick={onCheckout}
+                        disabled={isProcessing || !order?.items?.length}
+                    >
+                        Cobrar Cuenta
+                    </button>
+                </div>
+
+                <div class="mt-2 p-4 bg-error/5 rounded-3xl border border-error/10 flex flex-col items-center gap-3">
+                    <p class="text-[9px] font-bold text-error/50 uppercase tracking-[0.2em] text-center">Zona Crítica de Control</p>
+                    <div class="flex gap-2 w-full">
+                        {#if order}
+                            <button 
+                                class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                                onclick={handleCancelOrDelete}
+                                disabled={isProcessing}
+                            >
+                                {order.items?.length ? "Anular Pedido" : "Borrar Orden"}
+                            </button>
+                        {/if}
+                        <button 
+                            class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                            onclick={handleVacate}
+                            disabled={isProcessing}
+                        >
+                            Liberar Mesa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:76:9
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onclick={onClose}>
+        <div class="bg-base-100 w-full max-w-lg rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-base-200 animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+            
+            <!-- Header -->
+            <div class="bg-primary p-8 text-primary-content relative overflow-hidden">
+                <div class="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-3xl"></div>
+                <div class="flex justify-between items-start relative z-10">
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h2 class="text-4xl font-black tracking-tighter">Mesa {table.number}</h2>
+                            <span class="badge badge-outline text-white/70 font-black text-[10px] tracking-widest border-white/20 px-3">OCUPADA</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all active:scale-90" onclick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body -->
+            <div class="p-8 overflow-y-auto flex-1 bg-base-200/20 elegant-scroll">
+                {#if order}
+                    <div class="flex items-center justify-between mb-4 px-1">
+                        <h3 class="font-black text-[10px] uppercase tracking-widest opacity-40">Consumo de la Mesa</h3>
+                        <span class="text-[10px] font-bold opacity-30 uppercase tracking-tighter">ORDEN #{order.id}</span>
+                    </div>
+                    
+                    {#if order.items && order.items.length > 0}
+                        <div class="flex flex-col gap-3">
+                            {#each order.items as item}
+                                <div class="flex justify-between items-center bg-base-100 p-4 rounded-[1.2rem] border border-base-200 shadow-sm transition-all hover:shadow-md">
+                                    <div class="flex flex-col">
+                                        <div class="flex items-center gap-2">
+                                            <span class="w-6 h-6 rounded-lg bg-base-200 flex items-center justify-center text-[10px] font-black">{item.quantity}</span>
+                                            <span class="font-black text-xs uppercase tracking-tight">{item.product?.name || 'Producto'}</span>
+                                        </div>
+                                        {#if item.modifiers?.length > 0}
+                                            <div class="flex flex-wrap gap-1 mt-2 ml-8">
+                                                {#each item.modifiers as mod}
+                                                    <span class="text-[8px] font-bold uppercase opacity-40 bg-base-200 px-1.5 py-0.5 rounded-md">+ {mod.name}</span>
+                                                {/each}
+                                            </div>
+                                        {/if}
+                                    </div>
+                                    <span class="font-mono font-black text-sm text-primary tracking-tighter">${(item.unit_price * item.quantity).toFixed(0)}</span>
+                                </div>
+                            {/each}
+                        </div>
+                    {:else}
+                        <div class="text-center py-12 bg-base-100 rounded-3xl border border-dashed border-base-300 opacity-40">
+                            <p class="font-bold text-sm uppercase tracking-widest">Sin productos aún</p>
+                        </div>
+                    {/if}
+                {:else}
+                    <div class="flex flex-col items-center justify-center py-16 text-center gap-6 bg-base-100 rounded-3xl border border-dashed border-base-300 mx-1">
+                        <div class="w-20 h-20 bg-warning/10 text-warning rounded-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                        </div>
+                        <p class="text-xl font-black uppercase tracking-tight">Ocupada sin Pedido</p>
+                    </div>
+                {/if}
+            </div>
+
+            <!-- Footer -->
+            <div class="p-8 bg-base-100 border-t border-base-200 flex flex-col gap-6">
+                <div class="flex justify-between items-end px-1">
+                    <div>
+                        <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Total Final con IVA</span>
+                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${totalWithTax.toFixed(0)}</span>
+                        <div class="flex gap-3 mt-1 opacity-30 text-[9px] font-black uppercase tracking-widest">
+                            <span>Subtotal: ${subtotal.toFixed(0)}</span>
+                            <span>IVA: ${taxAmount.toFixed(0)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <button 
+                        class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
+                        onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
+                    >
+                        Añadir Productos
+                    </button>
+                    
+                    <button 
+                        class="flex-1 bg-primary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50" 
+                        onclick={onCheckout}
+                        disabled={isProcessing || !order?.items?.length}
+                    >
+                        Cobrar Cuenta
+                    </button>
+                </div>
+
+                <div class="mt-2 p-4 bg-error/5 rounded-3xl border border-error/10 flex flex-col items-center gap-3">
+                    <p class="text-[9px] font-bold text-error/50 uppercase tracking-[0.2em] text-center">Zona Crítica de Control</p>
+                    <div class="flex gap-2 w-full">
+                        {#if order}
+                            <button 
+                                class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                                onclick={handleCancelOrDelete}
+                                disabled={isProcessing}
+                            >
+                                {order.items?.length ? "Anular Pedido" : "Borrar Orden"}
+                            </button>
+                        {/if}
+                        <button 
+                            class="flex-1 text-[9px] font-black text-error/60 hover:text-error hover:bg-error/10 py-3 rounded-xl transition-all uppercase tracking-widest border border-error/10" 
+                            onclick={handleVacate}
+                            disabled={isProcessing}
+                        >
+                            Liberar Mesa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:88:21
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+                    </div>
+                    <button class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all active:scale-90" onclick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+                </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:75:135
+Error: Type 'Function' is not assignable to type 'MouseEventHandler<HTMLDivElement>'.
+  Type 'Function' provides no match for the signature '(event: MouseEvent & { currentTarget: EventTarget & HTMLDivElement; }): any'. (ts)
+    <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+    <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onclick={onClose}>
+        <div class="bg-base-100 w-full max-w-lg rounded-[2.5rem] shadow-[0_32px_64px_-12px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col max-h-[90vh] border border-base-200 animate-in zoom-in-95 duration-200" onclick={(e) => e.stopPropagation()}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:88:154
+Error: Type 'Function' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.
+  Type 'Function' provides no match for the signature '(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any'. (ts)
+                    </div>
+                    <button class="w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-all active:scale-90" onclick={onClose}>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:156:63
+Error: Cannot find name 'setActiveTable'. (ts)
+                        class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
+                        onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
+                    >
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:156:92
+Error: Cannot find name 'goto'. (ts)
+                        class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
+                        onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
+                    >
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/TableSummaryModal.svelte:163:25
+Error: Type 'Function' is not assignable to type 'MouseEventHandler<HTMLButtonElement>'.
+  Type 'Function' provides no match for the signature '(event: MouseEvent & { currentTarget: EventTarget & HTMLButtonElement; }): any'. (ts)
+                        class="flex-1 bg-primary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50" 
+                        onclick={onCheckout}
+                        disabled={isProcessing || !order?.items?.length}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:18:13
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+        >
+            <div 
+                in:fly={{ y: toastConfig.position.includes('top') ? -20 : 20, duration: 300 }}
+                out:fade={{ duration: 200 }}
+                role="alert"
+                class="toast-item shape-{toastConfig.shape} {toast.type}"
+                onclick={() => removeToast(toast.id)}
+                onkeydown={(e) => e.key === 'Enter' && removeToast(toast.id)}
+                tabindex="0"
+                style="
+                    --bg-color: {toastConfig.backgroundColor};
+                    --bg-opacity: {toastConfig.backgroundOpacity}%;
+                    --text-color: {toastConfig.textColor};
+                    --blur: {toastConfig.blur}px;
+                    --shadow: {toastConfig.hasShadow ? 'drop-shadow(0 8px 25px rgba(0,0,0,0.4))' : 'none'};
+                    --font-size: {toastConfig.fontSize};
+                "
+            >
+                <div class="toast-content">
+                    <span class="icon">
+                        {#if toast.type === 'success'}
+                            ✓
+                        {:else if toast.type === 'error'}
+                            !
+                        {:else}
+                            i
+                        {/if}
+                    </span>
+                    <span class="message">{toast.message}</span>
+                </div>
+            </div>
+        </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:18:13
+Warn: Non-interactive element `<div>` should not be assigned mouse or keyboard event listeners
+https://svelte.dev/e/a11y_no_noninteractive_element_interactions (svelte)
+        >
+            <div 
+                in:fly={{ y: toastConfig.position.includes('top') ? -20 : 20, duration: 300 }}
+                out:fade={{ duration: 200 }}
+                role="alert"
+                class="toast-item shape-{toastConfig.shape} {toast.type}"
+                onclick={() => removeToast(toast.id)}
+                onkeydown={(e) => e.key === 'Enter' && removeToast(toast.id)}
+                tabindex="0"
+                style="
+                    --bg-color: {toastConfig.backgroundColor};
+                    --bg-opacity: {toastConfig.backgroundOpacity}%;
+                    --text-color: {toastConfig.textColor};
+                    --blur: {toastConfig.blur}px;
+                    --shadow: {toastConfig.hasShadow ? 'drop-shadow(0 8px 25px rgba(0,0,0,0.4))' : 'none'};
+                    --font-size: {toastConfig.fontSize};
+                "
+            >
+                <div class="toast-content">
+                    <span class="icon">
+                        {#if toast.type === 'success'}
+                            ✓
+                        {:else if toast.type === 'error'}
+                            !
+                        {:else}
+                            i
+                        {/if}
+                    </span>
+                    <span class="message">{toast.message}</span>
+                </div>
+            </div>
+        </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:13:46
+Error: Property 'id' does not exist on type 'never'. (js)
+<div class="toast-container {toastConfig.position}">
+    {#each toastState.toasts as toast (toast.id)}
+        <div
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:22:68
+Error: Property 'type' does not exist on type 'never'. (js)
+                role="alert"
+                class="toast-item shape-{toastConfig.shape} {toast.type}"
+                onclick={() => removeToast(toast.id)}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:23:50
+Error: Property 'id' does not exist on type 'never'. (js)
+                class="toast-item shape-{toastConfig.shape} {toast.type}"
+                onclick={() => removeToast(toast.id)}
+                onkeydown={(e) => e.key === 'Enter' && removeToast(toast.id)}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:24:74
+Error: Property 'id' does not exist on type 'never'. (js)
+                onclick={() => removeToast(toast.id)}
+                onkeydown={(e) => e.key === 'Enter' && removeToast(toast.id)}
+                tabindex="0"
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:37:36
+Error: Property 'type' does not exist on type 'never'. (js)
+                    <span class="icon">
+                        {#if toast.type === 'success'}
+                            ✓
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:39:41
+Error: Property 'type' does not exist on type 'never'. (js)
+                            ✓
+                        {:else if toast.type === 'error'}
+                            !
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/lib/components/Toast.svelte:45:50
+Error: Property 'message' does not exist on type 'never'. (js)
+                    </span>
+                    <span class="message">{toast.message}</span>
+                </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:90:5
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+			<div class="dropdown lg:hidden">
+				<label tabindex="0" class="btn btn-ghost btn-circle">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+				</label>
+				<ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 border border-base-300">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:90:5
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+			<div class="dropdown lg:hidden">
+				<label tabindex="0" class="btn btn-ghost btn-circle">
+					<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" /></svg>
+				</label>
+				<ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 border border-base-300">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:93:5
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+				</label>
+				<ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52 border border-base-300">
+					{#each navLinks as link}
+						<li><a href={link.href} class={isActive(link.href) ? 'active font-bold' : ''}>{link.name}</a></li>
+					{/each}
+				</ul>
+			</div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:150:6
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+				<div class="dropdown dropdown-end">
+					<label tabindex="0" class="btn btn-ghost btn-circle avatar border-2 border-primary/20">
+						<div class="w-10 rounded-full">
+							<img src="https://api.dicebear.com/7.x/avataaars/svg?seed={appState.userName ?? 'Admin'}" alt="Avatar" />
+						</div>
+					</label>
+					<div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-64 bg-base-100 shadow-xl border border-base-300">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:150:6
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+				<div class="dropdown dropdown-end">
+					<label tabindex="0" class="btn btn-ghost btn-circle avatar border-2 border-primary/20">
+						<div class="w-10 rounded-full">
+							<img src="https://api.dicebear.com/7.x/avataaars/svg?seed={appState.userName ?? 'Admin'}" alt="Avatar" />
+						</div>
+					</label>
+					<div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-64 bg-base-100 shadow-xl border border-base-300">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:155:6
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+					</label>
+					<div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-64 bg-base-100 shadow-xl border border-base-300">
+						<div class="card-body">
+							<div class="flex flex-col gap-1 pb-2 border-b border-base-200">
+								<span class="font-black text-lg">{appState.userName ?? 'Usuario'}</span>
+								<span class="text-xs opacity-50 uppercase tracking-widest">{getRoleLabel(appState.userRole)}</span>
+							</div>
+							<ul class="menu p-0">
+								{#if can.viewReports() || can.manageShifts() || can.manageUsers()}
+									<li><a href="/admin" class="font-black text-primary">🏠 Panel de Control</a></li>
+									<div class="divider my-0 opacity-20"></div>
+								{/if}
+
+								{#if can.manageShifts()}
+									<li><a href="/admin/corte">💵 Corte de Caja</a></li>
+								{/if}
+
+								{#if can.manageSettings()}
+									<li><a href="/admin/config">⚙️ Configuración</a></li>
+								{/if}
+								
+								{#if can.manageIoT()}
+									<li><a href="/admin/devices">🔌 Gestionar Dispositivos</a></li>
+								{/if}
+							</ul>
+							<div class="card-actions pt-2 border-t border-base-200">
+								<Button variant="danger" size="sm" class="btn-block" onclick={handleLogout}>Cerrar Sesión</Button>
+							</div>
+						</div>
+					</div>
+				</div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:212:5
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+			<div class="form-control w-full mt-4">
+				<label class="label">
+					<span class="label-text font-bold">Fondo de Caja (Efectivo Inicial)</span>
+				</label>
+				<div class="join w-full shadow-sm">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+layout.svelte:130:237
+Error: This comparison appears to be unintentional because the types '"Cocina" | "POS" | "Mesas" | "Órdenes" | "Menú" | "Inventario"' and '"Caja"' have no overlap. (ts)
+						href={link.href} 
+						class="btn btn-ghost btn-md font-bold px-4 rounded-xl transition-all duration-200 hover:bg-primary/10 hover:text-primary {isActive(link.href) ? 'bg-primary/5 text-primary border-b-2 border-primary rounded-b-none' : 'opacity-80'} {link.name === 'Caja' ? 'text-secondary font-black bg-secondary/10' : ''}"
+					>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:204:45
+Warn: `<button>` cannot be a descendant of `<button>`. When rendering this component on the server, the resulting HTML will be modified by the browser (by moving, removing, or inserting elements), likely resulting in a `hydration_mismatch` warning
+https://svelte.dev/e/node_invalid_placement_ssr (svelte)
+                                        {#if !hasOptions}
+                                            <button 
+                                                class="absolute top-3 right-3 z-30 w-10 h-10 bg-white/20 hover:bg-primary backdrop-blur-md border border-white/30 text-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 transform scale-0 group-hover:scale-100 active:scale-90"
+                                                onclick={(e) => { e.stopPropagation(); addToCart(prod); addToast(`Añadido: ${prod.name}`, 'success'); }}
+                                                title="Añadir rápido"
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                            </button>
+                                        {:else}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:252:49
+Warn: `<button>` cannot be a descendant of `<button>`. When rendering this component on the server, the resulting HTML will be modified by the browser (by moving, removing, or inserting elements), likely resulting in a `hydration_mismatch` warning
+https://svelte.dev/e/node_invalid_placement_ssr (svelte)
+                                            {#if prod.description}
+                                                <button 
+                                                    class="text-white/40 hover:text-white transition-colors"
+                                                    onclick={(e) => { e.stopPropagation(); infoProductId = prod.id; }}
+                                                    title="Ver descripción"
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                                                </button>
+                                            {/if}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:309:2
+Warn: Unused CSS selector ".tabs-box::-webkit-scrollbar"
+https://svelte.dev/e/css_unused_selector (svelte)
+<style>
+	.tabs-box::-webkit-scrollbar,
+    .no-scrollbar::-webkit-scrollbar {
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:314:2
+Warn: Unused CSS selector ".custom-scrollbar::-webkit-scrollbar"
+https://svelte.dev/e/css_unused_selector (svelte)
+
+	.custom-scrollbar::-webkit-scrollbar {
+		width: 3px;
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:317:2
+Warn: Unused CSS selector ".custom-scrollbar::-webkit-scrollbar-thumb"
+https://svelte.dev/e/css_unused_selector (svelte)
+	}
+	.custom-scrollbar::-webkit-scrollbar-thumb {
+		background: rgba(var(--p), 0.2);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:33:10
+Error: Argument of type '() => Promise<() => void>' is not assignable to parameter of type '() => (() => any) | Promise<never>'.
+  Type 'Promise<() => void>' is not assignable to type '(() => any) | Promise<never>'.
+    Type 'Promise<() => void>' is not assignable to type 'Promise<never>'.
+      Type '() => void' is not assignable to type 'never'. (ts)
+
+	onMount(async () => {
+		// Subscribe to real-time stats
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:234:60
+Error: 'prod.variants' is possibly 'undefined'. (ts)
+                                                {#if hasVariants}
+                                                    {#each prod.variants.slice(0, 3) as variant}
+                                                        <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg px-2 py-1 flex items-center gap-1.5 shadow-sm">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/+page.svelte:254:92
+Error: Type 'number | undefined' is not assignable to type 'number | null'.
+  Type 'undefined' is not assignable to type 'number | null'. (ts)
+                                                    class="text-white/40 hover:text-white transition-colors"
+                                                    onclick={(e) => { e.stopPropagation(); infoProductId = prod.id; }}
+                                                    title="Ver descripción"
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/analytics/+page.svelte:155:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control">
+                        <label class="label p-0 mb-1"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">De</span></label>
+                        <input type="date" bind:value={fromDate} class="input input-bordered input-sm font-bold" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/analytics/+page.svelte:159:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control">
+                        <label class="label p-0 mb-1"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">Até</span></label>
+                        <input type="date" bind:value={toDate} class="input input-bordered input-sm font-bold" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/analytics/+page.svelte:76:13
+Error: Type 'unknown' is not assignable to type 'WaiterStat[]'. (ts)
+            ]);
+            waiterStats = w;
+            cookStats = c;
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/analytics/+page.svelte:77:13
+Error: Type 'unknown' is not assignable to type 'CookStat[]'. (ts)
+            waiterStats = w;
+            cookStats = c;
+            dishSpeed = d;
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/analytics/+page.svelte:78:13
+Error: Type 'unknown' is not assignable to type 'DishSpeed[]'. (ts)
+            cookStats = c;
+            dishSpeed = d;
+        } catch {
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:66:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Nombre del Negocio</span></label>
+                        <input type="text" bind:value={settings.name} class="input input-bordered font-bold focus:border-primary" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:71:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Dirección Ticket</span></label>
+                        <textarea bind:value={settings.address} class="textarea textarea-bordered font-bold h-24 focus:border-primary"></textarea>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:81:29
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">Símbolo</span></label>
+                            <input type="text" bind:value={settings.currency_symbol} class="input input-bordered font-bold text-center focus:border-primary" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:85:29
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">Código (ISO)</span></label>
+                            <input type="text" bind:value={settings.currency_code} class="input input-bordered font-bold text-center focus:border-primary" placeholder="MXN" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:92:29
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">IVA (%)</span></label>
+                            <input type="number" step="0.01" bind:value={settings.tax_rate} class="input input-bordered font-bold text-center focus:border-primary" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:96:29
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">Localización (Locale)</span></label>
+                            <input type="text" bind:value={settings.locale} class="input input-bordered font-bold text-center focus:border-primary" placeholder="es-MX" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:102:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Pie de Página Ticket</span></label>
+                        <input type="text" bind:value={settings.ticket_footer} class="input input-bordered font-bold focus:border-primary" />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:116:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Forma de la Notificación</span></label>
+                        <select bind:value={toastConfig.shape} class="select select-bordered font-bold focus:border-primary" onchange={() => addToast("¡Estilo actualizado!", "info", 1500)}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:124:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Posición en Pantalla</span></label>
+                        <select bind:value={toastConfig.position} class="select select-bordered font-bold focus:border-primary" onchange={() => addToast("Posición de notificaciones", "info", 1500)}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:136:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full">
+                        <label class="label"><span class="label-text font-bold">Tamaño de Fuente</span></label>
+                        <select bind:value={toastConfig.fontSize} class="select select-bordered font-bold focus:border-primary" onchange={() => addToast("Tamaño de texto", "info", 1500)}>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:147:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold">Color Fondo</span></label>
+                        <input type="color" bind:value={toastConfig.backgroundColor} class="w-full h-10 rounded-lg cursor-pointer p-0 border-0" oninput={() => addToast("Tono actualizado", "info", 500)} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:151:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control">
+                        <label class="label"><span class="label-text font-bold">Color Texto</span></label>
+                        <input type="color" bind:value={toastConfig.textColor} class="w-full h-10 rounded-lg cursor-pointer p-0 border-0" oninput={() => addToast("Tono actualizado", "info", 500)} />
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/config/+page.svelte:155:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control col-span-2">
+                        <label class="label">
+                            <span class="label-text font-bold">Efectos Especiales</span>
+                        </label>
+                        <div class="flex items-center gap-6 mt-2">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/corte/+page.svelte:138:25
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+                    <div class="form-control w-full my-auto">
+                        <label class="label">
+                            <span class="label-text font-black text-lg">Efectivo Físico Contado</span>
+                        </label>
+                        <div class="join w-full shadow-md">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/corte/+page.svelte:20:13
+Error: Cannot find name 'setActiveShift'. (ts)
+            const res = await checkActiveShift();
+            setActiveShift(res.shift);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/corte/+page.svelte:33:14
+Error: Cannot find name 'appState'. (ts)
+    async function handleCloseShift() {
+        if (!appState.activeShift) return;
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/corte/+page.svelte:37:45
+Error: Cannot find name 'appState'. (ts)
+        try {
+            const result = await closeShift(appState.activeShift.id, actualCash);
+            closedShiftData = await getShiftReport(result.id);
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/corte/+page.svelte:39:13
+Error: Cannot find name 'setActiveShift'. (ts)
+            closedShiftData = await getShiftReport(result.id);
+            setActiveShift(null);
+        } catch (e) {
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/corte/+page.svelte:97:15
+Error: Cannot find name 'appState'. (ts)
+        </div>
+    {:else if appState.activeShift && shiftReport}
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/devices/+page.svelte:192:25
+Warn: Buttons and links should either contain text or have an `aria-label`, `aria-labelledby` or `title` attribute
+https://svelte.dev/e/a11y_consider_explicit_label (svelte)
+                        </Button>
+                        <button class="btn btn-ghost btn-sm btn-square rounded-2xl h-12 w-12 text-error/30 hover:text-error hover:bg-error/5 transition-colors" onclick={() => handleDelete(device.id)}>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:337:5
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+			<div class="form-control">
+				<label class="label p-0 mb-1"><span class="label-text text-[10px] uppercase font-black opacity-40">Naturaleza del Insumo</span></label>
+				<div class="grid grid-cols-3 gap-2">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:52:3
+Error: Object literal may only specify known properties, and 'input_quantity' does not exist in type 'Partial<Modifier>'. (ts)
+		ingredient_id: undefined, 
+		input_quantity: 1, 
+		input_unit: 'ml'
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:157:4
+Error: Object literal may only specify known properties, and 'input_quantity' does not exist in type 'Partial<Modifier>'. (ts)
+			ingredient_id: firstIng?.id, 
+			input_quantity: 1, 
+			input_unit: firstIng ? UNIT_OPTIONS[firstIng.measure_type][0].id : 'ml'
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:244:50
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+								<Button variant="ghost" square size="xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</Button>
+								<Button variant="ghost" square size="xs" danger onclick={() => ing.id && handleDeleteIngredient(ing.id)} title="Eliminar">×</Button>
+							</div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:288:49
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+							<Button variant="ghost" circle size="sm" onclick={() => openModifierModal(group.id!)}>+</Button>
+							<Button variant="ghost" circle size="sm" danger onclick={() => handleDeleteGroup(group.id!)}>×</Button>
+						</div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:314:53
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+											</span>
+											<Button variant="ghost" square size="xs" danger class="opacity-0 group-hover/item:opacity-100" onclick={() => handleDeleteModifier(mod.id!)}>×</Button>
+										</div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:412:64
+Error: Property 'input_quantity' does not exist on type 'Partial<Modifier>'. (ts)
+					<label class="label p-0 mb-1" for="m_qty"><span class="label-text text-[10px] uppercase font-black opacity-40">Cantidad</span></label>
+					<input type="number" step="0.01" bind:value={modifierForm.input_quantity} class="input input-bordered rounded-xl font-bold" />
+				</div>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/ingredients/+page.svelte:417:32
+Error: Property 'input_unit' does not exist on type 'Partial<Modifier>'. (ts)
+					<select 
+						bind:value={modifierForm.input_unit} 
+						class="select select-bordered rounded-xl font-bold"
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/products/+page.svelte:121:17
+Error: '$$_nottuB3.$$slot_def' is of type 'unknown'. (ts)
+            <Button variant="primary" onclick={() => openModal()}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/inventory/products/+page.svelte:186:59
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                            {#if prod.is_active}
+                                <Button variant="outline" danger size="sm" onclick={() => prod.id && handleDelete(prod.id)}>
+                                    Desactivar
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/users/+page.svelte:177:17
+Error: '$$_nottuB3.$$slot_def' is of type 'unknown'. (ts)
+                onclick={() => (showCreateModal = true)}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/admin/users/+page.svelte:273:37
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                    variant="outline"
+                                    danger={selectedUser.is_active}
+                                    success={!selectedUser.is_active}
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/kitchen/+page.svelte:33:13
+Error: Argument of type '() => Promise<() => void>' is not assignable to parameter of type '() => (() => any) | Promise<never>'.
+  Type 'Promise<() => void>' is not assignable to type '(() => any) | Promise<never>'.
+    Type 'Promise<() => void>' is not assignable to type 'Promise<never>'.
+      Type '() => void' is not assignable to type 'never'. (ts)
+    // ── WebSocket Connection ─────────────────────────────────────────────────
+    onMount(async () => {
+        // Cargar mesas y configurar impresión (no bloquean el KDS)
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/kitchen/+page.svelte:240:21
+Error: Object literal may only specify known properties, and '"aria-label"' does not exist in type 'Props'. (ts)
+                    onclick={() => posSocket.connect()}
+                    aria-label="Reconectar WebSocket"
+                    title="Reconectar"
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/kitchen/+page.svelte:319:21
+Error: Object literal may only specify known properties, and '"aria-label"' does not exist in type 'Props'. (ts)
+                    onclick={() => recipeModal = null}
+                    aria-label="Cerrar receta"
+                >
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/menu/+page.svelte:96:17
+Error: '$$_nottuB3.$$slot_def' is of type 'unknown'. (ts)
+            <Button variant="primary" size="md" onclick={openCreateModal}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/menu/+page.svelte:194:71
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                    </Button>
+                                    <Button variant="ghost" size="sm" danger onclick={() => deleteProduct(product.id!)}>
+                                        Eliminar
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/orders/+page.svelte:388:13
+Warn: A form label must be associated with a control
+https://svelte.dev/e/a11y_label_has_associated_control (svelte)
+        <div class="form-control w-full mt-4">
+            <label class="label">
+                <span class="label-text font-bold text-sm">Motivo exacto de la cancelación</span>
+            </label>
+            <textarea
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/orders/+page.svelte:67:133
+Error: This comparison appears to be unintentional because the types 'OrderStatus' and '"PAID"' have no overlap. (ts)
+    // Contadores por grupo
+    let activeOrders    = $derived(orders.filter(o => ACTIVE_STATUSES.has(o.status) || (o.status === 'DELIVERED' && !o.is_paid) || (o.status === 'PAID' && !o.is_paid /* solo en caso de errores */)));
+    let pendingOrders   = $derived(orders.filter(o => o.status === 'PENDING'));
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/orders/+page.svelte:71:98
+Error: This comparison appears to be unintentional because the types 'OrderStatus' and '"PAID"' have no overlap. (ts)
+    let readyOrders     = $derived(orders.filter(o => o.status === 'READY'));
+    let deliveredOrders = $derived(orders.filter(o => (o.status === 'DELIVERED' && o.is_paid) || o.status === 'PAID'));
+    let cancelledOrders = $derived(orders.filter(o => o.status === 'CANCELLED'));
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/orders/+page.svelte:218:13
+Error: '$$_nottuB2.$$slot_def' is of type 'unknown'. (ts)
+        <Button variant="neutral" size="md" class="gap-2 border-none bg-[#2c3e50] hover:bg-[#1a252f] text-white shadow-lg">
+            <svelte:fragment slot="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c1.097 0 2.16.192 3.142.546m0-12.5a8.967 8.967 0 016 0m0 12.5a11.515 11.515 0 01-3.142-.546M12 6.042V18" /></svg>
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/tables/+page.svelte:129:106
+Error: Property 'PAID' does not exist on type 'typeof OrderStatus'. (ts)
+                    const allActive = await OrderService.getAll(); // Sin filtro trae todo lo PENDING/PREPARING/READY/etc
+                    tableOrder = allActive.find(o => o.table_id === table.id && o.status !== OrderStatus.PAID);
+                }
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/tables/+page.svelte:221:21
+Error: '$$_nottuB4.$$slot_def' is of type 'unknown'. (ts)
+                >
+                    <svelte:fragment slot="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/tables/+page.svelte:232:25
+Error: '$$_nottuB4.$$slot_def' is of type 'unknown'. (ts)
+                    <Button variant="primary" size="md" class="gap-2" onclick={openCreateModal}>
+                        <svelte:fragment slot="icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/tables/+page.svelte:241:94
+Error: Object literal may only specify known properties, and '"aria-label"' does not exist in type 'Props'. (ts)
+
+                <Button variant="ghost" circle size="md" onclick={() => refreshTables(true)} aria-label="Actualizar mesas">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+
+/home/kaber420/Documentos/proyectos/blackshot/bs_frontend/src/routes/(app)/tables/+page.svelte:288:67
+Error: Object literal may only specify known properties, and '"danger"' does not exist in type 'Props'. (ts)
+                                <Button variant="ghost" size="xs" class="text-primary w-full" onclick={(e) => { e.stopPropagation(); openEditModal(table); }}>Editar</Button>
+                                <Button variant="ghost" size="xs" danger class="w-full" onclick={(e) => { e.stopPropagation(); toggleTableActive(table); }}>
+                                    {table.is_active ? 'Eliminar' : 'Activar'}
+
+====================================
+svelte-check found 72 errors and 64 warnings in 26 files
