@@ -471,3 +471,73 @@ async def cancel_order_item(
     await session.commit()
     await session.refresh(item)
     return item
+
+# ── Transferencia de Mesas ─────────────────────────────────────────────────────
+
+async def transfer_order_table(
+    session: AsyncSession,
+    order_id: int,
+    new_table_id: int,
+    actor_uuid: str,
+    actor_name: str,
+) -> Order:
+    """
+    Transfiere una orden de una mesa a otra.
+    Mantiene el tiempo de ocupación (occupied_at) de la mesa original en la nueva.
+    """
+    import json
+    from pos_core.tables.models import Table
+
+    order = await order_repo.get_by_id(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
+    
+    if order.table_id == new_table_id:
+        # Ya está en esa mesa
+        return order
+
+    new_table = await session.get(Table, new_table_id)
+    if not new_table:
+        raise ValueError(f"Target table {new_table_id} does not exist")
+    
+    if new_table.status != "Free":
+        raise ValueError(f"Target table {new_table_id} is not free (Status: {new_table.status})")
+
+    old_table_id = order.table_id
+    occupied_at = None
+
+    if old_table_id:
+        old_table = await session.get(Table, old_table_id)
+        if old_table:
+            occupied_at = old_table.occupied_at
+            old_table.status = "Free"
+            old_table.occupied_at = None
+            session.add(old_table)
+
+    # Si no había mesa anterior, el tiempo cuenta desde ahora
+    if not occupied_at:
+        occupied_at = datetime.now(timezone.utc)
+
+    new_table.status = "Occupied"
+    new_table.occupied_at = occupied_at
+    session.add(new_table)
+
+    order.table_id = new_table_id
+    await order_repo.save(session, order)
+
+    await audit_service.log_action(
+        session,
+        category=AuditCategory.SALES,
+        action="TABLE_TRANSFERRED",
+        reason="Cambio de mesa",
+        actor_uuid=actor_uuid,
+        actor_name=actor_name,
+        target_id=str(order_id),
+        target_type="order",
+        changes_json=json.dumps({"from_table": old_table_id, "to_table": new_table_id})
+    )
+
+    await session.commit()
+    await session.refresh(order)
+    return order
+

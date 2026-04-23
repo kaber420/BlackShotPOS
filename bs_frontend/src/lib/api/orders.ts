@@ -187,6 +187,12 @@ export const OrderService = {
         fetchApi<{ status: string }>(`/api/v1/pos/audits/orders/${orderId}/cancel`, {
             method: 'POST',
             body: JSON.stringify({ reason })
+        }),
+
+    transfer: (orderId: number, newTableId: number) =>
+        fetchApi<Order>(`/api/v1/pos/orders/${orderId}/transfer`, {
+            method: 'POST',
+            body: JSON.stringify({ new_table_id: newTableId })
         })
 };
 

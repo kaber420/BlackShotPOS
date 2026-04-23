@@ -34,6 +34,9 @@ class PaymentCreate(BaseModel):
     amount: float
     vacate_table: bool = True
 
+class TableTransferCreate(BaseModel):
+    new_table_id: int
+
 @router.post("/orders", response_model=Order)
 async def create_new_order(
     order_in: OrderCreate,
@@ -284,3 +287,54 @@ async def pay_order(
         asyncio.create_task(trigger_iot_broadcast(order.table_id, "clear_table", "", data={}))
 
     return payment
+
+@router.post("/orders/{order_id}/transfer", response_model=Order)
+async def transfer_order(
+    order_id: int,
+    transfer_in: TableTransferCreate,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(require_permission(Permission.TAKE_ORDERS)),
+):
+    """
+    Mueve una orden a una nueva mesa, liberando la actual y preservando el tiempo de ocupación.
+    """
+    order = await order_service.get_order_by_id(db, order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+
+    old_table_id = order.table_id
+
+    try:
+        updated_order = await order_service.transfer_order_table(
+            db,
+            order_id,
+            transfer_in.new_table_id,
+            actor_uuid=user.get("user_uuid"),
+            actor_name=user.get("username"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    # Broadcasts para actualizar todos los clientes
+    asyncio.create_task(trigger_broadcast("tables"))
+    asyncio.create_task(trigger_broadcast("recent_orders"))
+
+    # Eventos IoT
+    if old_table_id:
+        # Limpiar la tablet de la mesa antigua
+        asyncio.create_task(trigger_iot_broadcast(old_table_id, "clear_table", "", data={}))
+    
+    # Enviar estado actual a la nueva mesa (esto asume que la orden tiene ítems, 
+    # pero enviamos un refresh general o order_update)
+    asyncio.create_task(trigger_iot_broadcast(
+        transfer_in.new_table_id, 
+        "order_update", 
+        "", 
+        data={
+            "order_id": updated_order.id, 
+            "status": updated_order.status.value, 
+            "progress": 0 # Podría mejorarse si se calcula el progreso exacto
+        }
+    ))
+
+    return updated_order

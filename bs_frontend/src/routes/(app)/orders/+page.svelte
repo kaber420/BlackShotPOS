@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { OrderService, type Order, OrderStatus } from '$lib/api/orders';
+    import { TableService, type Table } from '$lib/api/tables';
     import { printTicket, getRecommendedMethod, type PrintMethod } from '$lib/printer';
     import { can, appState, loadOrderToCart } from '$lib/app_state.svelte';
     import Button from '$lib/components/ui/Button.svelte';
@@ -16,6 +17,12 @@
     let cancellingOrder = $state<Order | null>(null);
     let cancelReason = $state("");
     let isCancelling = $state(false);
+
+    // Estado del modal de transferencia
+    let transferringOrder = $state<Order | null>(null);
+    let freeTables = $state<Table[]>([]);
+    let selectedTableId = $state<number | null>(null);
+    let isTransferring = $state(false);
 
     // ── Filtros ──────────────────────────────────────────────────────────────────
     // 'active' = órdenes que requieren atención (por defecto)
@@ -161,6 +168,31 @@
             alert(`Error al imprimir pedido: ${e?.message}`);
         } finally {
             printingOrderId = null;
+        }
+    }
+
+    async function handleTransferOrderClick(order: Order) {
+        transferringOrder = order;
+        selectedTableId = null;
+        try {
+            const allTables = await TableService.getAll();
+            freeTables = allTables.filter(t => t.status === 'Free');
+        } catch (e) {
+            console.error("Error al cargar mesas:", e);
+            alert("No se pudieron cargar las mesas.");
+        }
+    }
+
+    async function confirmTransfer() {
+        if (!transferringOrder || !selectedTableId) return;
+        isTransferring = true;
+        try {
+            await OrderService.transfer(transferringOrder.id, selectedTableId);
+            transferringOrder = null;
+        } catch (e: any) {
+            alert(`Error transfiriendo mesa: ${e?.message ?? e}`);
+        } finally {
+            isTransferring = false;
         }
     }
 
@@ -332,6 +364,7 @@
                     {printingOrderId}
                     onItemComplete={handleItemAdvance}
                     onCancelOrder={handleCancelOrDelete}
+                    onTransferOrder={handleTransferOrderClick}
                     onPrint={handlePrintTicket}
                     onCharge={can.charge() ? openCartForCharge : undefined}
                     onDeliver={can.charge() ? handleComplete : undefined}
@@ -374,3 +407,43 @@
     </div>
 </div>
 {/if}
+
+{#if transferringOrder}
+<div class="modal modal-open bg-base-300/80 backdrop-blur-sm z-50">
+    <div class="modal-box shadow-2xl border border-primary/20">
+        <h3 class="font-black text-2xl text-primary flex items-center gap-2 mb-2">
+            Mover Mesa - Pedido #{transferringOrder.id}
+        </h3>
+        <p class="py-2 text-base-content/80 font-medium leading-tight mb-2">
+            Selecciona la nueva mesa a la que se mudarán los clientes. Solo se muestran las mesas que están actualmente libres.
+        </p>
+
+        <div class="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto p-1">
+            {#if freeTables.length === 0}
+                <div class="col-span-3 text-center py-4 text-base-content/50 italic">
+                    No hay mesas libres disponibles.
+                </div>
+            {:else}
+                {#each freeTables as t}
+                    <button 
+                        class="btn btn-outline {selectedTableId === t.id ? 'btn-primary bg-primary/10' : 'border-base-300'}" 
+                        onclick={() => selectedTableId = t.id}
+                    >
+                        Mesa {t.number}
+                    </button>
+                {/each}
+            {/if}
+        </div>
+
+        <div class="modal-action mt-6 flex justify-end gap-3">
+            <Button variant="ghost" class="border border-base-300 text-base-content/70" onclick={() => transferringOrder = null} disabled={isTransferring}>
+                Cancelar
+            </Button>
+            <Button variant="primary" class="shadow-xl" onclick={confirmTransfer} disabled={!selectedTableId || isTransferring} isLoading={isTransferring}>
+                Confirmar Traslado
+            </Button>
+        </div>
+    </div>
+</div>
+{/if}
+
