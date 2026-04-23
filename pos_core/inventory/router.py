@@ -28,7 +28,7 @@ async def upload_image(file: UploadFile = File(...)):
     """Sube una imagen al servidor y retorna su URL relativa."""
     # Validar extensión
     ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif"]:
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".webm"]:
         raise HTTPException(status_code=400, detail="Formato de imagen no permitido")
     
     # Generar nombre único

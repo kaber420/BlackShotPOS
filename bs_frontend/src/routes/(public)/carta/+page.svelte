@@ -6,6 +6,7 @@
     import type { Category } from '$lib/api/categories';
     import { fade, fly } from 'svelte/transition';
     import Button from '$lib/components/ui/Button.svelte';
+    import ProductMedia from '$lib/components/ProductMedia.svelte';
 
     let products = $state<Product[]>([]);
     let categories = $state<Category[]>([]);
@@ -155,10 +156,9 @@
                     <!-- Image Area -->
                     <div class="aspect-[4/3] w-full relative overflow-hidden bg-base-200">
                         {#if product.image_url}
-                            <img 
+                            <ProductMedia 
                                 src={product.image_url} 
                                 alt={product.name} 
-                                class="w-full h-full object-cover transition-transform duration-700 {product.is_active ? 'group-hover:scale-110' : ''}"
                             />
                         {:else}
                             <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/5 to-primary/10">
