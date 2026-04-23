@@ -15,6 +15,7 @@ from .models import (
 )
 from typing import List, Optional
 from . import unit_converter
+from pos_core.events.service import trigger_broadcast
 
 def delete_local_image(url: Optional[str]):
     """Elimina físicamente un archivo de imagen si es local."""
@@ -182,6 +183,7 @@ async def create_ingredient(session: AsyncSession, ingredient: IngredientCreate)
     session.add(db_ingredient)
     await session.commit()
     await session.refresh(db_ingredient)
+    await trigger_broadcast("inventory")
     return db_ingredient
 
 async def get_ingredients(session: AsyncSession) -> List[Ingredient]:
@@ -202,6 +204,7 @@ async def update_ingredient(session: AsyncSession, ingredient_id: int, ingredien
     session.add(db_ingredient)
     await session.commit()
     await session.refresh(db_ingredient)
+    await trigger_broadcast("inventory")
     return db_ingredient
 
 async def delete_ingredient(session: AsyncSession, ingredient_id: int) -> bool:
@@ -211,6 +214,7 @@ async def delete_ingredient(session: AsyncSession, ingredient_id: int) -> bool:
         return False
     await session.delete(db_ingredient)
     await session.commit()
+    await trigger_broadcast("inventory")
     return True
 
 # --- Operaciones de Modificadores ---
@@ -578,4 +582,5 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
                         session.add(mod_ingredient)
                 
     await session.commit()
+    await trigger_broadcast("inventory")
 

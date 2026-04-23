@@ -39,6 +39,12 @@ async def _fetch_topic_data(topic: str, db: AsyncSession) -> Optional[Any]:
         tables = await get_tables(db, include_inactive=True)
         return [t.model_dump(mode="json") for t in tables]
 
+    elif topic == "inventory":
+        from pos_core.inventory.service import get_ingredients
+        from pos_core.inventory.models import Ingredient
+        ingredients = await get_ingredients(db)
+        return [i.model_dump(mode="json") for i in ingredients]
+
     elif topic == "admin_iot":
         from pos_core.iot.service import get_all_devices
         devices = await get_all_devices(db)

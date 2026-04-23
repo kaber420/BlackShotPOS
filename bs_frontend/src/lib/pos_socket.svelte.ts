@@ -13,6 +13,7 @@ class PosSocketManager {
     tables = $state<Table[]>([]);
     dashboardStats = $state<any>(null);
     iotDevices = $state<any[]>([]);
+    ingredients = $state<any[]>([]);
 
     private subscribedTopics = new Set<string>();
     private reconnectTimeout: any = null;
@@ -98,6 +99,9 @@ class PosSocketManager {
                                         } : d
                                     );
                                 }
+                                break;
+                            case 'inventory':
+                                this.ingredients = data.data;
                                 break;
                         }
                     } else {

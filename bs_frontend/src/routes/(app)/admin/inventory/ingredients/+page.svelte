@@ -3,6 +3,7 @@
 	import { ProductService, type ModifierGroup, type Modifier } from '$lib/api/products';
 	import { onMount } from 'svelte';
     import Button from '$lib/components/ui/Button.svelte';
+	import { posSocket } from '$lib/pos_socket.svelte';
 
 	let ingredients = $state<Ingredient[]>([]);
 	let modifierGroups = $state<ModifierGroup[]>([]);
@@ -83,7 +84,16 @@
 		}
 	}
 
-	onMount(loadAllData);
+	onMount(() => {
+		loadAllData();
+		posSocket.subscribe('inventory');
+	});
+
+	$effect(() => {
+		if (posSocket.ingredients.length > 0) {
+			ingredients = posSocket.ingredients;
+		}
+	});
 
 	// --- Lógica de Ingredientes ---
 	function openIngredientModal(ing?: Ingredient) {
