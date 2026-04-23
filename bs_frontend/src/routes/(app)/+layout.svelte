@@ -225,7 +225,7 @@
                     class="btn-block font-bold" 
                     onclick={handleOpenShift} 
                     disabled={initialCash < 0}
-                    {isLoading}
+                    isLoading={isOpeningShift}
                 >
 					Abrir Turno de Caja
 				</Button>

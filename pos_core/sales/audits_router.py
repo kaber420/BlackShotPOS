@@ -17,7 +17,7 @@ router = APIRouter()
 class CancelRequest(BaseModel):
     reason: str
 
-@router.get("/", response_model=List[AuditLog])
+@router.get("/audits", response_model=List[AuditLog])
 async def list_audits(
     db: AsyncSession = Depends(get_session),
     user=Depends(require_permission(Permission.VIEW_AUDITS))

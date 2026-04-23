@@ -67,6 +67,13 @@
             icon: '👥', 
             desc: 'Gestión de personal y accesos',
             show: can.manageUsers()
+        },
+        { 
+            name: 'Bitácora / Auditoría', 
+            href: '/admin/audits', 
+            icon: '🛡️', 
+            desc: 'Registro global de eventos operativos',
+            show: can.viewReports()
         }
     ].filter(link => link.show);
 
