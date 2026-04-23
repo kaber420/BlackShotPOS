@@ -124,7 +124,7 @@
         </div>
     {/if}
 
-    <div class="overflow-x-auto bg-base-100 rounded-2xl shadow-sm border border-base-200">
+    <div class="hidden md:block overflow-x-auto bg-base-100 rounded-2xl shadow-sm border border-base-200">
         <table class="table table-lg">
             <thead class="bg-base-200/50">
                 <tr>
@@ -201,6 +201,72 @@
                 {/if}
             </tbody>
         </table>
+    </div>
+
+    <!-- Mobile Card View -->
+    <div class="grid grid-cols-1 gap-4 md:hidden">
+        {#if isLoading}
+            {#each Array(3) as _}
+                <div class="bg-base-100 p-4 rounded-2xl border border-base-200 shadow-sm animate-pulse flex flex-col gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="bg-base-300 rounded-full w-14 h-14 shrink-0"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-4 bg-base-300 rounded w-3/4"></div>
+                            <div class="h-3 bg-base-300 rounded w-1/2"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="h-6 bg-base-300 rounded w-1/4"></div>
+                        <div class="h-8 bg-base-300 rounded w-1/3"></div>
+                    </div>
+                </div>
+            {/each}
+        {:else if filteredProducts.length === 0}
+            <div class="text-center py-8 opacity-50 italic bg-base-100 rounded-2xl border border-base-200 shadow-sm">
+                {searchQuery ? 'No se encontraron productos que coincidan con la búsqueda.' : 'No hay productos registrados en el menú.'}
+            </div>
+        {:else}
+            {#each filteredProducts as product (product.id)}
+                <div class="bg-base-100 p-4 rounded-2xl border border-base-200 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow">
+                    <div class="flex justify-between items-start gap-4">
+                        <div class="flex items-center gap-3">
+                            <div class="avatar placeholder shrink-0">
+                                <div class="bg-primary/10 text-primary rounded-full w-14 border border-primary/20">
+                                    {#if product.image_url}
+                                        <img src={product.image_url} alt={product.name} class="object-cover" />
+                                    {:else}
+                                        <span class="text-sm font-bold">{product.name.substring(0, 2).toUpperCase()}</span>
+                                    {/if}
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-lg leading-tight">{product.name}</div>
+                                <div class="text-sm opacity-60 mt-0.5">{getCategoryName(product.category_id)}</div>
+                            </div>
+                        </div>
+                        <span class="badge {product.is_active ? 'badge-success' : 'badge-ghost'} text-white font-bold p-2.5 text-xs">
+                            {product.is_active ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </div>
+                    
+                    {#if product.description}
+                        <p class="text-sm opacity-70 line-clamp-2">{product.description}</p>
+                    {/if}
+                    
+                    <div class="flex justify-between items-center mt-2 pt-3 border-t border-base-200">
+                        <div class="font-mono text-xl font-bold">${product.price.toFixed(2)}</div>
+                        <div class="flex gap-2">
+                            <Button variant="ghost" size="sm" class="text-primary" onclick={() => openEditModal(product)}>
+                                Editar
+                            </Button>
+                            <Button variant="ghost" size="sm" danger onclick={() => deleteProduct(product.id!)}>
+                                Eliminar
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            {/each}
+        {/if}
     </div>
 </div>
 
