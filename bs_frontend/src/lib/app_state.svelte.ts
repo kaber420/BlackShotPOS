@@ -2,12 +2,42 @@ import { page } from '$app/state';
 import { ROLE_PRESETS_JS } from '$lib/roles';
 import { SettingsService } from './api/settings';
 
+const SESSION_STORAGE_KEY = 'bs_pos_session';
+
+function loadSavedSession() {
+    if (typeof localStorage === 'undefined') return { cart: [], activeTable: null, activeOrder: null };
+    try {
+        const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+        if (!saved) return { cart: [], activeTable: null, activeOrder: null };
+        const parsed = JSON.parse(saved);
+        
+        // Expiración: 1 hora (3600000 ms)
+        const ONE_HOUR = 3600000;
+        if (parsed.timestamp && (Date.now() - parsed.timestamp > ONE_HOUR)) {
+            console.log("Sesión persistente expirada (> 1 hora).");
+            localStorage.removeItem(SESSION_STORAGE_KEY);
+            return { cart: [], activeTable: null, activeOrder: null };
+        }
+
+        return {
+            cart: parsed.cart || [],
+            activeTable: parsed.activeTable || null,
+            activeOrder: parsed.activeOrder || null
+        };
+    } catch (e) {
+        console.error("Error loading saved session", e);
+        return { cart: [], activeTable: null, activeOrder: null };
+    }
+}
+
+const savedSession = loadSavedSession();
+
 export const appState = $state({
     currentTheme: 'corporate',
     isLoggedIn: false,
-    cart: [] as any[],
-    activeTable: null as any | null,
-    activeOrder: null as any | null,
+    cart: savedSession.cart,
+    activeTable: savedSession.activeTable,
+    activeOrder: savedSession.activeOrder,
     activeShift: null as any | null,
     // Usuario autenticado
     userRole: null as string | null,
@@ -24,6 +54,20 @@ export const appState = $state({
     } as any,
     cartVisible: false,
 });
+
+/**
+ * Guarda el estado crítico del POS (carrito, mesa, orden) en localStorage
+ */
+export function persistSession() {
+    if (typeof localStorage === 'undefined') return;
+    const sessionData = {
+        cart: appState.cart,
+        activeTable: appState.activeTable,
+        activeOrder: appState.activeOrder,
+        timestamp: Date.now()
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+}
 
 export function setTheme(theme: string) {
     appState.currentTheme = theme;
@@ -45,6 +89,7 @@ export function setAuth(status: boolean) {
             localStorage.removeItem('X-Omni-Username');
             localStorage.removeItem('X-Omni-Role');
             localStorage.removeItem('X-Omni-Token');
+            localStorage.removeItem(SESSION_STORAGE_KEY);
         }
     }
 }
@@ -173,10 +218,12 @@ export function addToCart(product: any, modifiers: any[] = [], variant?: any) {
         total_price: basePrice + modifierTotal
     };
     appState.cart = [...appState.cart, item];
+    persistSession();
 }
 
 export function removeFromCart(itemId: string) {
     appState.cart = appState.cart.filter(i => i.id !== itemId);
+    persistSession();
 }
 
 export function updateCartItemQuantity(itemId: string, delta: number) {
@@ -196,10 +243,12 @@ export function updateCartItemQuantity(itemId: string, delta: number) {
         item.total_price = (item.base_price + modifierTotal) * item.quantity;
         appState.cart = [...appState.cart];
     }
+    persistSession();
 }
 
 export function clearCart() {
     appState.cart = [];
+    persistSession();
 }
 
 export function setActiveTable(table: any | null, order: any | null = null) {
@@ -208,6 +257,7 @@ export function setActiveTable(table: any | null, order: any | null = null) {
     if (!table && !order) {
         appState.activeOrder = null;
     }
+    persistSession();
 }
 
 export function loadOrderToCart(order: any) {
@@ -245,4 +295,5 @@ export function loadOrderToCart(order: any) {
     } else {
         appState.activeTable = null;
     }
+    persistSession();
 }
