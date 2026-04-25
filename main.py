@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 from pos_core.database import init_db
+from pos_core.setup import setup_environment
 from pos_core.inventory.router import router as inventory_router
 from pos_core.tables.router import router as tables_router
 from pos_core.sales.router import router as sales_router
@@ -20,6 +21,8 @@ from omni_auth.api import router as auth_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Acciones a realizar al encender/apagar el servidor."""
+    # Asegura que el entorno (.env y tokens) esté listo
+    setup_environment()
     # Inicializa las tablas si no existen
     await init_db()
     yield
