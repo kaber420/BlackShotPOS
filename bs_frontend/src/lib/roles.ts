@@ -1,0 +1,87 @@
+/**
+ * Espejo en TypeScript de pos_core/roles.py
+ * Permite calcular el valor "por defecto del rol" en el cliente
+ * sin necesitar una llamada extra al servidor por cada permiso.
+ */
+
+const ALL_TRUE: Record<string, boolean> = {
+    can_take_orders: true,
+    can_send_to_kitchen: true,
+    can_charge: true,
+    can_manage_kitchen_status: true,
+    can_view_orders: true,
+    can_manage_tables: true,
+    can_view_kitchen: true,
+    can_manage_menu: true,
+    can_manage_inventory: true,
+    can_manage_users: true,
+    can_manage_shifts: true,
+    can_view_reports: true,
+    can_manage_settings: true,
+    can_view_audits: true,
+    can_manage_iot: true,
+};
+
+export const ROLE_PRESETS_JS: Record<string, Record<string, boolean>> = {
+    admin:    { ...ALL_TRUE },
+    operator: { ...ALL_TRUE }, // alias legacy
+    manager: {
+        can_take_orders: true,
+        can_send_to_kitchen: true,
+        can_charge: true,
+        can_manage_kitchen_status: true,
+        can_view_orders: true,
+        can_manage_tables: true,
+        can_view_kitchen: true,
+        can_manage_menu: true,
+        can_manage_inventory: true,
+        can_manage_users: false,
+        can_manage_shifts: true,
+        can_view_reports: true,
+        can_manage_settings: true,
+        can_view_audits: true,
+        can_manage_iot: true,
+    },
+    cashier: {
+        can_take_orders: true,
+        can_send_to_kitchen: true,
+        can_charge: true,
+        can_manage_kitchen_status: true,
+        can_view_orders: true,
+        can_manage_tables: true,
+        can_view_kitchen: true,
+        can_manage_menu: false,
+        can_manage_inventory: false,
+        can_manage_users: false,
+        can_manage_shifts: true,
+        can_view_reports: true,
+    },
+    kitchen: {
+        can_take_orders: false,
+        can_send_to_kitchen: false,
+        can_charge: false,
+        can_manage_kitchen_status: true,
+        can_view_orders: true,
+        can_manage_tables: false,
+        can_view_kitchen: true,
+        can_manage_menu: true,
+        can_manage_inventory: true,
+        can_manage_users: false,
+        can_manage_shifts: false,
+        can_view_reports: false,
+    },
+    waiter: {
+        can_take_orders: true,
+        can_send_to_kitchen: true,
+        can_charge: false,
+        can_manage_kitchen_status: false,
+        can_view_orders: true,
+        can_manage_tables: true,
+        can_view_kitchen: false,
+        can_manage_menu: false,
+        can_manage_inventory: false,
+        can_manage_users: false,
+        can_manage_shifts: false,
+        can_view_reports: false,
+    },
+};
