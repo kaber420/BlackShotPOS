@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  logto-postgres:
+    image: postgres:14-alpine
+    container_name: logto-postgres
+    environment:
+      POSTGRES_USER: logto
+      POSTGRES_PASSWORD: logto_password
+      POSTGRES_DB: logto
+    volumes:
+      - logto-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logto -d logto"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  logto:
+    image: svhd/logto:latest
+    container_name: logto
+    ports:
+      - "3001:3001" # Admin console
+      - "3002:3002" # Logto service (endpoint)
+    environment:
+      - DB_URL=postgresql://logto:logto_password@logto-postgres:5432/logto
+      - ENDPOINT=http://localhost:3002
+      - ADMIN_ENDPOINT=http://localhost:3001
+    depends_on:
+      logto-postgres:
+        condition: service_healthy
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --yes && npm start"]
+
+volumes:
+  logto-postgres-data:
