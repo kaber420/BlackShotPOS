@@ -19,14 +19,10 @@ from escpos.printer import Dummy  # Dummy = genera bytes sin conectar a hardware
 
 if TYPE_CHECKING:
     from pos_core.sales.models import Order, OrderItem
+    from pos_core.settings.models import BusinessSettings
 
-# ──────────────────────────────────────────────
-# Configuración del negocio (leeble desde .env)
-# ──────────────────────────────────────────────
-BUSINESS_NAME = os.getenv("BUSINESS_NAME", "BLACKSHOT CAFÉ")
-BUSINESS_ADDRESS = os.getenv("BUSINESS_ADDRESS", "")
-BUSINESS_PHONE = os.getenv("BUSINESS_PHONE", "")
-BUSINESS_FOOTER = os.getenv("BUSINESS_FOOTER", "¡Gracias por tu visita!")
+# La configuración del negocio ahora se pasa como argumento desde el router
+# (obtenida de la base de datos).
 
 
 def _get_printer() -> Dummy:
@@ -34,15 +30,15 @@ def _get_printer() -> Dummy:
     return Dummy()
 
 
-def _print_header(p: Dummy, title: str) -> None:
+def _print_header(p: Dummy, title: str, settings: BusinessSettings) -> None:
     """Imprime el encabezado estándar del negocio."""
     p.set(align="center", bold=True, double_height=True, double_width=True)
-    p.text(f"{BUSINESS_NAME}\n")
+    p.text(f"{settings.name}\n")
     p.set(align="center", bold=False, double_height=False, double_width=False)
-    if BUSINESS_ADDRESS:
-        p.text(f"{BUSINESS_ADDRESS}\n")
-    if BUSINESS_PHONE:
-        p.text(f"Tel: {BUSINESS_PHONE}\n")
+    if settings.address:
+        p.text(f"{settings.address}\n")
+    if settings.phone:
+        p.text(f"Tel: {settings.phone}\n")
     p.text("-" * 32 + "\n")
     p.set(align="center", bold=True)
     p.text(f"{title}\n")
@@ -50,18 +46,18 @@ def _print_header(p: Dummy, title: str) -> None:
     p.text("-" * 32 + "\n")
 
 
-def _print_footer(p: Dummy) -> None:
+def _print_footer(p: Dummy, settings: BusinessSettings) -> None:
     """Imprime el pie de página y corta el papel."""
     p.text("-" * 32 + "\n")
     p.set(align="center")
-    p.text(f"{BUSINESS_FOOTER}\n")
+    p.text(f"{settings.ticket_footer}\n")
     p.text(f"{datetime.now().strftime('%d/%m/%Y %H:%M')}\n")
     p.set(align="left")
     p.text("\n\n\n")
     p.cut()
 
 
-def format_ticket(order: Order) -> bytes:
+def format_ticket(order: Order, settings: BusinessSettings) -> bytes:
     """
     Genera el ticket de venta completo para entregar al cliente.
     Incluye: encabezado del negocio, items con precios, total y método de pago.
@@ -75,7 +71,7 @@ def format_ticket(order: Order) -> bytes:
     p = _get_printer()
 
     # ── Encabezado ──────────────────────────────
-    _print_header(p, "TICKET DE VENTA")
+    _print_header(p, "TICKET DE VENTA", settings)
 
     # ── Información de la orden ─────────────────
     p.set(bold=False)
@@ -128,12 +124,12 @@ def format_ticket(order: Order) -> bytes:
             p.text(f"  {payment.method}: ${payment.amount:.2f}\n")
 
     # ── Footer ───────────────────────────────────
-    _print_footer(p)
+    _print_footer(p, settings)
 
     return p.output
 
 
-def format_comanda(order: Order) -> bytes:
+def format_comanda(order: Order, settings: BusinessSettings) -> bytes:
     """
     Genera la comanda para la cocina (sin precios).
     Formato grande y legible para ser vista rápidamente en la cocina.
@@ -189,7 +185,7 @@ def format_comanda(order: Order) -> bytes:
     return p.output
 
 
-def format_ticket_html(order: Order) -> str:
+def format_ticket_html(order: Order, settings: BusinessSettings) -> str:
     """
     Genera una página HTML minimalista para imprimir el ticket desde el navegador.
     Incluye estilos CSS para ancho de papel térmico y auto-print.
@@ -238,9 +234,9 @@ def format_ticket_html(order: Order) -> str:
     </head>
     <body>
         <div class="center">
-            <div class="header">{BUSINESS_NAME}</div>
-            {f"<div>{BUSINESS_ADDRESS}</div>" if BUSINESS_ADDRESS else ""}
-            {f"<div>Tel: {BUSINESS_PHONE}</div>" if BUSINESS_PHONE else ""}
+            <div class="header">{settings.name}</div>
+            {f"<div>{settings.address}</div>" if settings.address else ""}
+            {f"<div>Tel: {settings.phone}</div>" if settings.phone else ""}
             <div class="divider"></div>
             <strong>TICKET DE VENTA</strong>
             <div class="divider"></div>
@@ -265,7 +261,7 @@ def format_ticket_html(order: Order) -> str:
         
         <div class="divider"></div>
         <div class="center footer">
-            {BUSINESS_FOOTER}<br>
+            {settings.ticket_footer}<br>
             Blackshot POS v2
         </div>
         
@@ -281,7 +277,7 @@ def format_ticket_html(order: Order) -> str:
     """
 
 
-def format_comanda_html(order: Order) -> str:
+def format_comanda_html(order: Order, settings: BusinessSettings) -> str:
     """Genera el HTML de comanda para cocina (grande, sin precios)."""
     items_html = ""
     for item in (order.items or []):

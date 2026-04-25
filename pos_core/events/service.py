@@ -84,8 +84,7 @@ async def trigger_broadcast(topic: str, data: Any = None):
                 await pos_broadcaster.broadcast(topic, result)
         except Exception as e:
             logger.error(f"❌ Error al procesar trigger_broadcast para '{topic}': {e}", exc_info=True)
-        finally:
-            break
+        break
 
 
 async def trigger_all_broadcasts():

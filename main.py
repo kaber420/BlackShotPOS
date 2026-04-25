@@ -20,8 +20,6 @@ from omni_auth.api import router as auth_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Acciones a realizar al encender/apagar el servidor."""
-    # Asegurar que el directorio de datos existe
-    os.makedirs("data/img", exist_ok=True)
     # Inicializa las tablas si no existen
     await init_db()
     yield
@@ -32,6 +30,9 @@ app = FastAPI(
     version="0.1.0", 
     lifespan=lifespan
 )
+
+# Asegurar que el directorio de datos existe antes de montar
+os.makedirs("data/img", exist_ok=True)
 
 # Montar archivos estáticos para subidas de fotos
 app.mount("/uploads", StaticFiles(directory="data/img"), name="uploads")

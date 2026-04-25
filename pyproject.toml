@@ -24,6 +24,7 @@ dependencies = [
     "python-escpos",
     "sqlmodel",
     "aiosqlite",
+    "websockets",
 ]
 
 [project.optional-dependencies]

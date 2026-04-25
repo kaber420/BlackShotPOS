@@ -19,6 +19,7 @@ from sqlmodel import select
 
 from pos_core.database import get_session
 from pos_core.sales.models import Order, OrderItem
+from pos_core.settings.service import get_settings
 from omni_auth.security import require_role
 from . import formatter
 
@@ -84,7 +85,8 @@ async def get_ticket_raw(
     user=Depends(require_role("cashier")),
 ):
     order = await _get_order_with_items(order_id, session)
-    data = formatter.format_ticket(order)
+    settings = await get_settings(session)
+    data = formatter.format_ticket(order, settings)
     return Response(
         content=data,
         media_type="application/octet-stream",
@@ -104,7 +106,8 @@ async def get_ticket_html(
     user=Depends(require_role("cashier")),
 ):
     order = await _get_order_with_items(order_id, session)
-    return formatter.format_ticket_html(order)
+    settings = await get_settings(session)
+    return formatter.format_ticket_html(order, settings)
 
 
 @router.post(
@@ -122,7 +125,8 @@ async def print_ticket_network(
     user=Depends(require_role("cashier")),
 ):
     order = await _get_order_with_items(order_id, session)
-    data = formatter.format_ticket(order)
+    settings = await get_settings(session)
+    data = formatter.format_ticket(order, settings)
     try:
         _send_to_network_printer(data)
     except RuntimeError as exc:
@@ -143,7 +147,8 @@ async def get_comanda_raw(
     user=Depends(require_role("waiter")),
 ):
     order = await _get_order_with_items(order_id, session)
-    data = formatter.format_comanda(order)
+    settings = await get_settings(session)
+    data = formatter.format_comanda(order, settings)
     return Response(
         content=data,
         media_type="application/octet-stream",
@@ -163,7 +168,8 @@ async def get_comanda_html(
     user=Depends(require_role("waiter")),
 ):
     order = await _get_order_with_items(order_id, session)
-    return formatter.format_comanda_html(order)
+    settings = await get_settings(session)
+    return formatter.format_comanda_html(order, settings)
 
 
 @router.post(
@@ -177,7 +183,8 @@ async def print_comanda_network(
     user=Depends(require_role("waiter")),
 ):
     order = await _get_order_with_items(order_id, session)
-    data = formatter.format_comanda(order)
+    settings = await get_settings(session)
+    data = formatter.format_comanda(order, settings)
     try:
         _send_to_network_printer(data)
     except RuntimeError as exc:

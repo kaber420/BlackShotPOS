@@ -6,9 +6,9 @@ Este roadmap marca la transición de un MVP local a un sistema profesional, segu
 
 ## 🛡️ Fase 1: Identidad y Seguridad (Infraestructura)
 Esta fase es crítica para exponer el sitio a internet sin riesgos innecesarios.
-- [ ] **Autenticación Local-First**: Implementar identidad integrada (FastAPI Users) para funcionamiento 100% offline (ver `drafts/STRATEGY_LOCAL_DISTRIBUTED_AUTH.md`).
-- [ ] **Arquitectura de Manager Central**: Crear el módulo "Bridge" para unificar múltiples sucursales independientes.
+- [ ] **Migración a Logto Auth**: Implementar autenticación gestionada y self-hosted (ver `docs/STRATEGY_AUTH_LOGTO.md`).
 - [ ] **Endurecimiento de API**: Implementar *Rate Limiting* y validación estricta de CORS.
+- [ ] **Contenerización**: Crear `Dockerfile` y `docker-compose.yml` para un despliegue reproducible.
 
 ## 📊 Fase 2: Control Operativo y Finanzas
 Funciones necesarias para que el dueño del negocio pueda confiar ciegamente en los números del sistema y evitar fugas de capital.
