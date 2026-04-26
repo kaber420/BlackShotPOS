@@ -22,56 +22,45 @@ def setup_environment():
     # 2. Verify and populate tokens
     _ensure_secure_tokens(env_path)
 
-def rotate_tokens(rotate_master=True, rotate_seed=True):
+def rotate_tokens():
     """
-    Explicitly regenerates specified tokens in the .env file.
+    Explicitly regenerates the JWT_SECRET in the .env file.
     """
     env_path = ".env"
     if not os.path.exists(env_path):
         print("[setup] Error: .env no encontrado para rotar.")
         return False
 
-    updates = {}
-    if rotate_master:
-        updates["OMNI_MASTER_TOKEN"] = secrets.token_urlsafe(32)
-    if rotate_seed:
-        updates["OMNIVAULT_SEED"] = secrets.token_urlsafe(32)
+    updates = {"JWT_SECRET": secrets.token_urlsafe(32)}
 
-    if updates:
-        _update_env_file(env_path, updates)
-        if rotate_master:
-            print(f"[setup] 🔑 NUEVO OMNI_MASTER_TOKEN generado: {updates['OMNI_MASTER_TOKEN']}")
-        if rotate_seed:
-            print("[setup] 🌱 NUEVO OMNIVAULT_SEED generado y guardado.")
-        return True
-    
-    return False
+    _update_env_file(env_path, updates)
+    print("[setup] 🔑 NUEVO JWT_SECRET generado y guardado.")
+    return True
 
 def _ensure_secure_tokens(env_path):
     """Checks for empty or missing tokens and populates them."""
     with open(env_path, "r") as f:
         lines = f.readlines()
 
-    keys_to_ensure = ["OMNIVAULT_SEED", "OMNI_MASTER_TOKEN"]
+    keys_to_ensure = ["JWT_SECRET"]
     current_values = {}
     
     for line in lines:
         if "=" in line and not line.strip().startswith("#"):
-            key, val = line.strip().split("=", 1)
-            key = key.strip()
-            val = val.strip().strip('"').strip("'")
-            if key in keys_to_ensure:
-                current_values[key] = val
+            parts = line.strip().split("=", 1)
+            if len(parts) == 2:
+                key, val = parts
+                key = key.strip()
+                val = val.strip().strip('"').strip("'")
+                if key in keys_to_ensure:
+                    current_values[key] = val
 
     updates = {}
     for key in keys_to_ensure:
         # Generate if missing, empty, or a generic placeholder
-        if key not in current_values or not current_values[key] or "tu-token" in current_values[key] or "identity-seed" in current_values[key]:
+        if key not in current_values or not current_values[key] or "tu-token" in current_values[key] or "identity-seed" in current_values[key] or "secret-key" in current_values[key]:
             updates[key] = secrets.token_urlsafe(32)
-            if key == "OMNI_MASTER_TOKEN":
-                print(f"[setup] 🛡️ Generando token maestro inicial: {updates[key]}")
-            else:
-                print(f"[setup] 🛡️ Generando semilla de seguridad inicial ({key})")
+            print(f"[setup] 🛡️ Generando secreto de seguridad inicial ({key})")
 
     if updates:
         _update_env_file(env_path, updates)

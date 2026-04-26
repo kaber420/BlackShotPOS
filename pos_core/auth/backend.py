@@ -5,7 +5,7 @@ from fastapi_users.authentication import (
     JWTStrategy,
 )
 
-SECRET = os.getenv("OMNIVAULT_SEED", "SECRET_DE_DESARROLLO_CAMBIAME")
+SECRET = os.getenv("JWT_SECRET") or os.getenv("OMNIVAULT_SEED", "SECRET_DE_DESARROLLO_CAMBIAME")
 
 cookie_transport = CookieTransport(
     cookie_name="bs_auth",

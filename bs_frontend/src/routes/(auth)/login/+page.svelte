@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { setAuth } from '$lib/app_state.svelte';
+	import { setAuth, initAuth } from '$lib/app_state.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 
 	let email = $state('');
@@ -27,8 +27,12 @@
 			});
 
 			if (res.ok) {
-				setAuth(true);
-				goto('/');
+				const success = await initAuth();
+				if (success) {
+					goto('/');
+				} else {
+					error = 'Error al cargar perfil tras login';
+				}
 			} else {
 				const data = await res.json();
 				error = data.detail || 'Error de autenticación';

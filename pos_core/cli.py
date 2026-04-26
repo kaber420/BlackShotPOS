@@ -17,10 +17,7 @@ def start():
     run_parser.add_argument("--port", type=int, help="Puerto para el servidor")
 
     # Comando 'rotate-tokens'
-    rotate_parser = subparsers.add_parser("rotate-tokens", help="Rota las llaves de seguridad en el .env")
-    rotate_parser.add_argument("--master", action="store_true", help="Solo rotar OMNI_MASTER_TOKEN")
-    rotate_parser.add_argument("--seed", action="store_true", help="Solo rotar OMNIVAULT_SEED (¡CUIDADO!)")
-    rotate_parser.add_argument("--all", action="store_true", help="Rotar todos los tokens")
+    rotate_parser = subparsers.add_parser("rotate-tokens", help="Rota el JWT_SECRET en el .env")
 
     # Parse arguments
     args = parser.parse_args()
@@ -43,24 +40,16 @@ def start():
         uvicorn.run("main:app", host=host, port=port, reload=True)
 
     elif args.command == "rotate-tokens":
-        if not (args.master or args.seed or args.all):
-            print("Error: Debes especificar qué rotar: --master, --seed o --all")
+        print("\n" + "!" * 50)
+        print("⚠️ ADVERTENCIA: Rotar el secreto de seguridad invalidará")
+        print("todas las sesiones activas de los usuarios.")
+        print("!" * 50)
+        confirm = input("\n¿Estás seguro de que deseas continuar? (s/N): ")
+        if confirm.lower() != 's':
+            print("Operación cancelada.")
             return
 
-        do_master = args.master or args.all
-        do_seed = args.seed or args.all
-
-        if do_seed:
-            print("\n" + "!" * 50)
-            print("⚠️ ADVERTENCIA: Rotar OMNIVAULT_SEED invalidará")
-            print("cualquier dato cifrado previamente en el Vault.")
-            print("!" * 50)
-            confirm = input("\n¿Estás seguro de que deseas continuar? (s/N): ")
-            if confirm.lower() != 's':
-                print("Operación cancelada.")
-                return
-
-        rotate_tokens(rotate_master=do_master, rotate_seed=do_seed)
+        rotate_tokens()
 
 if __name__ == "__main__":
     start()

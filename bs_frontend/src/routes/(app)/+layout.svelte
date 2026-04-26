@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { appState, setTheme, setAuth, setActiveShift, initAuth, can, getRoleLabel } from '$lib/app_state.svelte';
+	import { fetchApi } from '$lib/api';
 	import { checkActiveShift, openShift } from '$lib/api/shifts';
 	import { onMount } from 'svelte';
 	import Toast from '$lib/components/Toast.svelte';
@@ -40,12 +41,15 @@
 		}
 	}
 
-	function handleLogout() {
-		// En una implementación real con FastAPI Users, deberíamos llamar a /api/auth/jwt/logout
-		// pero por ahora simplemente reseteamos el estado y redirigimos.
-		// Las cookies HTTP-only no pueden ser borradas por JS si son seguras.
-		setAuth(false);
-		goto('/login');
+	async function handleLogout() {
+		try {
+			await fetchApi('/api/auth/jwt/logout', { method: 'POST' });
+		} catch (e) {
+			console.error("Error logging out from server", e);
+		} finally {
+			setAuth(false);
+			goto('/login');
+		}
 	}
 
 	function changeTheme(event: Event) {
