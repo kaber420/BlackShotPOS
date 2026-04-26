@@ -1,6 +1,7 @@
 import { page } from '$app/state';
 import { ROLE_PRESETS_JS } from '$lib/roles';
 import { SettingsService } from './api/settings';
+import { fetchApi } from './api';
 
 const SESSION_STORAGE_KEY = 'bs_pos_session';
 
@@ -84,11 +85,8 @@ export function setAuth(status: boolean) {
         appState.userUuid = null;
         appState.permissions = {};
         appState.permissionsLoaded = false;
-        // Limpiar cache de usuario al cerrar sesión
+        // Limpiar session storage
         if (typeof localStorage !== 'undefined') {
-            localStorage.removeItem('X-Omni-Username');
-            localStorage.removeItem('X-Omni-Role');
-            localStorage.removeItem('X-Omni-Token');
             localStorage.removeItem(SESSION_STORAGE_KEY);
         }
     }
@@ -100,54 +98,27 @@ export function setAuth(status: boolean) {
  */
 export async function initAuth(): Promise<boolean> {
     const ls = typeof localStorage !== 'undefined' ? localStorage : null;
-    const token = ls?.getItem('X-Omni-Token') ?? null;
 
-    // Sin token → no autenticado
-    if (!token) {
-        appState.isLoggedIn = false;
-        appState.permissionsLoaded = true;
-        return false;
-    }
-
-    // ── Paso 1: token existe → asumir logueado de inmediato ──────────────────
-    // Tomamos lo que hay en caché; si no hay nada, usamos defaults de admin
-    const cachedUser = ls?.getItem('X-Omni-Username') ?? null;
-    const cachedRole = ls?.getItem('X-Omni-Role') ?? 'admin';
-
-    appState.isLoggedIn   = true;
-    appState.userName     = cachedUser ?? 'Usuario';
-    appState.userRole     = cachedRole;
-    // Aplicar preset del rol inmediatamente — el nav funciona antes del fetch
-    appState.permissions  = { ...(ROLE_PRESETS_JS[cachedRole] ?? ROLE_PRESETS_JS['admin']) };
-    appState.permissionsLoaded = true;   // ← nav ya renderiza correctamente
-
-    // ── Paso 2: verificar con el servidor y refinar permisos ─────────────────
     try {
-        const res = await fetch('/api/_auth/me', { headers: { 'X-Omni-Token': token } });
+        // Con FastAPI Users + Cookies, simplemente llamamos a /me con credentials: 'include'
+        // fetchApi ya incluye credentials: 'include' por defecto ahora
+        const data = await fetchApi<any>('/api/users/me');
 
-        if (!res.ok) {
-            // Token inválido → cerrar sesión y limpiar
-            appState.isLoggedIn  = false;
-            appState.permissions = {};
-            ls?.removeItem('X-Omni-Token');
-            ls?.removeItem('X-Omni-Username');
-            ls?.removeItem('X-Omni-Role');
-            return false;
-        }
-
-        const data = await res.json();
         appState.isLoggedIn  = true;
-        appState.userRole    = data.role     ?? cachedRole;
-        appState.userName    = data.username ?? cachedUser ?? 'Usuario';
-        appState.userUuid    = data.uuid     ?? null;
-        // Permisos del servidor (incluye overrides individuales guardados en metadata)
-        appState.permissions = data.permissions ?? appState.permissions;
-
-        // Actualizar caché con datos frescos
-        ls?.setItem('X-Omni-Username', appState.userName ?? '');
-        ls?.setItem('X-Omni-Role',     appState.userRole ?? '');
+        appState.userUuid    = data.id;
+        appState.userName    = data.email.split('@')[0]; // Usamos el email como nombre por ahora
         
-        // ── Paso 3: Cargar configuración del negocio ────────────────────────
+        // Extraer rol y permisos de metadata (según el plan)
+        const metadata = data.custom_metadata || {};
+        appState.userRole    = metadata.role || 'waiter';
+        
+        // Cargar permisos: primero el preset del rol, luego overrides
+        const rolePreset = ROLE_PRESETS_JS[appState.userRole] || ROLE_PRESETS_JS['waiter'];
+        appState.permissions = { ...rolePreset, ...(metadata.permissions || {}) };
+        
+        appState.permissionsLoaded = true;
+
+        // Cargar configuración del negocio
         try {
             appState.settings = await SettingsService.get();
         } catch (e) {
@@ -155,8 +126,10 @@ export async function initAuth(): Promise<boolean> {
         }
 
         return true;
-    } catch {
-        // Sin red → seguimos con el preset ya aplicado en Paso 1
+    } catch (error) {
+        console.log("No hay sesión activa o error en initAuth:", error);
+        appState.isLoggedIn = false;
+        appState.permissionsLoaded = true;
         return false;
     }
 }

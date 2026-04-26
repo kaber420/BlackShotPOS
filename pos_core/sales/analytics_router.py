@@ -6,7 +6,7 @@ from typing import Optional
 
 from pos_core.database import get_session
 from .models import Order, Payment, PaymentMethod, OrderStatus, OrderItem, Shift, ShiftStatus
-from omni_auth.security import require_permission
+from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
 
 router = APIRouter()

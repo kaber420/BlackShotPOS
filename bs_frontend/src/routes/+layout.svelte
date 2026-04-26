@@ -10,18 +10,11 @@
 
 	function checkAuth() {
 		if (typeof window !== 'undefined') {
-			const token = localStorage.getItem('X-Omni-Token');
-			setAuth(!!token);
-
 			const path = page.url.pathname;
 			const isPublicRoute = path.startsWith('/login') || path.startsWith('/carta');
 
-			// Redirección si no está logueado
-			if (!appState.isLoggedIn && !isPublicRoute) {
-				goto('/login');
-			}
-			// Redirección si ya está logueado y trata de ir a login
-			else if (appState.isLoggedIn && path.startsWith('/login')) {
+			// Redirección básica si ya está logueado y trata de ir a login
+			if (appState.isLoggedIn && path.startsWith('/login')) {
 				goto('/');
 			}
 		}

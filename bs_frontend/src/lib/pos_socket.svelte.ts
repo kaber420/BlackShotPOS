@@ -27,15 +27,9 @@ class PosSocketManager {
         // Prevent duplicate connection attempts
         if (this.status === 'connecting' || this.status === 'open') return;
 
-        const token = localStorage.getItem('X-Omni-Token');
-        if (!token) {
-            console.warn("SOCKET: No token found. Could not connect.");
-            return;
-        }
-
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.host;
-        const url = `${protocol}//${host}/api/v1/pos/ws/pos?token=${encodeURIComponent(token)}`;
+        const url = `${protocol}//${host}/api/v1/pos/ws/pos`;
 
         console.log("🔌 SOCKET: Conectando...");
         this.status = 'connecting';

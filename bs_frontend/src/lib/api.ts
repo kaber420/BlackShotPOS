@@ -11,14 +11,6 @@ const getAuthHeaders = (isFormData: boolean = false) => {
 		headers['Content-Type'] = 'application/json';
 	}
 	
-	// Leer token de localStorage si estamos en el navegador
-	if (typeof window !== 'undefined') {
-		const token = localStorage.getItem('X-Omni-Token');
-		if (token) {
-			headers['X-Omni-Token'] = token;
-		}
-	}
-	
 	return headers;
 };
 
@@ -30,6 +22,7 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 	try {
 		const response = await fetch(path, {
 			...options,
+			credentials: 'include',
 			headers: {
 				...getAuthHeaders(isFormData),
 				...options.headers
@@ -39,9 +32,10 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 		if (!response.ok) {
 			if (response.status === 401) {
 				if (typeof window !== 'undefined') {
-					localStorage.removeItem('X-Omni-Token');
-					// Opcionalmente podemos disparar un evento para que el UI sepa
-					window.location.href = '/login';
+					// Redirigir al login si no estamos en la página de login
+					if (!window.location.pathname.startsWith('/login')) {
+						window.location.href = '/login';
+					}
 				}
 			}
 			const errorData = await response.json().catch(() => null);

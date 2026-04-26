@@ -5,7 +5,7 @@ from . import service
 from .models import IoTDevice
 from pos_core.settings.service import get_settings
 from pos_core.events.manager import iot_broadcaster
-from omni_auth.security import require_permission
+from pos_core.auth.dependencies import require_permission
 from typing import List, Optional
 from pydantic import BaseModel
 

@@ -16,17 +16,13 @@
 	let isOpeningShift = $state(false);
 	
 	onMount(async () => {
-		const token = typeof localStorage !== 'undefined' ? localStorage.getItem('X-Omni-Token') : null;
-		if (!token) {
-			goto('/login');
-			return;
-		}
 		try {
 			await initAuth();
 			const res = await checkActiveShift();
 			setActiveShift(res.shift);
 		} catch (e) {
 			console.error("Error en inicialización", e);
+			goto('/login');
 		} finally {
 			isCheckingShift = false;
 		}
@@ -45,7 +41,9 @@
 	}
 
 	function handleLogout() {
-		localStorage.removeItem('X-Omni-Token');
+		// En una implementación real con FastAPI Users, deberíamos llamar a /api/auth/jwt/logout
+		// pero por ahora simplemente reseteamos el estado y redirigimos.
+		// Las cookies HTTP-only no pueden ser borradas por JS si son seguras.
 		setAuth(false);
 		goto('/login');
 	}

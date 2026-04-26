@@ -4,7 +4,7 @@ from typing import Optional
 from pydantic import BaseModel
 
 from pos_core.database import get_session
-from omni_auth.security import require_permission
+from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
 from .shifts_service import open_shift, close_shift, get_active_shift, get_shift_report, list_shifts
 

@@ -1,8 +1,7 @@
-const BASE = '/api/_auth';
+const BASE = '/api/users';
 
 function authHeaders() {
-    const token = localStorage.getItem('X-Omni-Token') ?? '';
-    return { 'Content-Type': 'application/json', 'X-Omni-Token': token };
+    return { 'Content-Type': 'application/json' };
 }
 
 export interface PosUser {
@@ -24,23 +23,28 @@ export interface CreateUserPayload {
 
 export const UserService = {
     async list(includeInactive = false): Promise<PosUser[]> {
-        const res = await fetch(`${BASE}/users?include_inactive=${includeInactive}`, {
+        const res = await fetch(`${BASE}?include_inactive=${includeInactive}`, {
             headers: authHeaders(),
+            credentials: 'include'
         });
         if (!res.ok) throw new Error('Error listando usuarios');
         return res.json();
     },
 
     async get(uuid: string): Promise<PosUser> {
-        const res = await fetch(`${BASE}/users/${uuid}`, { headers: authHeaders() });
+        const res = await fetch(`${BASE}/${uuid}`, { 
+            headers: authHeaders(),
+            credentials: 'include'
+        });
         if (!res.ok) throw new Error('Usuario no encontrado');
         return res.json();
     },
 
-    async create(payload: CreateUserPayload): Promise<PosUser> {
-        const res = await fetch(`${BASE}/register`, {
+    async create(payload: any): Promise<PosUser> {
+        const res = await fetch(`/api/auth/register`, {
             method: 'POST',
             headers: authHeaders(),
+            credentials: 'include',
             body: JSON.stringify(payload),
         });
         if (!res.ok) {
@@ -50,10 +54,11 @@ export const UserService = {
         return res.json();
     },
 
-    async update(uuid: string, data: { username?: string; role?: string; is_active?: number }): Promise<void> {
-        const res = await fetch(`${BASE}/users/${uuid}`, {
-            method: 'PUT',
+    async update(uuid: string, data: any): Promise<void> {
+        const res = await fetch(`${BASE}/${uuid}`, {
+            method: 'PATCH',
             headers: authHeaders(),
+            credentials: 'include',
             body: JSON.stringify(data),
         });
         if (!res.ok) throw new Error('Error actualizando usuario');

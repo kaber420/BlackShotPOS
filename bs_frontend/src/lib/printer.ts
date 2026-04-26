@@ -166,9 +166,8 @@ export function getPreferredMethod(): PrintMethod | null {
 const BASE_URL = '/api/v1/pos';
 
 async function fetchRawBytes(endpoint: string): Promise<Uint8Array> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('X-Omni-Token') : null;
   const response = await fetch(`${BASE_URL}${endpoint}`, {
-    headers: token ? { 'X-Omni-Token': token } : {},
+    credentials: 'include'
   });
   if (!response.ok) {
     const err = await response.json().catch(() => null);
@@ -330,8 +329,7 @@ async function _dispatch(data: Uint8Array, method: PrintMethod, filename: string
 
 /** Abre una ventana nueva con el HTML del ticket para imprimir usando el diálogo del sistema. */
 function printViaBrowser(orderId: number, type: 'ticket' | 'comanda'): void {
-  const token = (typeof window !== 'undefined' ? localStorage.getItem('X-Omni-Token') : '') || '';
-  const url = `${BASE_URL}/print/${type}/${orderId}/html?token=${encodeURIComponent(token)}`;
+  const url = `${BASE_URL}/print/${type}/${orderId}/html`;
   
   // Abrir en una ventana pequeña o un popup
   const width = 400;

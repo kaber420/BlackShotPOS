@@ -6,15 +6,12 @@ from .models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMe
 from pos_core.sales import order_service, payment_service, analytics_service
 from pos_core.tables import service as table_service
 from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast
-from omni_auth.security import require_role, require_permission
+from pos_core.auth.dependencies import require_role, require_permission
 from pos_core.roles import Permission
 from typing import List, Optional
 from pydantic import BaseModel
 import asyncio
 from pos_core.sales.schemas import OrderRead
-from omni_auth.manager import OmniAuthManager
-
-_auth_manager = OmniAuthManager()
 
 router = APIRouter()
 
@@ -49,8 +46,8 @@ async def create_new_order(
         order_in.type,
         order_in.table_id,
         order_in.external_reference,
-        waiter_uuid=user.get("user_uuid"),
-        waiter_name=user.get("username"),
+        waiter_uuid=str(user.id),
+        waiter_name=user.email,
     )
     asyncio.create_task(trigger_broadcast("kitchen_orders"))
     asyncio.create_task(trigger_broadcast("recent_orders"))
@@ -122,10 +119,10 @@ async def update_status(
         db,
         order_id,
         status,
-        cook_uuid=user.get("user_uuid") if is_kitchen else None,
-        cook_name=user.get("username") if is_kitchen else None,
-        delivered_by_uuid=user.get("user_uuid") if is_delivery else None,
-        delivered_by_name=user.get("username") if is_delivery else None,
+        cook_uuid=str(user.id) if is_kitchen else None,
+        cook_name=user.email if is_kitchen else None,
+        delivered_by_uuid=str(user.id) if is_delivery else None,
+        delivered_by_name=user.email if is_delivery else None,
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -175,10 +172,10 @@ async def update_item_status(
         order_id,
         item_id,
         status,
-        cook_uuid=user.get("user_uuid") if is_kitchen else None,
-        cook_name=user.get("username") if is_kitchen else None,
-        delivered_by_uuid=user.get("user_uuid") if is_delivery else None,
-        delivered_by_name=user.get("username") if is_delivery else None,
+        cook_uuid=str(user.id) if is_kitchen else None,
+        cook_name=user.email if is_kitchen else None,
+        delivered_by_uuid=str(user.id) if is_delivery else None,
+        delivered_by_name=user.email if is_delivery else None,
     )
     if not item:
         raise HTTPException(status_code=404, detail="OrderItem not found")
@@ -309,8 +306,8 @@ async def transfer_order(
             db,
             order_id,
             transfer_in.new_table_id,
-            actor_uuid=user.get("user_uuid"),
-            actor_name=user.get("username"),
+            actor_uuid=str(user.id),
+            actor_name=user.email,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

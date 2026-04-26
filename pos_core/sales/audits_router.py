@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from pos_core.database import get_session
 from .models import AuditLog, Order, OrderStatus
-from omni_auth.security import require_permission
+from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
 from pos_core.sales import order_service
 from pos_core.events.service import trigger_all_broadcasts
@@ -43,8 +43,8 @@ async def cancel_order_with_reason(
             db,
             order_id,
             reason=req.reason,
-            actor_uuid=user.get("user_uuid"),
-            actor_name=user.get("username"),
+            actor_uuid=str(user.id),
+            actor_name=user.email,
         )
         
         # Broadcast a las pantallas en tiempo real (KDS y Orders)
@@ -71,8 +71,8 @@ async def cancel_item_with_reason(
             order_id,
             item_id,
             reason=req.reason,
-            actor_uuid=user.get("user_uuid"),
-            actor_name=user.get("username"),
+            actor_uuid=str(user.id),
+            actor_name=user.email,
         )
         
         asyncio.create_task(trigger_all_broadcasts())

@@ -16,7 +16,8 @@ from pos_core.sales.audits_router import router as audits_router
 from pos_core.events.router import router as events_router
 from pos_core.iot.router import router as iot_router
 from pos_core.iot.admin_router import router as admin_iot_router
-from omni_auth.api import router as auth_router
+from pos_core.auth.router import auth_router, user_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -64,7 +65,9 @@ app.include_router(audits_router, prefix="/api/v1/pos", tags=["Auditoría"])
 app.include_router(events_router, prefix="/api/v1/pos", tags=["Eventos"])
 app.include_router(iot_router, prefix="/api/v1/pos", tags=["IoT"])
 app.include_router(admin_iot_router, prefix="/api/v1/pos/admin/iot", tags=["IoT Admin"])
-app.include_router(auth_router, prefix="/api", tags=["Auth"])
+app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
+app.include_router(user_router, prefix="/api/users", tags=["Users"])
+
 
 @app.get("/")
 async def root():

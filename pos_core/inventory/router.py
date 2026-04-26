@@ -16,7 +16,7 @@ from .models import (
     ProductVariant, ProductVariantCreate, ProductVariantUpdate, ProductVariantRead
 )
 from . import service, unit_converter
-from omni_auth.security import verify_omni_token, require_role
+from pos_core.auth.dependencies import require_role
 from typing import List, Optional
 
 router = APIRouter()

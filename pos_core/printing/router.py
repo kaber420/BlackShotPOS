@@ -20,7 +20,7 @@ from sqlmodel import select
 from pos_core.database import get_session
 from pos_core.sales.models import Order, OrderItem
 from pos_core.settings.service import get_settings
-from omni_auth.security import require_role
+from pos_core.auth.dependencies import require_role
 from . import formatter
 
 logger = logging.getLogger(__name__)

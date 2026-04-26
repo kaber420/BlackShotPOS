@@ -4,7 +4,7 @@
 	import { setAuth } from '$lib/app_state.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 
-	let username = $state('');
+	let email = $state('');
 	let password = $state('');
 	let error = $state('');
 	let loading = $state(false);
@@ -16,18 +16,17 @@
 		error = '';
 
 		try {
-			const res = await fetch('/api/_auth/login', {
+			const formData = new URLSearchParams();
+			formData.append('username', email); // FastAPI Users espera 'username' como email
+			formData.append('password', password);
+
+			const res = await fetch('/api/auth/jwt/login', {
 				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ username, password })
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: formData
 			});
 
 			if (res.ok) {
-				const data = await res.json();
-				localStorage.setItem('X-Omni-Token', data.token);
-				// Guardar info del usuario para display inmediato
-				localStorage.setItem('X-Omni-Username', data.username ?? username);
-				localStorage.setItem('X-Omni-Role', data.role ?? 'admin');
 				setAuth(true);
 				goto('/');
 			} else {
@@ -60,15 +59,15 @@
 
 			<form onsubmit={handleLogin} class="space-y-4">
 				<div class="form-control w-full">
-					<label class="label pt-0" for="username">
-						<span class="label-text font-bold">Usuario</span>
+					<label class="label pt-0" for="email">
+						<span class="label-text font-bold">Correo Electrónico</span>
 					</label>
 					<input 
-						id="username"
-						type="text" 
-						placeholder="admin" 
+						id="email"
+						type="email" 
+						placeholder="admin@blackshot.pos" 
 						class="input input-bordered w-full focus:input-primary transition-all font-medium" 
-						bind:value={username}
+						bind:value={email}
 						required
 					/>
 				</div>
