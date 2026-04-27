@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, ConfigDict
 from pos_core.sales.models import OrderType, OrderStatus, PaymentMethod
 
@@ -92,6 +93,7 @@ class OrderRead(BaseModel):
     external_reference: Optional[str] = None
     created_at: datetime
     updated_at: datetime
+    customer_id: Optional[UUID] = None
 
     # Rastreo del mesero creador
     waiter_uuid: Optional[str] = None

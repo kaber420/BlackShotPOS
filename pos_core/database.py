@@ -36,6 +36,7 @@ async def init_db():
         from pos_core.settings.models import BusinessSettings
         from pos_core.iot.models import IoTDevice
         from pos_core.auth.models import User
+        from pos_core.customers.models import Customer
         await conn.run_sync(SQLModel.metadata.create_all)
 
 async def get_session() -> AsyncSession:

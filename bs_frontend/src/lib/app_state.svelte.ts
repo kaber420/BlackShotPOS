@@ -93,46 +93,57 @@ export function setAuth(status: boolean) {
 }
 
 /**
- * Llama a /_auth/me y carga el perfil real del usuario con sus permisos efectivos
- * (preset del rol + overrides individuales). Llamar en onMount del layout principal.
+ * Cierra la sesión tanto en el cliente como en el servidor.
+ */
+export async function logout() {
+    try {
+        await fetchApi('/api/auth/jwt/logout', { method: 'POST' });
+    } catch (e) {
+        console.error("Error al cerrar sesión en el servidor:", e);
+    } finally {
+        setAuth(false);
+        if (typeof window !== 'undefined') {
+            window.location.href = '/login';
+        }
+    }
+}
+
+/**
+ * Llama a /api/users/me y carga el perfil real del usuario con sus permisos efectivos.
+ * Llamar en onMount del layout principal.
  */
 export async function initAuth(): Promise<boolean> {
-    const ls = typeof localStorage !== 'undefined' ? localStorage : null;
-
+    appState.permissionsLoaded = false;
     try {
-        // Con FastAPI Users + Cookies, simplemente llamamos a /me con credentials: 'include'
-        // fetchApi ya incluye credentials: 'include' por defecto ahora
         const data = await fetchApi<any>('/api/users/me');
 
         appState.isLoggedIn  = true;
         appState.userUuid    = data.id;
-        appState.userName    = data.email.split('@')[0]; // Usamos el email como nombre por ahora
+        appState.userName    = data.email.split('@')[0];
         
-        // Extraer rol y permisos de metadata (según el plan)
         const metadata = data.custom_metadata || {};
         appState.userRole    = metadata.role || 'waiter';
         
-        // Cargar permisos: primero el preset del rol, luego overrides
         const rolePreset = ROLE_PRESETS_JS[appState.userRole] || ROLE_PRESETS_JS['waiter'];
         appState.permissions = { ...rolePreset, ...(metadata.permissions || {}) };
         
-        appState.permissionsLoaded = true;
-
         // Cargar configuración del negocio
         try {
             appState.settings = await SettingsService.get();
         } catch (e) {
-            console.error("Error loading business settings", e);
+            console.warn("Usando configuración por defecto (error en SettingsService)");
         }
 
         return true;
     } catch (error) {
-        console.log("No hay sesión activa o error en initAuth:", error);
+        // 401 es normal si no ha iniciado sesión
         appState.isLoggedIn = false;
-        appState.permissionsLoaded = true;
         return false;
+    } finally {
+        appState.permissionsLoaded = true;
     }
 }
+
 
 
 // ── Etiquetas legibles por rol ──────────────────────────────────────────────
@@ -142,7 +153,6 @@ export const ROLE_LABELS: Record<string, string> = {
     cashier:  'Cajero/a',
     kitchen:  'Cocina',
     waiter:   'Mesero/a',
-    operator: 'Administrador',  // alias legacy
 };
 
 export function getRoleLabel(role: string | null): string {

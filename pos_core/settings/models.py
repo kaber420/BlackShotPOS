@@ -11,6 +11,10 @@ class BusinessSettings(SQLModel, table=True):
     currency_code: str = Field(default="MXN", description="Código de moneda")
     locale: str = Field(default="es-MX", description="Localización para formatos (ej. es-MX, en-US)")
     ticket_footer: Optional[str] = Field(default="¡Gracias por su preferencia!", description="Pie de página del ticket")
+    
+    # Bridge Auth
+    bridge_enabled: bool = Field(default=False, description="Activa el acceso remoto vía Bridge")
+    bridge_public_key: Optional[str] = Field(default=None, description="Llave pública RS256 para validación del Bridge")
 
 class BusinessSettingsUpdate(SQLModel):
     name: Optional[str] = None
@@ -21,3 +25,5 @@ class BusinessSettingsUpdate(SQLModel):
     currency_code: Optional[str] = None
     locale: Optional[str] = None
     ticket_footer: Optional[str] = None
+    bridge_enabled: Optional[bool] = None
+    bridge_public_key: Optional[str] = None

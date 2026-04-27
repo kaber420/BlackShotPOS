@@ -17,6 +17,7 @@ from pos_core.events.router import router as events_router
 from pos_core.iot.router import router as iot_router
 from pos_core.iot.admin_router import router as admin_iot_router
 from pos_core.auth.router import auth_router, user_router
+from pos_core.customers.router import router as customer_router
 
 
 @asynccontextmanager
@@ -67,6 +68,7 @@ app.include_router(iot_router, prefix="/api/v1/pos", tags=["IoT"])
 app.include_router(admin_iot_router, prefix="/api/v1/pos/admin/iot", tags=["IoT Admin"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/api/users", tags=["Users"])
+app.include_router(customer_router, prefix="/api/v1/pos/customers", tags=["Clientes"])
 
 
 @app.get("/")

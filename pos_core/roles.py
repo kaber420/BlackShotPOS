@@ -89,8 +89,8 @@ ROLE_PRESETS: Dict[str, Dict[str, bool]] = {
     },
 }
 
-# 'operator' es el rol legacy por defecto de omni_auth — se mapea a admin
-ROLE_PRESETS["operator"] = ROLE_PRESETS[PosRole.ADMIN].copy()
+# El rol 'operator' era legacy de omni_auth — ya no se usa.
+
 
 def resolve_permissions(role: str, metadata_permissions: dict) -> Dict[str, bool]:
     """

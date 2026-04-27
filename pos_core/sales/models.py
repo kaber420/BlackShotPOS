@@ -1,6 +1,7 @@
 from typing import Optional, List
 from enum import Enum
 from datetime import datetime, timezone
+from uuid import UUID
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import field_validator, field_serializer
 from pos_core.inventory.models import Modifier, Product, ProductVariant
@@ -110,6 +111,7 @@ class Order(SQLModel, table=True):
     is_paid: bool = Field(default=False)
     table_id: Optional[int] = Field(default=None, foreign_key="table.id")
     shift_id: Optional[int] = Field(default=None, foreign_key="shift.id")
+    customer_id: Optional[UUID] = Field(default=None, foreign_key="customer.id")
     external_reference: Optional[str] = Field(default=None, description="PIN de Uber, ID de Rappi, etc.")
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -136,6 +138,7 @@ class Order(SQLModel, table=True):
     items: List[OrderItem] = Relationship(back_populates="order")
     payments: List[Payment] = Relationship(back_populates="order")
     shift: Optional[Shift] = Relationship(back_populates="orders")
+    customer: Optional["Customer"] = Relationship()
 
 class AuditCategory(str, Enum):
     SECURITY = "security"

@@ -3,7 +3,7 @@
  * Ya que Vite hace proxy a /api, no necesitamos poner domain
  */
 
-// Para el prototipo rápido, simularemos un token, después lo conectaremos a omni_auth
+// Cliente base para hacer peticiones al backend FastAPI (usando Credentials: include para Cookies)
 const getAuthHeaders = (isFormData: boolean = false) => {
 	const headers: Record<string, string> = {};
 	

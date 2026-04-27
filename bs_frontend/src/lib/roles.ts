@@ -24,7 +24,7 @@ const ALL_TRUE: Record<string, boolean> = {
 
 export const ROLE_PRESETS_JS: Record<string, Record<string, boolean>> = {
     admin:    { ...ALL_TRUE },
-    operator: { ...ALL_TRUE }, // alias legacy
+
     manager: {
         can_take_orders: true,
         can_send_to_kitchen: true,

@@ -42,14 +42,7 @@
 	}
 
 	async function handleLogout() {
-		try {
-			await fetchApi('/api/auth/jwt/logout', { method: 'POST' });
-		} catch (e) {
-			console.error("Error logging out from server", e);
-		} finally {
-			setAuth(false);
-			goto('/login');
-		}
+		await logout();
 	}
 
 	function changeTheme(event: Event) {
@@ -192,7 +185,13 @@
 
 	<!-- Main Content Area -->
 	<main class="flex-1 flex flex-col min-h-0 relative">
-		{@render children()}
+		{#if !appState.permissionsLoaded}
+			<div class="absolute inset-0 flex items-center justify-center bg-base-100/50 backdrop-blur-sm z-50">
+				<span class="loading loading-spinner loading-lg text-primary"></span>
+			</div>
+		{:else}
+			{@render children()}
+		{/if}
 	</main>
 	
 	<!-- Subtle Gradient for Depth (Optional) -->
