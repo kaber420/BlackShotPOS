@@ -68,6 +68,16 @@ async def add_payment(
     await order_repo.save(session, order)
     
     # 4. Encolar evento para sincronización SaaS
+    # Detalle de productos para analíticas centralizadas
+    detailed_items = [
+        {
+            "name": item.product.name,
+            "quantity": item.quantity,
+            "price": item.unit_price
+        }
+        for item in order.items if item.status != OrderStatus.CANCELLED
+    ]
+
     # IMPORTANTE: Enviamos el total_revenue como 'amount' para que el Central cuadre sus cuentas.
     await enqueue_event(session, "sales.payment_added", {
         "order_id": order.id,
@@ -77,6 +87,7 @@ async def add_payment(
         "change_amount": change,
         "method": payment.method,
         "timestamp": str(payment.timestamp),
+        "items": detailed_items,
         "items_count": sum(i.quantity for i in order.items if i.status != OrderStatus.CANCELLED)
     })
 
