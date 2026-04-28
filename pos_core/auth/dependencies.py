@@ -2,7 +2,7 @@ from typing import Optional, Union
 from fastapi import Depends, HTTPException, status, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.auth.router import fastapi_users
-from pos_core.auth.models import User
+from pos_core.auth.models import User, BridgeUser
 from pos_core.auth.bridge import validate_bridge_token
 from pos_core.roles import resolve_permissions, ROLE_PRESETS
 from pos_core.settings.service import get_settings
@@ -11,10 +11,42 @@ from pos_core.database import get_session
 current_user = fastapi_users.current_user()
 current_user_optional = fastapi_users.current_user(optional=True)
 
-async def get_current_active_user(user: User = Depends(current_user)):
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuario inactivo")
-    return user
+async def get_current_active_user(
+    user: Optional[User] = Depends(current_user_optional),
+    bridge_token: Optional[str] = Header(None, alias="X-Blackshot-Bridge-Auth"),
+    db: AsyncSession = Depends(get_session)
+) -> Union[User, BridgeUser]:
+    # 1. Intentar con Bridge primero (SaaS as Admin)
+    if bridge_token:
+        settings = await get_settings(db)
+        if not settings.bridge_enabled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="El acceso remoto (Bridge) está deshabilitado en esta sucursal"
+            )
+        if not settings.bridge_public_key:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Configuración de seguridad incompleta: Falta llave pública del Bridge"
+            )
+        # Validar el token usando RS256
+        validate_bridge_token(bridge_token, settings.bridge_public_key)
+        
+        # Retornamos el objeto BridgeUser simulado
+        return BridgeUser()
+
+    # 2. Intentar con Staff Local
+    if user:
+        if not user.is_active:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuario inactivo")
+        return user
+        
+    # 3. Ninguno funcionó
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Se requiere sesión de staff o token de bridge válido",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
 
 def require_role(role: str):
     async def role_dependency(user: User = Depends(get_current_active_user)):
@@ -42,45 +74,4 @@ def require_permission(permission: str):
         return user
     return permission_dependency
 
-async def require_staff_or_bridge(
-    user: Optional[User] = Depends(current_user_optional),
-    bridge_token: Optional[str] = Header(None, alias="X-Blackshot-Bridge-Auth"),
-    db: AsyncSession = Depends(get_session)
-) -> Union[User, dict]:
-    """
-    Permite el acceso si hay un usuario logueado O si se provee un token de bridge válido.
-    """
-    # 1. Intentar con Staff Local
-    if user:
-        if not user.is_active:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Usuario inactivo")
-        return user
-    
-    # 2. Intentar con Bridge
-    if bridge_token:
-        settings = await get_settings(db)
-        
-        if not settings.bridge_enabled:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="El acceso remoto (Bridge) está deshabilitado en esta sucursal"
-            )
-            
-        if not settings.bridge_public_key:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Configuración de seguridad incompleta: Falta llave pública del Bridge"
-            )
-            
-        # Validar el token usando RS256
-        payload = validate_bridge_token(bridge_token, settings.bridge_public_key)
-        
-        # Retornamos el payload del bridge marcado como tal
-        return {"type": "bridge", "payload": payload}
 
-    # 3. Ninguno funcionó
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Se requiere sesión de staff o token de bridge válido",
-        headers={"WWW-Authenticate": "Bearer"},
-    )

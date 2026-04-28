@@ -107,6 +107,42 @@
 
             <div class="divider"></div>
 
+            <!-- Section: Bridge Configuration -->
+            <div class="flex flex-col gap-6 bg-primary/5 p-6 rounded-2xl border border-primary/10">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="text-sm font-black uppercase tracking-[0.2em] text-primary">Gestión Remota (SaaS Bridge)</h3>
+                        <p class="text-xs font-medium opacity-60 mt-1">Permite que el Panel Central administre esta sucursal de forma segura.</p>
+                    </div>
+                    <div class="form-control">
+                        <label class="label cursor-pointer gap-4">
+                            <span class="label-text font-bold">Habilitar Bridge</span>
+                            <input type="checkbox" bind:checked={settings.bridge_enabled} class="toggle toggle-primary" />
+                        </label>
+                    </div>
+                </div>
+                
+                {#if settings.bridge_enabled}
+                    <div class="form-control w-full animate-in fade-in slide-in-from-top-2">
+                        <label class="label">
+                            <span class="label-text font-bold flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-primary">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                                </svg>
+                                Llave Pública del Bridge (PEM)
+                            </span>
+                        </label>
+                        <textarea 
+                            bind:value={settings.bridge_public_key} 
+                            class="textarea textarea-bordered font-mono text-[10px] h-32 focus:border-primary bg-base-300/50" 
+                            placeholder="-----BEGIN PUBLIC KEY-----..."
+                        ></textarea>
+                    </div>
+                {/if}
+            </div>
+
+            <div class="divider"></div>
+
             <!-- Section: Toast Configuration (Simplified) -->
             <div class="flex flex-col gap-6">
                 <h3 class="text-xs font-black uppercase tracking-[0.2em] text-secondary">Ajustes Visuales (Notificaciones)</h3>

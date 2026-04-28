@@ -12,9 +12,11 @@ class BusinessSettings(SQLModel, table=True):
     locale: str = Field(default="es-MX", description="Localización para formatos (ej. es-MX, en-US)")
     ticket_footer: Optional[str] = Field(default="¡Gracias por su preferencia!", description="Pie de página del ticket")
     
-    # Bridge Auth
+    # Bridge & Sync Settings
     bridge_enabled: bool = Field(default=False, description="Activa el acceso remoto vía Bridge")
     bridge_public_key: Optional[str] = Field(default=None, description="Llave pública RS256 para validación del Bridge")
+    nats_url: str = Field(default="nats://localhost:4222", description="URL del servidor NATS para sincronización")
+    branch_id: str = Field(default="branch_default", description="Identificador único de esta sucursal en el SaaS")
 
 class BusinessSettingsUpdate(SQLModel):
     name: Optional[str] = None
@@ -27,3 +29,5 @@ class BusinessSettingsUpdate(SQLModel):
     ticket_footer: Optional[str] = None
     bridge_enabled: Optional[bool] = None
     bridge_public_key: Optional[str] = None
+    nats_url: Optional[str] = None
+    branch_id: Optional[str] = None

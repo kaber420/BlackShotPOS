@@ -2,6 +2,20 @@ from uuid import UUID, uuid4
 from typing import Optional
 from sqlmodel import SQLModel, Field, Column, JSON
 from pydantic import ConfigDict
+from dataclasses import dataclass, field
+
+@dataclass
+class BridgeUser:
+    """Usuario simulado para peticiones que vienen desde el Bridge (SaaS Central)"""
+    id: UUID = field(default_factory=uuid4)
+    email: str = "central@blackshot.app"
+    is_active: bool = True
+    is_superuser: bool = True
+    is_verified: bool = True
+    organization_id: str = "central"
+    is_remote: bool = True
+    external_id: str = "saas-central"
+    custom_metadata: dict = field(default_factory=lambda: {"role": "admin", "is_bridge": True})
 
 class User(SQLModel, table=True):
     model_config = ConfigDict(arbitrary_types_allowed=True)

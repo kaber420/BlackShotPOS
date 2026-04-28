@@ -14,6 +14,7 @@ from .models import Payment, PaymentMethod, OrderStatus
 from .repository import order_repo, item_repo
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
 from pos_core.inventory.service import process_inventory_depletion
+from bs_sync.service import enqueue_event
 
 
 async def add_payment(
@@ -56,6 +57,16 @@ async def add_payment(
     # No la movemos a un estado terminal 'PAID' para no perder el contexto de servicio.
 
     await order_repo.save(session, order)
+    
+    # Encolar evento para sincronización SaaS
+    await enqueue_event(session, "sales.payment_added", {
+        "order_id": order.id,
+        "payment_id": payment.id,
+        "amount": payment.amount,
+        "method": payment.method,
+        "timestamp": str(payment.timestamp)
+    })
+
     await session.commit()
     await session.refresh(payment)
     return payment

@@ -10,6 +10,8 @@ export interface BusinessSettings {
     currency_code: string;
     locale: string;
     ticket_footer?: string;
+    bridge_enabled: boolean;
+    bridge_public_key?: string;
 }
 
 export const SettingsService = {
