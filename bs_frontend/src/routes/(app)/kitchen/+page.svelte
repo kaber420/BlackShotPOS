@@ -27,7 +27,106 @@
     let printError = $state<string | null>(null);
 
     // ── Modal de receta ────────────────────────────────────────────────
-    let recipeModal = $state<{ name: string; markdown: string } | null>(null);
+    let recipeModal = $state<{ orderId: number; itemId: number; name: string; markdown: string } | null>(null);
+    let recipeStates = $state<Record<string, Record<number, boolean>>>({});
+    let timerStates = $state<Record<string, Record<number, { seconds: number; total: number; running: boolean; finished: boolean }>>>({});
+
+    function getRecipeKey(orderId: number, itemId: number) {
+        return `${orderId}-${itemId}`;
+    }
+
+    // Intervalo global para cronómetros
+    onMount(() => {
+        const interval = setInterval(() => {
+            for (const key in timerStates) {
+                for (const tIdx in timerStates[key]) {
+                    const timer = timerStates[key][tIdx];
+                    if (timer.running && timer.seconds > 0) {
+                        timer.seconds--;
+                        if (timer.seconds === 0) {
+                            timer.running = false;
+                            timer.finished = true;
+                            // Opcional: Sonido de alerta
+                        }
+                    }
+                }
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    });
+
+    function toggleTimer(orderId: number, itemId: number, tIdx: number, durationMins: number) {
+        const key = getRecipeKey(orderId, itemId);
+        if (!timerStates[key]) timerStates[key] = {};
+        if (!timerStates[key][tIdx]) {
+            timerStates[key][tIdx] = { 
+                seconds: durationMins * 60, 
+                total: durationMins * 60, 
+                running: true, 
+                finished: false 
+            };
+        } else {
+            const timer = timerStates[key][tIdx];
+            if (timer.finished) {
+                // Reset
+                timer.seconds = timer.total;
+                timer.finished = false;
+                timer.running = true;
+            } else {
+                timer.running = !timer.running;
+            }
+        }
+    }
+
+    function formatTime(seconds: number) {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+
+    let renderedRecipe = $derived.by(() => {
+        if (!recipeModal) return '';
+        let cbIdx = 0;
+        let tIdx = 0;
+        const key = getRecipeKey(recipeModal.orderId, recipeModal.itemId);
+        
+        // 1. Procesar Checkboxes
+        let html = marked(recipeModal.markdown).replace(/<input disabled="" type="checkbox">/g, () => {
+            const current = cbIdx++;
+            const isChecked = recipeStates[key]?.[current] ? 'checked' : '';
+            return `<input type="checkbox" data-cb-idx="${current}" ${isChecked} class="checkbox checkbox-primary checkbox-sm mr-2">`;
+        });
+
+        // 2. Procesar Timers {timer:5}
+        html = html.replace(/\{timer:(\d+)\}/g, (_, mins) => {
+            const current = tIdx++;
+            const timer = timerStates[key]?.[current];
+            const duration = parseInt(mins);
+            
+            let label = `${duration} min`;
+            let cls = "btn-outline border-primary/30";
+            
+            if (timer) {
+                label = formatTime(timer.seconds);
+                if (timer.finished) {
+                    cls = "btn-error animate-bounce shadow-lg shadow-error/50 text-white";
+                    label = "¡LISTO! 🔔";
+                } else if (timer.running) {
+                    cls = "btn-primary shadow-lg shadow-primary/30 text-white";
+                }
+            }
+
+            return `<button class="btn btn-xs ${cls} mx-1 font-mono tracking-tighter" data-t-idx="${current}" data-duration="${duration}">⏱️ ${label}</button>`;
+        });
+
+        return html;
+    });
+
+    function toggleRecipeStep(orderId: number, itemId: number, stepIndex: number) {
+        const key = getRecipeKey(orderId, itemId);
+        if (!recipeStates[key]) recipeStates[key] = {};
+        recipeStates[key][stepIndex] = !recipeStates[key][stepIndex];
+    }
 
     // ── WebSocket Connection ─────────────────────────────────────────────────
     onMount(async () => {
@@ -275,12 +374,14 @@
                 <OrderCard
                     {order}
                     view="kitchen"
-                    {printingOrderId}
-                    onItemComplete={handleItemComplete}
-                    onItemCancel={handleItemCancel}
-                    onViewRecipe={(name, markdown) => recipeModal = { name, markdown }}
                     onCompleteOrder={handleComplete}
                     onCancelOrder={handleCancel}
+                    onItemComplete={handleItemComplete}
+                    onItemCancel={handleItemCancel}
+                    onViewRecipe={(orderId, itemId, name, markdown) => recipeModal = { orderId, itemId, name, markdown }}
+                    activeRecipes={recipeStates}
+                    activeTimers={timerStates}
+                    printingOrderId={printingOrderId}
                     onPrint={handlePrintComanda}
                 />
             {/each}
@@ -322,9 +423,52 @@
                 </Button>
             </div>
             <!-- Contenido Markdown renderizado -->
-            <div class="prose prose-sm max-w-none">
-                {@html marked(recipeModal.markdown)}
+            <div class="prose prose-sm max-w-none recipe-content" onclick={(e) => {
+                const li = e.target.closest('li');
+                const btn = e.target.closest('button[data-t-idx]');
+                
+                if (btn && recipeModal) {
+                    const tIdx = parseInt(btn.dataset.tIdx || '0');
+                    const duration = parseInt(btn.dataset.duration || '0');
+                    toggleTimer(recipeModal.orderId, recipeModal.itemId, tIdx, duration);
+                } else if (li && recipeModal) {
+                    const checkbox = li.querySelector('input[type="checkbox"]');
+                    if (checkbox) {
+                        const idx = parseInt(checkbox.dataset.cbIdx || '0');
+                        toggleRecipeStep(recipeModal.orderId, recipeModal.itemId, idx);
+                    }
+                }
+            }}>
+                {@html renderedRecipe}
             </div>
+
+            <style>
+                .recipe-content :global(ul) {
+                    list-style-type: none;
+                    padding-left: 0;
+                }
+                .recipe-content :global(li) {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 0.5rem;
+                    transition: all 0.2s;
+                    cursor: pointer;
+                    padding: 0.5rem;
+                    border-radius: 0.5rem;
+                }
+                .recipe-content :global(li:hover) {
+                    background: rgba(255,255,255,0.05);
+                }
+                .recipe-content :global(li:has(input:checked)) {
+                    text-decoration: line-through;
+                    opacity: 0.4;
+                    background: rgba(0,255,0,0.05);
+                }
+                .recipe-content :global(input[type="checkbox"]) {
+                    cursor: pointer;
+                    pointer-events: auto; /* Asegurar que sea clickable aunque marked lo intente bloquear */
+                }
+            </style>
         </div>
     </div>
 {/if}

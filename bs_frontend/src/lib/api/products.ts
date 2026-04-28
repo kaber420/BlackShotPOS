@@ -51,6 +51,7 @@ export interface Product {
     calories?: number;
     carbs?: number;
     fats?: number;
+    recipe_markdown?: string;
     variants?: ProductVariant[];
     modifier_groups?: ModifierGroup[];
 }

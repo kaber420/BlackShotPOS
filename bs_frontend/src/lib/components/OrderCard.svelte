@@ -14,7 +14,9 @@
         // Item Actions
         onItemComplete?: (order: any, item: any) => void;
         onItemCancel?: (order: any, item: any) => void;
-        onViewRecipe?: (productName: string, markdown: string) => void;
+        onViewRecipe?: (orderId: number, itemId: number, productName: string, markdown: string) => void;
+        activeRecipes?: Record<string, any>;
+        activeTimers?: Record<string, any>;
         
         // Global Actions
         onCompleteOrder?: (order: any) => void;
@@ -38,7 +40,9 @@
         onTransferOrder,
         onPrint,
         onCharge,
-        onDeliver
+        onDeliver,
+        activeRecipes = {},
+        activeTimers = {}
     }: Props = $props();
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -196,15 +200,27 @@
                                             {item.quantity}× {item.product?.name ?? 'Producto'}
                                         </span>
                                         {#if view === 'kitchen' && item.product?.recipe_markdown}
+                                            {@const recipeKey = `${order.id}-${item.id}`}
+                                            {@const hasProgress = activeRecipes[recipeKey] && Object.values(activeRecipes[recipeKey]).some(v => v)}
+                                            {@const timers = activeTimers[recipeKey] || {}}
+                                            {@const hasRunningTimer = Object.values(timers).some((t: any) => t.running)}
+                                            {@const hasFinishedTimer = Object.values(timers).some((t: any) => t.finished)}
+                                            
                                             <Button
-                                                variant="ghost"
+                                                variant={hasFinishedTimer ? "error" : (hasRunningTimer || hasProgress ? "primary" : "ghost")}
                                                 size="xs"
-                                                onclick={() => onViewRecipe?.(item.product.name, item.product.recipe_markdown)}
+                                                onclick={() => onViewRecipe?.(order.id, item.id, item.product.name, item.product.recipe_markdown)}
                                                 id="recipe-btn-{item.id}"
                                                 title="Ver receta de preparación"
-                                                class="opacity-60 hover:opacity-100 py-0 h-6 min-h-6 text-[10px]"
+                                                class="{(hasRunningTimer || hasProgress || hasFinishedTimer) ? 'opacity-100 ring-2 ring-primary/30' : 'opacity-60 hover:opacity-100'} py-0 h-6 min-h-6 text-[10px] relative {hasFinishedTimer ? 'animate-bounce' : ''}"
                                             >
-                                                📖 Receta
+                                                📖 {hasFinishedTimer ? '¡LISTO!' : 'Receta'}
+                                                {#if hasRunningTimer || hasProgress || hasFinishedTimer}
+                                                    <span class="absolute -top-1 -right-1 flex h-2 w-2">
+                                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full {hasFinishedTimer ? 'bg-error' : 'bg-primary'} opacity-75"></span>
+                                                        <span class="relative inline-flex rounded-full h-2 w-2 {hasFinishedTimer ? 'bg-error' : 'bg-primary'}"></span>
+                                                    </span>
+                                                {/if}
                                             </Button>
                                         {/if}
                                     </div>

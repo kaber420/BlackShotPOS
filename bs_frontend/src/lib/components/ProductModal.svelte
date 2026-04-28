@@ -3,6 +3,7 @@
     import { IngredientService, type Ingredient } from '$lib/api/ingredients';
     import type { Category } from '$lib/api/categories';
     import { onMount } from 'svelte';
+    import { marked } from 'marked';
     import Button from './ui/Button.svelte';
 
     let { isOpen, product, categories, onClose, onSave } = $props<{
@@ -13,7 +14,7 @@
         onSave: () => void;
     }>();
 
-    let activeTab = $state<'general' | 'nutrition' | 'variants' | 'modifiers'>('general');
+    let activeTab = $state<'general' | 'nutrition' | 'recipe' | 'variants' | 'modifiers'>('general');
     let formData = $state<Partial<Product>>({
         name: '',
         description: '',
@@ -25,7 +26,8 @@
         protein: 0,
         calories: 0,
         carbs: 0,
-        fats: 0
+        fats: 0,
+        recipe_markdown: ''
     });
 
     let availableMeasures = $state<Measure[]>([]);
@@ -108,7 +110,8 @@
                 protein: 0,
                 calories: 0,
                 carbs: 0,
-                fats: 0
+                fats: 0,
+                recipe_markdown: ''
             };
             selectedVariants = [];
             deletedVariantIds = [];
@@ -358,6 +361,7 @@
                 <div class="tabs tabs-boxed bg-transparent">
                     <button class="tab {activeTab === 'general' ? 'tab-active' : ''}" onclick={() => activeTab = 'general'}>General</button>
                     <button class="tab {activeTab === 'nutrition' ? 'tab-active' : ''}" onclick={() => activeTab = 'nutrition'}>Nutrición</button>
+                    <button class="tab {activeTab === 'recipe' ? 'tab-active' : ''}" onclick={() => activeTab = 'recipe'}>Receta</button>
                     <button class="tab {activeTab === 'variants' ? 'tab-active' : ''}" onclick={() => activeTab = 'variants'}>Tallas</button>
                     <button class="tab {activeTab === 'modifiers' ? 'tab-active' : ''}" onclick={() => activeTab = 'modifiers'}>Extras</button>
                 </div>
@@ -467,6 +471,58 @@
                         <p class="mt-6 text-sm opacity-50 italic">
                             * Estos valores se usarán como referencia general. Puedes sobreescribirlos por tamaño en la sección "Tallas".
                         </p>
+                    </div>
+
+                {:else if activeTab === 'recipe'}
+                    <div class="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2">
+                        <div class="bg-primary/5 p-6 rounded-2xl border border-primary/20">
+                            <h4 class="text-xl font-black mb-4 flex items-center gap-2 text-primary">
+                                📖 Instrucciones de Preparación
+                            </h4>
+                            <div class="form-control">
+                                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Receta (Markdown)</label>
+                                <textarea 
+                                    class="textarea textarea-bordered h-64 focus:textarea-primary font-mono text-sm" 
+                                    placeholder="Escribe los pasos de preparación aquí...
+Ej:
+1. Calentar la leche a 60°C.
+2. Extraer el shot de espresso.
+3. Mezclar suavemente." 
+                                    bind:value={formData.recipe_markdown}
+                                ></textarea>
+                            </div>
+                            <div class="mt-4 p-4 bg-base-100 rounded-xl border border-base-300">
+                                <h5 class="text-[10px] font-black uppercase opacity-40 mb-2">Previsualización rápida</h5>
+                                <div class="prose prose-sm max-w-none opacity-70 bg-base-200/50 p-4 rounded-lg min-h-[100px] recipe-preview-area"
+                                    onclick={(e) => {
+                                        const li = e.target.closest('li');
+                                        if (li) {
+                                            const checkbox = li.querySelector('input[type="checkbox"]');
+                                            if (checkbox && e.target !== checkbox) {
+                                                checkbox.checked = !checkbox.checked;
+                                            }
+                                        }
+                                    }}
+                                >
+                                    {#if formData.recipe_markdown}
+                                        {@html marked(formData.recipe_markdown).replace(/<input disabled="" type="checkbox">/g, '<input type="checkbox" class="checkbox checkbox-primary checkbox-xs mr-2">')}
+                                    {:else}
+                                        <p class="italic text-xs opacity-50">Sin instrucciones todavía. Escribe algo arriba para ver la vista previa.</p>
+                                    {/if}
+                                </div>
+
+                                <style>
+                                    .recipe-preview-area :global(li:has(input:checked)) {
+                                        text-decoration: line-through;
+                                        opacity: 0.5;
+                                    }
+                                    .recipe-preview-area :global(input[type="checkbox"]) {
+                                        pointer-events: auto;
+                                        cursor: pointer;
+                                    }
+                                </style>
+                            </div>
+                        </div>
                     </div>
 
                 {:else if activeTab === 'variants'}

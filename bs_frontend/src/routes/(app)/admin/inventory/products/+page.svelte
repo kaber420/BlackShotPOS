@@ -17,7 +17,12 @@
         price: 0,
         image_url: '',
         category_id: undefined,
-        is_active: true
+        is_active: true,
+        recipe_markdown: '',
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0
     });
 
     let editingId = $state<number | null>(null);
@@ -62,7 +67,12 @@
                 price: 0,
                 image_url: '',
                 category_id: categories.length > 0 ? categories[0].id : undefined,
-                is_active: true
+                is_active: true,
+                recipe_markdown: '',
+                calories: 0,
+                protein: 0,
+                carbs: 0,
+                fats: 0
             };
         }
         (document.getElementById('modal_producto') as HTMLDialogElement).showModal();
@@ -248,7 +258,34 @@
 
             <div class="form-control w-full">
                 <label class="label" for="prod_desc"><span class="label-text font-bold">Descripción</span></label>
-                <textarea id="prod_desc" class="textarea textarea-bordered h-24" bind:value={productForm.description} placeholder="Detalles del producto..."></textarea>
+                <textarea id="prod_desc" class="textarea textarea-bordered h-20" bind:value={productForm.description} placeholder="Detalles del producto..."></textarea>
+            </div>
+
+            <div class="form-control w-full">
+                <label class="label" for="prod_recipe"><span class="label-text font-bold text-primary">📍 Receta de Preparación (Markdown)</span></label>
+                <textarea id="prod_recipe" class="textarea textarea-bordered h-32 font-mono" bind:value={productForm.recipe_markdown} placeholder="Instrucciones paso a paso..."></textarea>
+            </div>
+
+            <div class="space-y-2">
+                <span class="label-text font-bold">🥗 Información Nutrimental</span>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Calorías</span></label>
+                        <input type="number" class="input input-sm input-bordered" bind:value={productForm.calories} />
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Prot (g)</span></label>
+                        <input type="number" class="input input-sm input-bordered" bind:value={productForm.protein} />
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Carbs (g)</span></label>
+                        <input type="number" class="input input-sm input-bordered" bind:value={productForm.carbs} />
+                    </div>
+                    <div class="form-control">
+                        <label class="label py-1"><span class="label-text text-xs">Grasas (g)</span></label>
+                        <input type="number" class="input input-sm input-bordered" bind:value={productForm.fats} />
+                    </div>
+                </div>
             </div>
 
             <div class="modal-action gap-2">
