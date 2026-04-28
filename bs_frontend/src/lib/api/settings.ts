@@ -12,6 +12,8 @@ export interface BusinessSettings {
     ticket_footer?: string;
     bridge_enabled: boolean;
     bridge_public_key?: string;
+    nats_url: string;
+    branch_id: string;
 }
 
 export const SettingsService = {

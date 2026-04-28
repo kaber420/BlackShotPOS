@@ -111,7 +111,7 @@
             <div class="flex flex-col gap-6 bg-primary/5 p-6 rounded-2xl border border-primary/10">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h3 class="text-sm font-black uppercase tracking-[0.2em] text-primary">Gestión Remota (SaaS Bridge)</h3>
+                        <h3 class="text-sm font-black uppercase tracking-[0.2em] text-primary">Gestión Remota & Sincronización SaaS</h3>
                         <p class="text-xs font-medium opacity-60 mt-1">Permite que el Panel Central administre esta sucursal de forma segura.</p>
                     </div>
                     <div class="form-control">
@@ -123,7 +123,17 @@
                 </div>
                 
                 {#if settings.bridge_enabled}
-                    <div class="form-control w-full animate-in fade-in slide-in-from-top-2">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2">
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">Branch ID</span></label>
+                            <input type="text" bind:value={settings.branch_id} class="input input-bordered font-mono text-sm focus:border-primary bg-base-300/50" placeholder="Ej. 550e8400-e29b-41d4-a716-446655440000" />
+                        </div>
+                        <div class="form-control w-full">
+                            <label class="label"><span class="label-text font-bold">NATS URL</span></label>
+                            <input type="text" bind:value={settings.nats_url} class="input input-bordered font-mono text-sm focus:border-primary bg-base-300/50" placeholder="Ej. nats://tu-servidor:4222" />
+                        </div>
+                    </div>
+                    <div class="form-control w-full animate-in fade-in slide-in-from-top-2 mt-2">
                         <label class="label">
                             <span class="label-text font-bold flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 text-primary">

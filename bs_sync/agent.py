@@ -29,6 +29,24 @@ async def get_config(session):
         return "nats://localhost:4222", "branch_default"
     return settings.nats_url, settings.branch_id
 
+async def ping_loop(get_js_func):
+    """Envía un ping periódico a la Central SaaS para anunciar que el POS está en línea."""
+    while True:
+        try:
+            js = get_js_func()
+            if js:
+                async with async_session_maker() as session:
+                    _, current_branch_id = await get_config(session)
+                
+                topic = f"branches.{current_branch_id}.ping"
+                payload = json.dumps({"status": "online", "timestamp": datetime.utcnow().isoformat()})
+                await js.publish(topic, payload.encode())
+                logger.debug(f"💓 Ping enviado a {topic}")
+        except Exception as e:
+            logger.error(f"⚠️ Error al enviar ping: {e}")
+        
+        await asyncio.sleep(60)
+
 async def run_agent():
     print("\n" + "="*50)
     print(f"📡 BLACKSHOT POS - SYNC AGENT")
@@ -42,6 +60,13 @@ async def run_agent():
     logger.info(f"⚙️ Configuración cargada: Branch={branch_id}, NATS={nats_url}")
     
     nc = None
+    js = None
+    
+    def get_js():
+        return js
+        
+    ping_task = asyncio.create_task(ping_loop(get_js))
+    
     try:
         while True:
             try:
@@ -54,9 +79,11 @@ async def run_agent():
             except Exception as e:
                 logger.error(f"❌ Error en el Agente (¿NATS caído?): {e}")
                 nc = None # Forzar reconexión
+                js = None
             
             await asyncio.sleep(5)
     except asyncio.CancelledError:
+        ping_task.cancel()
         logger.info("👋 Agente de sincronización detenido correctamente.")
 
 async def drain_queue(js):
