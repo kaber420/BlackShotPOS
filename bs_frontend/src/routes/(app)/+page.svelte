@@ -191,10 +191,10 @@
                                     <!-- Top Seller Badges -->
                                     <div class="absolute top-3 left-3 z-20 flex flex-col gap-1.5 items-start">
                                         {#if prod.name === starProductToday}
-                                            <span class="bg-orange-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-lg backdrop-blur-md uppercase tracking-tighter border border-white/10">🔥 TOP HOY</span>
+                                            <span class="bg-orange-600/40 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xl backdrop-blur-xl uppercase tracking-tighter border border-white/20 ring-1 ring-white/10">🔥 TOP HOY</span>
                                         {/if}
                                         {#if prod.name === starProductWeek}
-                                            <span class="bg-amber-600/90 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-lg backdrop-blur-md uppercase tracking-tighter border border-white/10">⭐ TOP SEMANA</span>
+                                            <span class="bg-amber-600/40 text-white text-[10px] font-black px-2.5 py-1 rounded-lg shadow-xl backdrop-blur-xl uppercase tracking-tighter border border-white/20 ring-1 ring-white/10">⭐ TOP SEMANA</span>
                                         {/if}
                                     </div>
 
