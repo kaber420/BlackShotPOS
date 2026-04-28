@@ -198,6 +198,25 @@ async def update_ingredient(session: AsyncSession, ingredient_id: int, ingredien
         return None
     
     update_data = ingredient_data.model_dump(exclude_unset=True)
+    
+    # Conversión automática de stock si cambia la unidad y no se provee un nuevo stock
+    new_unit = update_data.get("unit")
+    if new_unit and new_unit != db_ingredient.unit:
+        if "current_stock" not in update_data:
+            db_ingredient.current_stock = unit_converter.convert_units(
+                db_ingredient.current_stock, 
+                db_ingredient.unit, 
+                new_unit, 
+                db_ingredient.measure_type
+            )
+        if "minimum_stock" not in update_data:
+            db_ingredient.minimum_stock = unit_converter.convert_units(
+                db_ingredient.minimum_stock, 
+                db_ingredient.unit, 
+                new_unit, 
+                db_ingredient.measure_type
+            )
+
     for key, value in update_data.items():
         setattr(db_ingredient, key, value)
         

@@ -165,7 +165,7 @@
             ingredient_id: firstIng?.id, 
             quantity: 1,
             input_quantity: 1,
-            input_unit: firstIng ? UNIT_OPTIONS[firstIng.measure_type][0].id : 'ml'
+            input_unit: firstIng ? firstIng.unit : 'ml'
         }];
         selectedVariants = [...selectedVariants];
     }
@@ -566,7 +566,15 @@
                                                                     </span>
                                                                 </label>
                                                                 {#if ri.ingredient_id}
-                                                                    <select id="v-{i}-ri-{riIndex}" class="select select-bordered select-xs w-full font-bold" bind:value={ri.ingredient_id}>
+                                                                    <select 
+                                                                        id="v-{i}-ri-{riIndex}" 
+                                                                        class="select select-bordered select-xs w-full font-bold" 
+                                                                        bind:value={ri.ingredient_id}
+                                                                        onchange={() => {
+                                                                            const ing = availableIngredients.find(ingr => ingr.id === ri.ingredient_id);
+                                                                            if (ing) ri.input_unit = ing.unit;
+                                                                        }}
+                                                                    >
                                                                         {#each availableIngredients as ing}
                                                                             <option value={ing.id}>{ing.name} ({ing.unit})</option>
                                                                         {/each}
@@ -593,7 +601,7 @@
                                                                 <select class="select select-bordered select-xs w-full font-bold" bind:value={ri.input_unit}>
                                                                     {#if ri.ingredient_id && availableIngredients.find(ingr => ingr.id === ri.ingredient_id)}
                                                                         {#each UNIT_OPTIONS[availableIngredients.find(ingr => ingr.id === ri.ingredient_id).measure_type] as u}
-                                                                            <option value={u.id}>{u.id}</option>
+                                                                            <option value={u.id}>{u.name}</option>
                                                                         {/each}
                                                                     {:else}
                                                                         <option value="ml">ml</option>

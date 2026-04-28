@@ -66,3 +66,20 @@ def convert_to_base(quantity: float, input_unit: str, measure_type: str) -> floa
         
     conversion_factor = units_dict[input_unit]
     return quantity * conversion_factor
+
+def convert_units(quantity: float, from_unit: str, to_unit: str, measure_type: str) -> float:
+    """
+    Convierte una cantidad entre cualquier par de unidades del mismo tipo de medida.
+    """
+    if measure_type not in MEASURE_TYPES:
+        raise ValueError(f"Tipo de medida inválido: {measure_type}")
+        
+    units_dict = MEASURE_TYPES[measure_type]
+    
+    if from_unit not in units_dict or to_unit not in units_dict:
+        raise ValueError(f"Unidades {from_unit} o {to_unit} no válidas para {measure_type}")
+        
+    # Convertir a base primero
+    value_in_base = quantity * units_dict[from_unit]
+    # Convertir de base a destino
+    return value_in_base / units_dict[to_unit]

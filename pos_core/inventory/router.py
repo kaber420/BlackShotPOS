@@ -147,12 +147,18 @@ async def add_ingredient_to_recipe(
     final_input_unit = input_unit or ""
     final_quantity = quantity
 
-    # Si tenemos unidad de entrada, intentamos convertir
+    # Si tenemos unidad de entrada, intentamos convertir a la unidad del ingrediente
     if input_unit:
         ingredient = await db.get(Ingredient, ingredient_id)
         if ingredient:
             try:
-                final_quantity = unit_converter.convert_to_base(final_input_qty, input_unit, ingredient.measure_type)
+                # Convertimos de la unidad de entrada (ej: ml) a la unidad del ingrediente (ej: L)
+                final_quantity = unit_converter.convert_units(
+                    final_input_qty, 
+                    input_unit, 
+                    ingredient.unit, 
+                    ingredient.measure_type
+                )
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
 
@@ -188,7 +194,12 @@ async def add_ingredient_to_variant(
         ingredient = await db.get(Ingredient, ingredient_id)
         if ingredient:
             try:
-                final_quantity = unit_converter.convert_to_base(final_input_qty, input_unit, ingredient.measure_type)
+                final_quantity = unit_converter.convert_units(
+                    final_input_qty, 
+                    input_unit, 
+                    ingredient.unit, 
+                    ingredient.measure_type
+                )
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
 

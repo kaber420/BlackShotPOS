@@ -258,7 +258,7 @@
 						<div class="flex items-end justify-between">
 							<div class="flex flex-col">
 								<span class="text-2xl font-black {ing.current_stock <= ing.minimum_stock ? 'text-error' : 'text-primary'}">
-									{ing.current_stock.toFixed(1)}
+									{ing.current_stock.toFixed(1)} <small class="text-[10px] font-bold opacity-50">{ing.unit}</small>
 								</span>
 								<span class="text-[9px] uppercase font-black opacity-30 tracking-widest leading-none">Disponible</span>
 							</div>
@@ -362,7 +362,7 @@
 				</div>
 			</div>
 
-			<div class="grid grid-cols-2 gap-4">
+			<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
 				<div class="form-control">
 					<label class="label p-0 mb-1" for="ing_unit"><span class="label-text text-[10px] uppercase font-black opacity-40">Unidad Base</span></label>
 					<select bind:value={ingredientForm.unit} class="select select-bordered rounded-xl font-bold">
@@ -372,8 +372,16 @@
 					</select>
 				</div>
 				<div class="form-control">
-					<label class="label p-0 mb-1" for="ing_stock"><span class="label-text text-[10px] uppercase font-black opacity-40">Stock</span></label>
+					<label class="label p-0 mb-1" for="ing_stock">
+                        <span class="label-text text-[10px] uppercase font-black opacity-40">Stock Actual ({ingredientForm.unit})</span>
+                    </label>
 					<input type="number" step="0.1" bind:value={ingredientForm.current_stock} class="input input-bordered rounded-xl font-bold" />
+				</div>
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="ing_min_stock">
+                        <span class="label-text text-[10px] uppercase font-black opacity-40">Stock Mínimo</span>
+                    </label>
+					<input type="number" step="0.1" id="ing_min_stock" bind:value={ingredientForm.minimum_stock} class="input input-bordered rounded-xl font-bold border-warning/30" />
 				</div>
 			</div>
 			<div class="modal-action">
