@@ -108,12 +108,20 @@ class OrderRepository:
         order_id: int,
         method: PaymentMethod,
         amount: float,
+        received_amount: float = 0.0,
+        change_amount: float = 0.0,
     ) -> Payment:
         """
         Construye y persiste un Payment en la sesión activa (sin commit).
         El Servicio es responsable de hacer commit() después de llamar este método.
         """
-        payment = Payment(order_id=order_id, method=method, amount=amount)
+        payment = Payment(
+            order_id=order_id, 
+            method=method, 
+            amount=amount,
+            received_amount=received_amount,
+            change_amount=change_amount
+        )
         session.add(payment)
         return payment
 

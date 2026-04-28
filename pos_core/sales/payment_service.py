@@ -26,45 +26,58 @@ async def add_payment(
     """
     Registra un pago y marca la orden como pagada (is_paid=True).
     
-    LÓGICA DE NEGOCIO ACTUALIZADA:
-    - Si la orden ya está ENTREGADA, se mueve a status PAID (terminal).
-    - Si la orden está en PENDING/PREPARING, se mantiene su status operativo
-      para que siga apareciendo en Cocina (KDS), pero con la marca de pagado.
-    - Si la orden era PENDING, se dispara la depleción de inventario al pagar.
+    LÓGICA DE CONTADURÍA:
+    - amount: El ingreso real (revenue), limitado al total de la orden.
+    - received_amount: El efectivo/monto total que entregó el cliente.
+    - change_amount: El cambio devuelto (received - total).
     """
-    order = await order_repo.get_by_id(session, order_id)
+    # Cargamos con relaciones para calcular el total
+    order = await order_repo.get_with_relations(session, order_id)
     if not order:
         raise OrderNotFoundError(order_id)
     if order.is_paid:
         raise InvalidOrderStateError("Esta orden ya fue pagada.")
 
-    # 1. Registrar el pago
-    payment = await order_repo.create_payment(session, order_id, method, amount)
+    # 1. Calcular totales reales
+    total_revenue = order.total_price
+    received = amount
+    change = max(0.0, received - total_revenue)
+
+    # 2. Registrar el pago con desglose
+    payment = await order_repo.create_payment(
+        session, 
+        order_id, 
+        method, 
+        amount=total_revenue,  # La ganancia real
+        received_amount=received,
+        change_amount=change
+    )
     order.is_paid = True
 
-    # 2. Manejo de Inventario: Si estaba en PENDING, descontar stock ahora que hay dinero de por medio
+    # 3. Manejo de Inventario: Si estaba en PENDING, descontar stock ahora que hay dinero de por medio
     if order.status == OrderStatus.PENDING:
-        order_items = await item_repo.get_items_for_order(session, order_id)
-        if order_items:
-            await process_inventory_depletion(session, order_items)
+        # Los ítems ya vienen precargados por get_with_relations
+        if order.items:
+            await process_inventory_depletion(session, order.items)
             # Avanzamos los ítems a PREPARING para que cocina sepa que ya puede empezar
-            for item in order_items:
+            for item in order.items:
                 if item.status == OrderStatus.PENDING:
                     item.status = OrderStatus.PREPARING
             order.status = OrderStatus.PREPARING
 
-    # 3. La orden mantiene su status operativo (PENDING/PREPARING/READY/DELIVERED)
-    # No la movemos a un estado terminal 'PAID' para no perder el contexto de servicio.
-
     await order_repo.save(session, order)
     
-    # Encolar evento para sincronización SaaS
+    # 4. Encolar evento para sincronización SaaS
+    # IMPORTANTE: Enviamos el total_revenue como 'amount' para que el Central cuadre sus cuentas.
     await enqueue_event(session, "sales.payment_added", {
         "order_id": order.id,
         "payment_id": payment.id,
-        "amount": payment.amount,
+        "amount": total_revenue, 
+        "received_amount": received,
+        "change_amount": change,
         "method": payment.method,
-        "timestamp": str(payment.timestamp)
+        "timestamp": str(payment.timestamp),
+        "items_count": sum(i.quantity for i in order.items if i.status != OrderStatus.CANCELLED)
     })
 
     await session.commit()

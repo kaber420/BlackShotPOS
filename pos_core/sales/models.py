@@ -94,6 +94,8 @@ class Payment(SQLModel, table=True):
     order_id: int = Field(foreign_key="order.id")
     method: PaymentMethod
     amount: float
+    received_amount: float = Field(default=0.0)
+    change_amount: float = Field(default=0.0)
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     @field_serializer("timestamp")
@@ -139,6 +141,15 @@ class Order(SQLModel, table=True):
     payments: List[Payment] = Relationship(back_populates="order")
     shift: Optional[Shift] = Relationship(back_populates="orders")
     customer: Optional["Customer"] = Relationship()
+
+    @property
+    def total_price(self) -> float:
+        """Calcula el total de la orden sumando los subtotales de ítems no cancelados."""
+        return sum(
+            item.unit_price * item.quantity 
+            for item in self.items 
+            if item.status != OrderStatus.CANCELLED
+        )
 
 class AuditCategory(str, Enum):
     SECURITY = "security"
