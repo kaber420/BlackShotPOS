@@ -4,7 +4,7 @@ from pos_core.events.manager import pos_broadcaster, iot_broadcaster
 from pos_core.events.service import trigger_broadcast
 from .service import get_device_by_token, update_device_last_seen, update_device_health
 from pos_core.settings.service import get_settings
-from pos_core.sales.order_service import get_orders
+from pos_core.sales.services.order_lifecycle_service import get_orders
 from pos_core.sales.schemas import OrderRead
 from pos_core.sales.models import OrderStatus
 import logging

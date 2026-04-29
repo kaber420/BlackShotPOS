@@ -20,12 +20,12 @@ async def _fetch_topic_data(topic: str, db: AsyncSession) -> Optional[Any]:
     from pos_core.sales.schemas import OrderRead
 
     if topic == "kitchen_orders":
-        from pos_core.sales.order_service import get_kitchen_orders
+        from pos_core.sales.services.order_lifecycle_service import get_kitchen_orders
         orders = await get_kitchen_orders(db)
         return [OrderRead.model_validate(o).model_dump(mode="json") for o in orders]
 
     elif topic == "recent_orders":
-        from pos_core.sales.order_service import get_orders
+        from pos_core.sales.services.order_lifecycle_service import get_orders
         orders = await get_orders(db)
         data = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders]
         return sorted(data, key=lambda x: x["created_at"], reverse=True)

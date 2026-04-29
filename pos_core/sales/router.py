@@ -3,7 +3,12 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.database import get_session
 from .models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMethod
-from pos_core.sales import order_service, payment_service, analytics_service
+from pos_core.sales.services import (
+    order_lifecycle_service as order_service,
+    order_item_service,
+    order_action_service
+)
+from pos_core.sales import payment_service, analytics_service
 from pos_core.tables import service as table_service
 from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast
 from pos_core.auth.dependencies import require_role, require_permission
@@ -89,7 +94,7 @@ async def add_item(
         raise HTTPException(status_code=404, detail="Order not found")
 
     try:
-        item = await order_service.add_item_to_order(
+        item = await order_item_service.add_item_to_order(
             db,
             order_id,
             item_in.product_id,
@@ -167,7 +172,7 @@ async def update_item_status(
     """Actualiza el estado de un ítem individual. Registra cocinero o mesero según la transición."""
     is_kitchen = status in (OrderStatus.PREPARING, OrderStatus.READY)
     is_delivery = status == OrderStatus.DELIVERED
-    item = await order_service.update_order_item_status(
+    item = await order_item_service.update_order_item_status(
         db,
         order_id,
         item_id,
@@ -302,7 +307,7 @@ async def transfer_order(
     old_table_id = order.table_id
 
     try:
-        updated_order = await order_service.transfer_order_table(
+        updated_order = await order_action_service.transfer_order_table(
             db,
             order_id,
             transfer_in.new_table_id,

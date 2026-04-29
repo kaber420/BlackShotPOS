@@ -1,29 +1,42 @@
 import requests
 import sys
 
-BASE_URL = "http://localhost:8000/api/v1/pos"
-# Simulating the token if needed, but for local tests we might have disabled it or use a default
-HEADERS = {"X-Omni-Token": "test-token-admin"} # Adjust if necessary
+BASE_URL = "http://localhost:8400/api/v1/pos"
+AUTH_URL = "http://localhost:8400/api/auth/jwt/login"
+
+# Use a session to persist cookies
+session = requests.Session()
+
+def login():
+    print(f"Logging in to {AUTH_URL}...")
+    resp = session.post(AUTH_URL, data={"username": "admin@blackshot.pos", "password": "admin_password"})
+    if resp.status_code not in [200, 204]:
+        print(f"FAILED Login: {resp.status_code} {resp.text}")
+        return False
+    print("Login OK")
+    return True
 
 def test_categories():
-    print("Testing Categories CRUD...")
+    import uuid
+    cat_name = f"Test Cat {uuid.uuid4().hex[:6]}"
+    print(f"Testing Categories CRUD with name: {cat_name}...")
     # Create
-    resp = requests.post(f"{BASE_URL}/categories", params={"name": "Test Cat", "description": "Desc"}, headers=HEADERS)
+    resp = session.post(f"{BASE_URL}/categories", json={"name": cat_name, "description": "Desc"})
     if resp.status_code != 200:
-        print(f"FAILED Create Category: {resp.text}")
+        print(f"FAILED Create Category: {resp.status_code} {resp.text}")
         return False
     cat_id = resp.json()["id"]
     
     # Update
-    resp = requests.put(f"{BASE_URL}/categories/{cat_id}", params={"name": "Updated Cat"}, headers=HEADERS)
+    resp = session.put(f"{BASE_URL}/categories/{cat_id}", json={"name": f"Updated {cat_name}"})
     if resp.status_code != 200:
-        print(f"FAILED Update Category: {resp.text}")
+        print(f"FAILED Update Category: {resp.status_code} {resp.text}")
         return False
     
     # Delete
-    resp = requests.delete(f"{BASE_URL}/categories/{cat_id}", headers=HEADERS)
+    resp = session.delete(f"{BASE_URL}/categories/{cat_id}")
     if resp.status_code != 200:
-        print(f"FAILED Delete Category: {resp.text}")
+        print(f"FAILED Delete Category: {resp.status_code} {resp.text}")
         return False
     print("Categories CRUD OK")
     return True
@@ -32,31 +45,32 @@ def test_ingredients():
     print("Testing Ingredients CRUD...")
     # Create
     data = {"name": "Test Ing", "unit": "g", "current_stock": 100, "minimum_stock": 10}
-    resp = requests.post(f"{BASE_URL}/ingredients", json=data, headers=HEADERS)
+    resp = session.post(f"{BASE_URL}/ingredients", json=data)
     if resp.status_code != 200:
-        print(f"FAILED Create Ingredient: {resp.text}")
+        print(f"FAILED Create Ingredient: {resp.status_code} {resp.text}")
         return False
     ing_id = resp.json()["id"]
     
     # Update
     data["current_stock"] = 150
-    resp = requests.put(f"{BASE_URL}/ingredients/{ing_id}", json=data, headers=HEADERS)
+    resp = session.put(f"{BASE_URL}/ingredients/{ing_id}", json=data)
     if resp.status_code != 200:
-        print(f"FAILED Update Ingredient: {resp.text}")
+        print(f"FAILED Update Ingredient: {resp.status_code} {resp.text}")
         return False
     
     # Delete
-    resp = requests.delete(f"{BASE_URL}/ingredients/{ing_id}", headers=HEADERS)
+    resp = session.delete(f"{BASE_URL}/ingredients/{ing_id}")
     if resp.status_code != 200:
-        print(f"FAILED Delete Ingredient: {resp.text}")
+        print(f"FAILED Delete Ingredient: {resp.status_code} {resp.text}")
         return False
     print("Ingredients CRUD OK")
     return True
 
 if __name__ == "__main__":
-    # Note: Backend must be running for this to work
-    print("Ensure the backend is running at http://localhost:8000")
+    print("Ensure the backend is running at http://localhost:8400")
     try:
+        if not login():
+            sys.exit(1)
         c_ok = test_categories()
         i_ok = test_ingredients()
         if c_ok and i_ok:

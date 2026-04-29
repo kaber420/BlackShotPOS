@@ -8,7 +8,7 @@ from pos_core.database import get_session
 from .models import AuditLog, Order, OrderStatus
 from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
-from pos_core.sales import order_service
+from pos_core.sales.services import order_action_service
 from pos_core.events.service import trigger_all_broadcasts
 import asyncio
 
@@ -39,7 +39,7 @@ async def cancel_order_with_reason(
     La lógica de auditoría y liberación de mesa está centralizada en el servicio.
     """
     try:
-        order = await order_service.cancel_order(
+        order = await order_action_service.cancel_order(
             db,
             order_id,
             reason=req.reason,
@@ -66,7 +66,7 @@ async def cancel_item_with_reason(
     Cancela un ítem individual requiriendo un motivo.
     """
     try:
-        item = await order_service.cancel_order_item(
+        item = await order_action_service.cancel_order_item(
             db,
             order_id,
             item_id,

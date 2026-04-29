@@ -13,7 +13,7 @@ from typing import List
 from .models import Payment, PaymentMethod, OrderStatus
 from .repository import order_repo, item_repo
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
-from pos_core.inventory.service import process_inventory_depletion
+from pos_core.inventory.services.stock_service import process_inventory_depletion
 from bs_sync.service import enqueue_event
 
 
