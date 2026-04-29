@@ -30,7 +30,7 @@ async def get_config(session):
     return settings.nats_url, settings.branch_id
 
 async def ping_loop(get_js_func):
-    """Envía un ping periódico a la Central SaaS para anunciar que el POS está en línea."""
+    """Envía un ping periódico a la Central para anunciar que el POS está en línea."""
     while True:
         try:
             js = get_js_func()

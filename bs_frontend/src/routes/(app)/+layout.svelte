@@ -167,6 +167,14 @@
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
 								{/if}
 								
+								{#if can.manageInventory()}
+									<li><a href="/admin/inventory/ingredients">📦 Gestión de Inventario</a></li>
+								{/if}
+								
+								{#if can.viewAudits()}
+									<li><a href="/admin/audits">🛡️ Auditoría</a></li>
+								{/if}
+
 								{#if can.manageIoT()}
 									<li><a href="/admin/devices">🔌 Gestionar Dispositivos</a></li>
 								{/if}

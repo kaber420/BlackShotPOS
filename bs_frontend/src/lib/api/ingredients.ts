@@ -13,6 +13,32 @@ export interface Ingredient {
 	fats_per_unit?: number;
 }
 
+export enum AdjustmentReason {
+	WASTE = "WASTE",
+	EXPIRED = "EXPIRED",
+	ERROR = "ERROR",
+	THEFT = "THEFT",
+	PERSONAL_CONSUMPTION = "PERSONAL_CONSUMPTION"
+}
+
+export interface InventoryAdjustment {
+	id?: number;
+	ingredient_id: number;
+	quantity: number;
+	reason: AdjustmentReason;
+	note?: string;
+	actor_uuid?: string;
+	actor_name?: string;
+	timestamp?: string;
+}
+
+export interface InventoryAdjustmentCreate {
+	ingredient_id: number;
+	quantity: number;
+	reason: AdjustmentReason;
+	note?: string;
+}
+
 export const IngredientService = {
 	getAll: () => fetchApi<Ingredient[]>('/api/v1/pos/ingredients'),
 	
@@ -31,5 +57,16 @@ export const IngredientService = {
 	delete: (id: number) =>
 		fetchApi<{detail: string}>(`/api/v1/pos/ingredients/${id}`, {
 			method: 'DELETE'
+		}),
+
+	getAdjustments: (ingredientId?: number, limit: number = 50) => {
+		const query = ingredientId ? `?ingredient_id=${ingredientId}&limit=${limit}` : `?limit=${limit}`;
+		return fetchApi<InventoryAdjustment[]>(`/api/v1/pos/inventory/adjustments${query}`);
+	},
+
+	registerAdjustment: (adjustment: InventoryAdjustmentCreate) =>
+		fetchApi<InventoryAdjustment>('/api/v1/pos/inventory/adjustments', {
+			method: 'POST',
+			body: JSON.stringify(adjustment)
 		}),
 };

@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Global{% endblock %}
+{% block active_page %}dashboard{% endblock %}
+
+{% block header_title %}Panel de Gestión <span class="accent">Global</span>{% endblock %}
+{% block header_subtitle %}Monitoreo consolidado de toda la red Blackshot.{% endblock %}
+
+{% block header_actions %}
+    <button class="btn btn-primary" onclick="openAddBranchModal()">+ Añadir Sucursal</button>
+{% endblock %}
+
+{% block content %}
+<div class="stats-overview">
+    <div class="stat-card">
+        <span class="stat-label">Ingresos Globales</span>
+        <span class="stat-value" id="total-revenue">$0.00</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Ventas Totales</span>
+        <span class="stat-value" id="total-sales-count">0</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-label">Sucursales Online</span>
+        <span class="stat-value accent" id="online-branches">--</span>
+    </div>
+</div>
+
+<div class="stats-overview" style="margin-top: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+    <section class="table-container" style="margin-bottom: 0;">
+        <h2>Top Productos <span class="accent">Global</span></h2>
+        <div id="top-products-list" style="margin-top: 15px;">
+            <div style="opacity: 0.5; padding: 20px; text-align: center;">Cargando analíticas...</div>
+        </div>
+    </section>
+    
+    <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+        <div class="stat-card" style="padding: 15px 25px;">
+            <span class="stat-label">Ticket Promedio</span>
+            <span class="stat-value" id="avg-ticket">$0.00</span>
+        </div>
+        <div class="stat-card" style="padding: 15px 25px;">
+            <span class="stat-label">Sucursal Líder</span>
+            <span class="stat-value accent" id="top-branch">--</span>
+        </div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="main-stats-column">
+        <section class="table-container">
+            <div class="feed-header">
+                <h2>Últimas Ventas Consolidadas</h2>
+                <a href="/ventas" class="btn-text">Ver todas</a>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Sucursal</th>
+                        <th>Monto</th>
+                        <th>Ítems</th>
+                        <th>Fecha</th>
+                    </tr>
+                </thead>
+                <tbody id="last-sales-body">
+                    {% for sale in last_sales %}
+                    <tr>
+                        <td><strong>{{ sale.branch_name }}</strong></td>
+                        <td class="accent">${{ sale.amount }}</td>
+                        <td>{{ sale.items_count }}</td>
+                        <td><small>{{ sale.created_at[:16].replace('T', ' ') }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 40px; opacity: 0.5;">
+                            No hay ventas registradas aún.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <aside class="live-feed-section">
+        <div class="feed-header">
+            <h2>Actividad en Vivo</h2>
+            <div class="pulse-icon"></div>
+        </div>
+        <div id="live-events-list" class="events-list">
+            <div class="empty-feed" id="empty-feed">
+                Esperando eventos de sucursales...
+            </div>
+        </div>
+    </aside>
+</div>
+{% endblock %}
+
+{% block modals %}
+    <div id="add-branch-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('add-branch-modal')">&times;</span>
+            <h2>Nueva Sucursal</h2>
+            <form id="add-branch-form" onsubmit="submitAddBranch(event)">
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>Nombre</label>
+                    <input type="text" id="branch-name" class="text-input" style="width: 100%;" placeholder="Ej: Sucursal Centro" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 15px;">
+                    <label>URL API</label>
+                    <input type="url" id="branch-url" class="text-input" style="width: 100%;" placeholder="http://ip-o-dominio:8000/api/v1" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <label>Región</label>
+                        <select id="branch-region" class="select-input" style="width: 100%;">
+                            <option value="">Ninguna</option>
+                            {% for reg in regions %}
+                            <option value="{{ reg.id }}">{{ reg.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label>Gerente Asignado</label>
+                        <select id="branch-manager" class="select-input" style="width: 100%;">
+                            <option value="">Ninguno</option>
+                            {% for user in users %}
+                                {% if user.role == 'branch_manager' %}
+                                <option value="{{ user.id }}">{{ user.full_name }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Registrar Sucursal</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}

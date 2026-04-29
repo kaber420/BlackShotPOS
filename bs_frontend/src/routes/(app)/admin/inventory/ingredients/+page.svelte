@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { IngredientService, type Ingredient } from '$lib/api/ingredients';
+	import { IngredientService, type Ingredient, type InventoryAdjustmentCreate, AdjustmentReason } from '$lib/api/ingredients';
+	import { can } from '$lib/app_state.svelte';
 	import { ProductService, type ModifierGroup, type Modifier } from '$lib/api/products';
 	import { onMount } from 'svelte';
     import Button from '$lib/components/ui/Button.svelte';
@@ -58,6 +59,47 @@
 	let selectedGroupId = $state<number | null>(null);
 	let isSubmitting = $state(false);
 	let showAdvancedModifier = $state(false);
+
+	// --- Lógica de Merma ---
+	let adjustmentForm = $state<InventoryAdjustmentCreate>({
+		ingredient_id: 0,
+		quantity: 0,
+		reason: AdjustmentReason.WASTE,
+		note: ''
+	});
+	let selectedIngredientForAdjustment = $state<Ingredient | null>(null);
+
+	const REASON_LABELS = {
+		[AdjustmentReason.WASTE]: 'Desperdicio',
+		[AdjustmentReason.EXPIRED]: 'Caducado',
+		[AdjustmentReason.ERROR]: 'Error de Prep',
+		[AdjustmentReason.THEFT]: 'Robo',
+		[AdjustmentReason.PERSONAL_CONSUMPTION]: 'Consumo Personal'
+	};
+
+	function openAdjustmentModal(ing: Ingredient) {
+		selectedIngredientForAdjustment = ing;
+		adjustmentForm = {
+			ingredient_id: ing.id!,
+			quantity: 0,
+			reason: AdjustmentReason.WASTE,
+			note: ''
+		};
+		(document.getElementById('modal_merma') as HTMLDialogElement).showModal();
+	}
+
+	async function handleAdjustmentSubmit(e: Event) {
+		e.preventDefault();
+		try {
+			isSubmitting = true;
+			await IngredientService.registerAdjustment(adjustmentForm);
+			(document.getElementById('modal_merma') as HTMLDialogElement)?.close();
+		} catch (e: any) {
+			alert('Error al registrar merma: ' + e.message);
+		} finally {
+			isSubmitting = false;
+		}
+	}
 
 	async function loadAllData() {
 		try {
@@ -252,6 +294,9 @@
 								</div>
 							</div>
 							<div class="flex gap-1">
+								{#if can.manageInventory()}
+									<Button variant="ghost" square size="xs" onclick={() => openAdjustmentModal(ing)} title="Registrar Merma" class="text-warning">📉</Button>
+								{/if}
 								<Button variant="ghost" square size="xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</Button>
 								<Button variant="ghost" square size="xs" danger onclick={() => ing.id && handleDeleteIngredient(ing.id)} title="Eliminar">×</Button>
 							</div>
@@ -479,6 +524,52 @@
 
 			<div class="modal-action">
 				<Button type="submit" variant="secondary" class="px-10" isLoading={isSubmitting}>Guardar Opción</Button>
+			</div>
+		</form>
+	</div>
+	<form method="dialog" class="modal-backdrop bg-black/40"><button>close</button></form>
+</dialog>
+
+<!-- MODAL MERMA / AJUSTE -->
+<dialog id="modal_merma" class="modal">
+	<div class="modal-box rounded-3xl p-8 border-t-4 border-warning">
+		<h3 class="font-black text-2xl mb-2 tracking-tighter">Registrar Merma</h3>
+		<p class="text-xs opacity-50 mb-6 uppercase font-bold tracking-widest">Ajuste manual de inventario: {selectedIngredientForAdjustment?.name}</p>
+		
+		<form onsubmit={handleAdjustmentSubmit} class="space-y-4">
+			<div class="grid grid-cols-2 gap-4">
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="adj_qty">
+						<span class="label-text text-[10px] uppercase font-black opacity-40">Cantidad a Descontar ({selectedIngredientForAdjustment?.unit})</span>
+					</label>
+					<input type="number" step="0.01" id="adj_qty" bind:value={adjustmentForm.quantity} class="input input-bordered focus:input-warning rounded-xl font-bold" required />
+				</div>
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="adj_reason">
+						<span class="label-text text-[10px] uppercase font-black opacity-40">Motivo / Razón</span>
+					</label>
+					<select bind:value={adjustmentForm.reason} class="select select-bordered focus:select-warning rounded-xl font-bold">
+						{#each Object.entries(REASON_LABELS) as [value, label]}
+							<option {value}>{label}</option>
+						{/each}
+					</select>
+				</div>
+			</div>
+
+			<div class="form-control">
+				<label class="label p-0 mb-1" for="adj_note">
+					<span class="label-text text-[10px] uppercase font-black opacity-40">Notas / Explicación (Opcional)</span>
+				</label>
+				<textarea 
+					id="adj_note" 
+					bind:value={adjustmentForm.note} 
+					class="textarea textarea-bordered focus:textarea-warning rounded-xl font-bold h-24" 
+					placeholder="Ej: Se rompió el envase al recibir el pedido..."
+				></textarea>
+			</div>
+
+			<div class="modal-action">
+				<Button type="submit" variant="primary" class="px-10 bg-warning text-warning-content border-none" isLoading={isSubmitting}>Registrar Merma</Button>
 			</div>
 		</form>
 	</div>

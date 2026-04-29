@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Regiones{% endblock %}
+
+{% block header_title %}🌍 Gestión de Regiones{% endblock %}
+{% block header_subtitle %}Organiza tus sucursales por zonas geográficas y asigna gerentes regionales.{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary" onclick="openModal('modal-region')">Nueva Región</button>
+{% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+                <th>Sucursales</th>
+                <th>Gerentes</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for region in regions %}
+            <tr>
+                <td><strong>{{ region.name }}</strong></td>
+                <td>{{ region.description or 'Sin descripción' }}</td>
+                <td>
+                    <span class="badge">{{ region.branches|length }}</span>
+                </td>
+                <td>
+                    <div class="items-list">
+                        {% for mgr in region.managers %}
+                        <span class="badge">{{ mgr.full_name }}</span>
+                        {% else %}
+                        <span style="color: var(--text-dim); font-size: 0.8rem;">Sin gerentes</span>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-secondary btn-sm">Editar</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-dim);">
+                    No hay regiones creadas aún.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal para nueva región -->
+<div id="modal-region" class="modal">
+    <div class="modal-content">
+        <h2>Crear Nueva Región</h2>
+        <form id="form-region" style="margin-top: 20px;">
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px;">Nombre de la Región</label>
+                <input type="text" id="reg-name" class="text-input" style="width: 100%;" placeholder="Ej. Norte, Centro, Occidente" required>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px;">Descripción</label>
+                <textarea id="reg-desc" class="text-input" style="width: 100%; height: 80px;" placeholder="Opcional..."></textarea>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-region')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Región</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('form-region').onsubmit = async (e) => {
+    e.preventDefault();
+    const data = {
+        name: document.getElementById('reg-name').value,
+        description: document.getElementById('reg-desc').value
+    };
+    
+    const response = await fetch('/api/regions', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    if (response.ok) {
+        window.location.reload();
+    } else {
+        alert('Error al crear región');
+    }
+};
+</script>
+{% endblock %}

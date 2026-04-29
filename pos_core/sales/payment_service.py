@@ -67,7 +67,7 @@ async def add_payment(
 
     await order_repo.save(session, order)
     
-    # 4. Encolar evento para sincronización SaaS
+    # 4. Encolar evento para sincronización Central
     # Detalle de productos para analíticas centralizadas
     detailed_items = [
         {

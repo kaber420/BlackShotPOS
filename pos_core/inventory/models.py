@@ -1,4 +1,6 @@
 from typing import Optional, List
+from enum import Enum
+from datetime import datetime
 from sqlmodel import SQLModel, Field, Relationship
 
 class CategoryBase(SQLModel):
@@ -253,6 +255,36 @@ class POSPreset(POSPresetBase, table=True):
 
 class POSPresetCreate(POSPresetBase):
     pass
+
+# --- Registro de Merma / Ajustes de Inventario ---
+
+class AdjustmentReason(str, Enum):
+    WASTE = "WASTE"
+    EXPIRED = "EXPIRED"
+    ERROR = "ERROR"
+    THEFT = "THEFT"
+    PERSONAL_CONSUMPTION = "PERSONAL_CONSUMPTION"
+
+class InventoryAdjustmentBase(SQLModel):
+    ingredient_id: int = Field(foreign_key="ingredient.id")
+    quantity: float = Field(description="Cantidad descontada (en unidad base)")
+    reason: AdjustmentReason = Field(default=AdjustmentReason.WASTE)
+    note: Optional[str] = None
+    actor_uuid: Optional[str] = None
+    actor_name: Optional[str] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class InventoryAdjustment(InventoryAdjustmentBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    ingredient: "Ingredient" = Relationship()
+
+class InventoryAdjustmentCreate(SQLModel):
+    ingredient_id: int
+    quantity: float
+    reason: AdjustmentReason
+    note: Optional[str] = None
+
 # --- Modelos de Lectura (Read) para respuestas API con relaciones ---
 
 class IngredientRead(IngredientBase):

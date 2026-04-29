@@ -111,7 +111,7 @@
             <div class="flex flex-col gap-6 bg-primary/5 p-6 rounded-2xl border border-primary/10">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h3 class="text-sm font-black uppercase tracking-[0.2em] text-primary">Gestión Remota & Sincronización SaaS</h3>
+                        <h3 class="text-sm font-black uppercase tracking-[0.2em] text-primary">Gestión Remota & Sincronización Central</h3>
                         <p class="text-xs font-medium opacity-60 mt-1">Permite que el Panel Central administre esta sucursal de forma segura.</p>
                     </div>
                     <div class="form-control">

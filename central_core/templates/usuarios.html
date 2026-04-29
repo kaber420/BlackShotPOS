@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Usuarios{% endblock %}
+
+{% block header_title %}👥 Gestión de Usuarios y Roles{% endblock %}
+{% block header_subtitle %}Administra accesos para superadmins, gerentes regionales y personal de sucursal.{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary" onclick="openModal('modal-user')">Nuevo Usuario</button>
+{% endblock %}
+
+{% block content %}
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Asignaciones</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <div style="font-weight: 600;">{{ user.full_name }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim);">{{ user.email }}</div>
+                </td>
+                <td>
+                    <span class="badge" style="text-transform: uppercase;">{{ user.role.replace('_', ' ') }}</span>
+                </td>
+                <td>
+                    <div class="items-list">
+                        {% if user.role == 'regional_manager' %}
+                            {% for reg in user.regions %}
+                            <span class="badge">Región: {{ reg.name }}</span>
+                            {% endfor %}
+                        {% elif user.role == 'branch_manager' %}
+                            {% for branch in user.managed_branches %}
+                            <span class="badge">Sucursal: {{ branch.name }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span style="color: var(--text-dim); font-size: 0.8rem;">Acceso Global</span>
+                        {% endif %}
+                    </div>
+                </td>
+                <td>
+                    <span class="status-dot {{ 'online' if user.is_active else 'offline' }}"></span>
+                    {{ 'Activo' if user.is_active else 'Inactivo' }}
+                </td>
+                <td>
+                    <button class="btn btn-secondary btn-sm">Editar</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal para nuevo usuario -->
+<div id="modal-user" class="modal">
+    <div class="modal-content">
+        <h2>Crear Nuevo Usuario</h2>
+        <form id="form-user" style="margin-top: 20px;">
+            <div style="margin-bottom: 15px;">
+                <label>Nombre Completo</label>
+                <input type="text" id="user-name" class="text-input" style="width: 100%;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Email</label>
+                <input type="email" id="user-email" class="text-input" style="width: 100%;" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Rol</label>
+                <select id="user-role" class="select-input" style="width: 100%;" required>
+                    <option value="branch_manager">Gerente de Sucursal</option>
+                    <option value="regional_manager">Gerente Regional</option>
+                    <option value="superadmin">Super Administrador</option>
+                </select>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label>Password Temporal</label>
+                <input type="password" id="user-pass" class="text-input" style="width: 100%;" required>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-user')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Crear Cuenta</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('form-user').onsubmit = async (e) => {
+    e.preventDefault();
+    const data = {
+        full_name: document.getElementById('user-name').value,
+        email: document.getElementById('user-email').value,
+        role: document.getElementById('user-role').value,
+        password: document.getElementById('user-pass').value
+    };
+    
+    const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    if (response.ok) {
+        window.location.reload();
+    }
+};
+</script>
+{% endblock %}

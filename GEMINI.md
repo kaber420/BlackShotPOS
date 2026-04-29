@@ -10,7 +10,7 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 
 *   **Backend (POS & Central):**
     *   **Framework:** FastAPI (Python)
-    *   **Base de Datos:** SQLite (Local para POS, Central para SaaS Core)
+    *   **Base de Datos:** SQLite (Local para POS, Central para Central Core)
     *   **ORM:** SQLModel (sobre SQLAlchemy)
     *   **Comunicación:** SSE (Server-Sent Events) para actualizaciones en tiempo real y HTTP/REST para sincronización de datos.
 
@@ -23,8 +23,8 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 ### Estructura del Proyecto
 
 - `pos_core/`: Lógica de negocio del POS local (inventario, ventas, gestión de mesas).
-- `saas_core/`: Sistema central de gestión. Maneja **Regiones**, **Sucursales**, **Catálogos Globales** y agregación de ventas.
-- `bs_sync/`: Agente de sincronización que reside en el POS y empuja datos al SaaS.
+- `central_core/`: Sistema central de gestión. Maneja **Regiones**, **Sucursales**, **Catálogos Globales** y agregación de ventas.
+- `bs_sync/`: Agente de sincronización que reside en el POS y empuja datos a la Central.
 - `bs_frontend/`: Aplicación frontend del POS.
 
 ### Características Notables
@@ -54,7 +54,7 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 4. Iniciar Frontend: `cd bs_frontend && npm run dev`
 
 ### Blackshot Central (Gestión)
-1. Navegar a `saas_core/`.
+1. Navegar a `central_core/`.
 2. Instalar dependencias: `pip install -e .`
 3. Poblar datos iniciales: `python seed_central.py`
 4. Iniciar Central: `blackshot-central` (Corre en puerto 8001 por defecto).

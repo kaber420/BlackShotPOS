@@ -16,7 +16,7 @@ class BusinessSettings(SQLModel, table=True):
     bridge_enabled: bool = Field(default=False, description="Activa el acceso remoto vía Bridge")
     bridge_public_key: Optional[str] = Field(default=None, description="Llave pública RS256 para validación del Bridge")
     nats_url: str = Field(default="nats://localhost:4222", description="URL del servidor NATS para sincronización")
-    branch_id: str = Field(default="branch_default", description="Identificador único de esta sucursal en el SaaS")
+    branch_id: str = Field(default="branch_default", description="Identificador único de esta sucursal en la Central")
 
 class BusinessSettingsUpdate(SQLModel):
     name: Optional[str] = None

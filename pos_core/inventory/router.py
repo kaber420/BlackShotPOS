@@ -13,11 +13,16 @@ from .models import (
     Modifier, ModifierCreate, ModifierUpdate, ModifierRead, 
     POSPreset, POSPresetCreate, 
     Measure, MeasureCreate, MeasureRead, 
-    ProductVariant, ProductVariantCreate, ProductVariantUpdate, ProductVariantRead
+    ProductVariant, ProductVariantCreate, ProductVariantUpdate, ProductVariantRead,
+    InventoryAdjustment, InventoryAdjustmentCreate, AdjustmentReason
 )
 from . import services, unit_converter
-from .services import category_service, product_service, ingredient_service, modifier_service, recipe_service
-from pos_core.auth.dependencies import require_role
+from .services import (
+    category_service, product_service, ingredient_service, 
+    modifier_service, recipe_service, adjustment_service
+)
+from pos_core.auth.dependencies import require_role, get_current_active_user
+from pos_core.auth.models import User
 from typing import List, Optional
 
 router = APIRouter()
@@ -356,3 +361,39 @@ async def clear_variant_recipe(variant_id: int, db: AsyncSession = Depends(get_s
     """Limpia todos los ingredientes/grupos de la receta de una variante. Requiere rol: admin."""
     await product_service.clear_variant_recipe(db, variant_id)
     return {"detail": "Receta de variante eliminada"}
+
+# --- Endpoints de Ajustes / Merma ---
+# Usamos el prefijo /inventory/ para alinearnos con el plan, aunque el router esté en /api/v1/pos
+
+@router.get("/inventory/adjustments", response_model=List[InventoryAdjustment], dependencies=[Depends(require_role("admin"))])
+async def list_adjustments(
+    ingredient_id: Optional[int] = None,
+    limit: int = 100, 
+    db: AsyncSession = Depends(get_session)
+):
+    """Historial de mermas y ajustes de inventario. Requiere rol: admin."""
+    return await adjustment_service.get_adjustments(db, ingredient_id=ingredient_id, limit=limit)
+
+@router.post("/inventory/adjustments", response_model=InventoryAdjustment)
+async def create_adjustment(
+    adjustment: InventoryAdjustmentCreate, 
+    user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_session)
+):
+    """
+    Registra una merma o ajuste manual.
+    Requiere rol: admin o manager.
+    """
+    user_role = user.custom_metadata.get("role", "waiter")
+    if user_role not in ["admin", "manager"]:
+         raise HTTPException(
+             status_code=403, 
+             detail="Permisos insuficientes para registrar merma. Se requiere rol admin o manager."
+         )
+
+    return await adjustment_service.create_adjustment(
+        db, 
+        adjustment, 
+        actor_uuid=str(user.id), 
+        actor_name=getattr(user, "email", "unknown")
+    )

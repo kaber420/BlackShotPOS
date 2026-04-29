@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackshot Central | {% block title %}{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="dark-mode">
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="accent">Blackshot</span> Central
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/" class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                    <span class="icon">📊</span> Dashboard
+                </a>
+                <a href="/sucursales" class="nav-item {% if active_page == 'branches' %}active{% endif %}">
+                    <span class="icon">🏪</span> Sucursales
+                </a>
+                <a href="/ventas" class="nav-item {% if active_page == 'sales' %}active{% endif %}">
+                    <span class="icon">💰</span> Ventas Globales
+                </a>
+                <a href="/regiones" class="nav-item {% if active_page == 'regions' %}active{% endif %}">
+                    <span class="icon">🌍</span> Regiones
+                </a>
+                <a href="/productos" class="nav-item {% if active_page == 'products' %}active{% endif %}">
+                    <span class="icon">📦</span> Productos
+                </a>
+                <a href="/usuarios" class="nav-item {% if active_page == 'users' %}active{% endif %}">
+                    <span class="icon">👥</span> Usuarios
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="status-badge">Central v1.0</div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-info">
+                    <h1>{% block header_title %}{% endblock %}</h1>
+                    <p>{% block header_subtitle %}{% endblock %}</p>
+                </div>
+                <div class="header-actions">
+                    {% block header_actions %}{% endblock %}
+                </div>
+            </header>
+
+            <div class="page-content">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <!-- Modales comunes -->
+    {% block modals %}{% endblock %}
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

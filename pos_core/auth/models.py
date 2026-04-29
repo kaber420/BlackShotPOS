@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 @dataclass
 class BridgeUser:
-    """Usuario simulado para peticiones que vienen desde el Bridge (SaaS Central)"""
+    """Usuario simulado para peticiones que vienen desde el Bridge (Central Management)"""
     id: UUID = field(default_factory=uuid4)
     email: str = "central@blackshot.app"
     is_active: bool = True
@@ -14,7 +14,7 @@ class BridgeUser:
     is_verified: bool = True
     organization_id: str = "central"
     is_remote: bool = True
-    external_id: str = "saas-central"
+    external_id: str = "central-admin"
     custom_metadata: dict = field(default_factory=lambda: {"role": "admin", "is_bridge": True})
 
 class User(SQLModel, table=True):

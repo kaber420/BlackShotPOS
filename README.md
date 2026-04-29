@@ -64,7 +64,7 @@ npm run dev
 La gestión central se realiza de forma independiente dentro de su propio directorio.
 
 ```bash
-cd saas_core
+cd central_core
 
 # Crear y activar entorno virtual específico (opcional pero recomendado)
 python -m venv venv
@@ -99,7 +99,7 @@ python -m bs_sync.agent
 ```
 blackshot/
 ├── pos_core/       # Lógica del POS local (Ventas, Inventario, Mesas)
-├── saas_core/      # Dashboard central, gestión multi-sucursal y regiones
+├── central_core/   # Dashboard central, gestión multi-sucursal y regiones
 ├── bs_sync/        # Agente de sincronización de datos
 ├── bs_frontend/    # Interfaz web moderna (SvelteKit)
 ├── scripts/        # Utilidades de mantenimiento y seeding

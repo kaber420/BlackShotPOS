@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Catálogo Global{% endblock %}
+
+{% block header_title %}📦 Catálogo Maestro de Productos{% endblock %}
+{% block header_subtitle %}Define productos y precios base para ser distribuidos en las sucursales.{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary" onclick="openModal('modal-product')">Nuevo Producto</button>
+{% endblock %}
+
+{% block content %}
+<div class="controls-row">
+    <select class="select-input" onchange="filterByCategory(this.value)">
+        <option value="">Todas las Categorías</option>
+        {% for cat in categories %}
+        <option value="{{ cat.id }}">{{ cat.name }}</option>
+        {% endfor %}
+    </select>
+    <input type="text" class="text-input" placeholder="Buscar producto..." onkeyup="searchProduct(this.value)">
+</div>
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Categoría</th>
+                <th>Precio Sugerido</th>
+                <th>Menús</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prod in products %}
+            <tr class="product-row" data-category="{{ prod.category_id }}">
+                <td>
+                    <div style="font-weight: 600;">{{ prod.name }}</div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim);">{{ prod.description or 'Sin descripción' }}</div>
+                </td>
+                <td><span class="badge">{{ prod.category.name if prod.category else 'Sin categoría' }}</span></td>
+                <td style="font-weight: 700;">${{ "%.2f"|format(prod.price_suggested) }}</td>
+                <td>
+                    <div class="items-list">
+                        {% for menu in prod.menus %}
+                        <span class="badge">{{ menu.name }}</span>
+                        {% else %}
+                        <span style="color: var(--text-dim); font-size: 0.8rem;">-</span>
+                        {% endfor %}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-secondary btn-sm">Sincronizar</button>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-dim);">
+                    El catálogo está vacío. Comienza agregando un producto.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal para nuevo producto -->
+<div id="modal-product" class="modal">
+    <div class="modal-content">
+        <h2>Agregar Producto al Catálogo</h2>
+        <form id="form-product" style="margin-top: 20px;">
+            <div style="margin-bottom: 15px;">
+                <label>Nombre del Producto</label>
+                <input type="text" id="prod-name" class="text-input" style="width: 100%;" required>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label>Categoría</label>
+                    <select id="prod-cat" class="select-input" style="width: 100%;">
+                        <option value="">Seleccionar...</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label>Precio Sugerido</label>
+                    <input type="number" step="0.01" id="prod-price" class="text-input" style="width: 100%;" required>
+                </div>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label>Descripción Corta</label>
+                <textarea id="prod-desc" class="text-input" style="width: 100%; height: 40px;"></textarea>
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label>📍 Instrucciones de Preparación (Markdown)</label>
+                <textarea id="prod-recipe" class="text-input" style="width: 100%; height: 100px; font-family: monospace;" 
+                    placeholder="Ej: 
+1. Moler el café...
+2. Agregar 200ml de leche..."
+                    onkeyup="updatePreview(this.value)"></textarea>
+            </div>
+            <div id="recipe-preview" style="margin-bottom: 15px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px; font-size: 0.8rem; display: none;">
+                <div style="font-weight: bold; opacity: 0.5; margin-bottom: 5px; text-transform: uppercase; font-size: 0.6rem;">Vista Previa</div>
+                <div id="preview-content"></div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label>🥗 Información Nutrimental (General)</label>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 5px;">
+                    <div>
+                        <label style="font-size: 0.7rem;">Calorías</label>
+                        <input type="number" id="prod-cal" class="text-input" style="width: 100%;" value="0">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem;">Proteína (g)</label>
+                        <input type="number" id="prod-prot" class="text-input" style="width: 100%;" value="0">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem;">Carbo (g)</label>
+                        <input type="number" id="prod-carbs" class="text-input" style="width: 100%;" value="0">
+                    </div>
+                    <div>
+                        <label style="font-size: 0.7rem;">Grasas (g)</label>
+                        <input type="number" id="prod-fats" class="text-input" style="width: 100%;" value="0">
+                    </div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('modal-product')">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Guardar Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function filterByCategory(catId) {
+    const rows = document.querySelectorAll('.product-row');
+    rows.forEach(row => {
+        if (!catId || row.dataset.category === catId) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function searchProduct(query) {
+    const rows = document.querySelectorAll('.product-row');
+    const q = query.toLowerCase();
+    rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+
+function updatePreview(val) {
+    const previewDiv = document.getElementById('recipe-preview');
+    const contentDiv = document.getElementById('preview-content');
+    if (val.trim()) {
+        previewDiv.style.display = 'block';
+        contentDiv.innerHTML = marked.parse(val);
+    } else {
+        previewDiv.style.display = 'none';
+    }
+}
+
+document.getElementById('form-product').onsubmit = async (e) => {
+    e.preventDefault();
+    const data = {
+        name: document.getElementById('prod-name').value,
+        category_id: document.getElementById('prod-cat').value ? parseInt(document.getElementById('prod-cat').value) : null,
+        price_suggested: parseFloat(document.getElementById('prod-price').value),
+        description: document.getElementById('prod-desc').value,
+        recipe_markdown: document.getElementById('prod-recipe').value,
+        calories: parseFloat(document.getElementById('prod-cal').value || 0),
+        protein: parseFloat(document.getElementById('prod-prot').value || 0),
+        carbs: parseFloat(document.getElementById('prod-carbs').value || 0),
+        fats: parseFloat(document.getElementById('prod-fats').value || 0)
+    };
+    
+    const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+    });
+    
+    if (response.ok) {
+        window.location.reload();
+    }
+};
+</script>
+{% endblock %}

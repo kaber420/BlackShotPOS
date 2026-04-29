@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "blackshot-central"
+version = "0.1.0"
+description = "Central de Gestión para el Ecosistema Blackshot"
+requires-python = ">=3.9"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "sqlmodel",
+    "nats-py",
+    "python-dotenv",
+    "jinja2",
+    "cryptography",
+    "pydantic",
+    "pyjwt",
+    "httpx"
+]
+
+[project.scripts]
+blackshot-central = "cli:start"
+
+[tool.setuptools]
+py-modules = ["cli", "main", "models", "manager", "event_consumer", "seed_central"]

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Ventas Globales{% endblock %}
+
+{% block header_title %}💰 Historial de Ventas Globales{% endblock %}
+{% block header_subtitle %}Monitoreo en tiempo real de transacciones en todas las sucursales.{% endblock %}
+
+{% block content %}
+<div class="controls-row">
+    <select class="select-input" onchange="filterByBranch(this.value)">
+        <option value="">Todas las Sucursales</option>
+        {% for branch in branches %}
+        <option value="{{ branch.id }}" {% if selected_branch == branch.id %}selected{% endif %}>{{ branch.name }}</option>
+        {% endfor %}
+    </select>
+    <div style="flex: 1;"></div>
+    <div class="stat-card" style="padding: 10px 20px; display: flex; align-items: center; gap: 15px;">
+        <span style="color: var(--text-dim);">Total en vista:</span>
+        <span style="font-weight: 700; color: var(--accent); font-size: 1.2rem;">
+            ${{ "%.2f"|format(sales|sum(attribute='amount')) }}
+        </span>
+    </div>
+</div>
+
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Fecha/Hora</th>
+                <th>Sucursal</th>
+                <th>Monto</th>
+                <th>Items</th>
+                <th>Productos</th>
+            </tr>
+        </thead>
+        <tbody id="sales-body">
+            {% for sale in sales %}
+            <tr>
+                <td>{{ sale.created_at.replace('T', ' ')[:19] }}</td>
+                <td><strong>{{ sale.branch_name }}</strong></td>
+                <td style="font-weight: 700;">${{ "%.2f"|format(sale.amount) }}</td>
+                <td><span class="badge">{{ sale.items_count }}</span></td>
+                <td>
+                    <div class="items-list">
+                        {% for item in sale.items %}
+                        <span class="badge">{{ item.product_name }} (x{{ item.quantity }})</span>
+                        {% endfor %}
+                    </div>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 40px; color: var(--text-dim);">
+                    No hay ventas registradas.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<script>
+function filterByBranch(branchId) {
+    const url = new URL(window.location.href);
+    if (branchId) {
+        url.searchParams.set('branch_id', branchId);
+    } else {
+        url.searchParams.delete('branch_id');
+    }
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
