@@ -14,11 +14,18 @@ export interface Ingredient {
 }
 
 export enum AdjustmentReason {
+	// Salidas
 	WASTE = "WASTE",
 	EXPIRED = "EXPIRED",
 	ERROR = "ERROR",
 	THEFT = "THEFT",
-	PERSONAL_CONSUMPTION = "PERSONAL_CONSUMPTION"
+	PERSONAL_CONSUMPTION = "PERSONAL_CONSUMPTION",
+	// Entradas
+	PURCHASE = "PURCHASE",
+	RESTOCK = "RESTOCK",
+	// Ajustes
+	PHYSICAL_COUNT = "PHYSICAL_COUNT",
+	CORRECTION = "CORRECTION"
 }
 
 export interface InventoryAdjustment {

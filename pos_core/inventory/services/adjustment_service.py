@@ -15,8 +15,8 @@ async def create_adjustment(
     actor_name: Optional[str] = None
 ) -> InventoryAdjustment:
     """
-    Registra una merma o ajuste manual de inventario.
-    Descuenta el stock del ingrediente, guarda el log y encola sincronización.
+    Registra un movimiento de inventario (Entrada, Salida o Conteo Físico).
+    Actualiza el stock, guarda el log de auditoría y encola sincronización.
     """
     # 1. Buscar ingrediente
     ingredient = await session.get(Ingredient, adjustment_data.ingredient_id)
@@ -24,15 +24,34 @@ async def create_adjustment(
         logger.error(f"❌ Error: Ingrediente {adjustment_data.ingredient_id} no encontrado")
         raise ValueError(f"Ingrediente con id {adjustment_data.ingredient_id} no encontrado")
 
-    # 2. Restar cantidad del stock actual
-    ingredient.current_stock -= adjustment_data.quantity
+    old_stock = ingredient.current_stock
+    reason = adjustment_data.reason
+    
+    # 2. Determinar el impacto en el stock según la razón
+    delta = 0.0
+    
+    if reason in [AdjustmentReason.PURCHASE, AdjustmentReason.RESTOCK]:
+        # ENTRADA: Sumamos la cantidad al stock actual
+        delta = adjustment_data.quantity
+        ingredient.current_stock += delta
+    elif reason in [AdjustmentReason.PHYSICAL_COUNT, AdjustmentReason.CORRECTION]:
+        # CONTEO FÍSICO: La cantidad recibida ES el nuevo stock total.
+        # Calculamos el delta para el registro de auditoría.
+        delta = adjustment_data.quantity - old_stock
+        ingredient.current_stock = adjustment_data.quantity
+    else:
+        # SALIDA / MERMA: Restamos la cantidad (por defecto)
+        delta = -adjustment_data.quantity
+        ingredient.current_stock += delta
+
     session.add(ingredient)
 
-    # 3. Guardar el registro de ajuste
+    # 3. Guardar el registro de movimiento
+    # Guardamos el delta en 'quantity' para que el historial sea consistente
     adjustment = InventoryAdjustment(
         ingredient_id=adjustment_data.ingredient_id,
-        quantity=adjustment_data.quantity,
-        reason=adjustment_data.reason,
+        quantity=delta,
+        reason=reason,
         note=adjustment_data.note,
         actor_uuid=actor_uuid,
         actor_name=actor_name
@@ -42,13 +61,13 @@ async def create_adjustment(
     # 3.5 Registrar en la Bitácora Global de Auditoría
     audit_entry = AuditLog(
         category=AuditCategory.INVENTORY,
-        action=f"ADJUSTMENT_{adjustment.reason}",
-        reason=adjustment.note,
+        action=f"INV_{reason}",
+        reason=adjustment_data.note,
         actor_uuid=actor_uuid or "system",
         actor_name=actor_name or "system",
         target_id=str(ingredient.id),
         target_type="ingredient",
-        changes_json=f'{{"ingredient": "{ingredient.name}", "qty_removed": {adjustment.quantity}}}'
+        changes_json=f'{{"ingredient": "{ingredient.name}", "old_stock": {old_stock}, "new_stock": {ingredient.current_stock}, "delta": {delta}}}'
     )
     session.add(audit_entry)
     
@@ -57,7 +76,7 @@ async def create_adjustment(
     await session.refresh(adjustment)
     await session.refresh(ingredient)
 
-    logger.info(f"✅ Ajuste registrado: {adjustment.reason} para {ingredient.name} (-{adjustment.quantity})")
+    logger.info(f"✅ Movimiento registrado: {reason} para {ingredient.name} (Δ: {delta})")
 
     # 4. Notificar actualización de inventario vía WebSocket
     await trigger_broadcast("inventory")

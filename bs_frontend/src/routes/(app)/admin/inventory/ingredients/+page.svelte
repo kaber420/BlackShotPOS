@@ -74,19 +74,38 @@
 		[AdjustmentReason.EXPIRED]: 'Caducado',
 		[AdjustmentReason.ERROR]: 'Error de Prep',
 		[AdjustmentReason.THEFT]: 'Robo',
-		[AdjustmentReason.PERSONAL_CONSUMPTION]: 'Consumo Personal'
+		[AdjustmentReason.PERSONAL_CONSUMPTION]: 'Consumo Personal',
+		[AdjustmentReason.PURCHASE]: 'Compra',
+		[AdjustmentReason.RESTOCK]: 'Reposición',
+		[AdjustmentReason.PHYSICAL_COUNT]: 'Conteo Físico',
+		[AdjustmentReason.CORRECTION]: 'Corrección'
 	};
 
-	function openAdjustmentModal(ing: Ingredient) {
+	let movementType = $state<'IN' | 'OUT' | 'SET'>('OUT');
+
+	function openAdjustmentModal(ing: Ingredient, type: 'IN' | 'OUT' | 'SET' = 'OUT') {
 		selectedIngredientForAdjustment = ing;
+		movementType = type;
+		
+		let defaultReason = AdjustmentReason.WASTE;
+		if (type === 'IN') defaultReason = AdjustmentReason.PURCHASE;
+		if (type === 'SET') defaultReason = AdjustmentReason.PHYSICAL_COUNT;
+
 		adjustmentForm = {
 			ingredient_id: ing.id!,
 			quantity: 0,
-			reason: AdjustmentReason.WASTE,
+			reason: defaultReason,
 			note: ''
 		};
 		(document.getElementById('modal_merma') as HTMLDialogElement).showModal();
 	}
+
+	// Reactividad para resetear el motivo al cambiar de pestaña
+	$effect(() => {
+		if (movementType === 'IN') adjustmentForm.reason = AdjustmentReason.PURCHASE;
+		else if (movementType === 'SET') adjustmentForm.reason = AdjustmentReason.PHYSICAL_COUNT;
+		else if (movementType === 'OUT') adjustmentForm.reason = AdjustmentReason.WASTE;
+	});
 
 	async function handleAdjustmentSubmit(e: Event) {
 		e.preventDefault();
@@ -295,7 +314,7 @@
 							</div>
 							<div class="flex gap-1">
 								{#if can.manageInventory()}
-									<Button variant="ghost" square size="xs" onclick={() => openAdjustmentModal(ing)} title="Registrar Merma" class="text-warning">📉</Button>
+									<Button variant="ghost" square size="xs" onclick={() => openAdjustmentModal(ing)} title="Movimientos" class="text-warning">📊</Button>
 								{/if}
 								<Button variant="ghost" square size="xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</Button>
 								<Button variant="ghost" square size="xs" danger onclick={() => ing.id && handleDeleteIngredient(ing.id)} title="Eliminar">×</Button>
@@ -422,7 +441,7 @@
 					<label class="label p-0 mb-1" for="ing_stock">
                         <span class="label-text text-[10px] uppercase font-black opacity-40">Stock Actual ({ingredientForm.unit})</span>
                     </label>
-					<input type="number" step="0.1" bind:value={ingredientForm.current_stock} class="input input-bordered rounded-xl font-bold" />
+					<input type="number" step="0.1" bind:value={ingredientForm.current_stock} class="input input-bordered rounded-xl font-bold bg-base-200" readonly title="El stock se ajusta mediante Movimientos" />
 				</div>
 				<div class="form-control">
 					<label class="label p-0 mb-1" for="ing_min_stock">
@@ -530,48 +549,106 @@
 	<form method="dialog" class="modal-backdrop bg-black/40"><button>close</button></form>
 </dialog>
 
-<!-- MODAL MERMA / AJUSTE -->
+<!-- MODAL MOVIMIENTOS / AJUSTE -->
 <dialog id="modal_merma" class="modal">
-	<div class="modal-box rounded-3xl p-8 border-t-4 border-warning">
-		<h3 class="font-black text-2xl mb-2 tracking-tighter">Registrar Merma</h3>
-		<p class="text-xs opacity-50 mb-6 uppercase font-bold tracking-widest">Ajuste manual de inventario: {selectedIngredientForAdjustment?.name}</p>
+	<div class="modal-box rounded-3xl p-8 border-t-8 {movementType === 'IN' ? 'border-success' : movementType === 'SET' ? 'border-primary' : 'border-error'} transition-all duration-300">
+		<div class="flex justify-between items-start mb-6">
+			<div>
+				<h3 class="font-black text-3xl tracking-tighter">Movimiento</h3>
+				<p class="text-xs opacity-50 uppercase font-bold tracking-widest">{selectedIngredientForAdjustment?.name}</p>
+			</div>
+			<form method="dialog">
+				<button class="btn btn-sm btn-circle btn-ghost">✕</button>
+			</form>
+		</div>
+
+		<!-- Selector de Tipo (Pestañas) -->
+		<div class="tabs tabs-boxed bg-base-200 p-1 rounded-2xl mb-8 grid grid-cols-3">
+			<button 
+				type="button" 
+				class="tab tab-md transition-all {movementType === 'IN' ? 'tab-active bg-success text-success-content shadow-lg' : 'font-bold opacity-60'}" 
+				onclick={() => movementType = 'IN'}
+			>
+				📥 Entrada
+			</button>
+			<button 
+				type="button" 
+				class="tab tab-md transition-all {movementType === 'OUT' ? 'tab-active bg-error text-error-content shadow-lg' : 'font-bold opacity-60'}" 
+				onclick={() => movementType = 'OUT'}
+			>
+				📤 Salida
+			</button>
+			<button 
+				type="button" 
+				class="tab tab-md transition-all {movementType === 'SET' ? 'tab-active bg-primary text-primary-content shadow-lg' : 'font-bold opacity-60'}" 
+				onclick={() => movementType = 'SET'}
+			>
+				⚖️ Conteo
+			</button>
+		</div>
 		
-		<form onsubmit={handleAdjustmentSubmit} class="space-y-4">
-			<div class="grid grid-cols-2 gap-4">
+		<form onsubmit={handleAdjustmentSubmit} class="space-y-6">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 				<div class="form-control">
-					<label class="label p-0 mb-1" for="adj_qty">
-						<span class="label-text text-[10px] uppercase font-black opacity-40">Cantidad a Descontar ({selectedIngredientForAdjustment?.unit})</span>
+					<label class="label p-0 mb-2" for="adj_qty">
+						<span class="label-text text-[11px] uppercase font-black opacity-40">
+							{#if movementType === 'SET'}Stock Real en Mano ({selectedIngredientForAdjustment?.unit})
+							{:else}Cantidad a {#if movementType === 'IN'}Ingresar{:else}Descontar{/if} ({selectedIngredientForAdjustment?.unit}){/if}
+						</span>
 					</label>
-					<input type="number" step="0.01" id="adj_qty" bind:value={adjustmentForm.quantity} class="input input-bordered focus:input-warning rounded-xl font-bold" required />
+					<input type="number" step="0.01" id="adj_qty" bind:value={adjustmentForm.quantity} class="input input-lg input-bordered focus:input-primary rounded-2xl font-black text-2xl" placeholder="0.00" required />
 				</div>
 				<div class="form-control">
-					<label class="label p-0 mb-1" for="adj_reason">
-						<span class="label-text text-[10px] uppercase font-black opacity-40">Motivo / Razón</span>
+					<label class="label p-0 mb-2" for="adj_reason">
+						<span class="label-text text-[11px] uppercase font-black opacity-40">Razón / Motivo</span>
 					</label>
-					<select bind:value={adjustmentForm.reason} class="select select-bordered focus:select-warning rounded-xl font-bold">
+					<select bind:value={adjustmentForm.reason} class="select select-lg select-bordered focus:select-primary rounded-2xl font-bold">
 						{#each Object.entries(REASON_LABELS) as [value, label]}
-							<option {value}>{label}</option>
+							{#if movementType === 'IN' && (value === 'PURCHASE' || value === 'RESTOCK')}
+								<option {value}>{label}</option>
+							{:else if movementType === 'OUT' && ['WASTE', 'EXPIRED', 'ERROR', 'THEFT', 'PERSONAL_CONSUMPTION'].includes(value)}
+								<option {value}>{label}</option>
+							{:else if movementType === 'SET' && (value === 'PHYSICAL_COUNT' || value === 'CORRECTION')}
+								<option {value}>{label}</option>
+							{/if}
 						{/each}
 					</select>
 				</div>
 			</div>
 
+			{#if movementType === 'SET'}
+				<div class="alert bg-primary/10 border-primary/20 flex gap-4 p-4 rounded-2xl border">
+					<span class="text-2xl">💡</span>
+					<p class="text-xs font-medium leading-relaxed">
+						<span class="font-black text-primary uppercase block mb-1">Aviso de Auditoría</span>
+						El sistema ajustará el stock actual (<span class="badge badge-sm badge-ghost font-black">{selectedIngredientForAdjustment?.current_stock}</span>) para que coincida exactamente con lo que ingreses arriba.
+					</p>
+				</div>
+			{/if}
+
 			<div class="form-control">
-				<label class="label p-0 mb-1" for="adj_note">
-					<span class="label-text text-[10px] uppercase font-black opacity-40">Notas / Explicación (Opcional)</span>
+				<label class="label p-0 mb-2" for="adj_note">
+					<span class="label-text text-[11px] uppercase font-black opacity-40">Notas de Auditoría</span>
 				</label>
 				<textarea 
 					id="adj_note" 
 					bind:value={adjustmentForm.note} 
-					class="textarea textarea-bordered focus:textarea-warning rounded-xl font-bold h-24" 
-					placeholder="Ej: Se rompió el envase al recibir el pedido..."
+					class="textarea textarea-bordered focus:textarea-primary rounded-2xl font-medium h-24 text-sm" 
+					placeholder="Ej: Recibido de proveedor central, se derramó leche en barra, ajuste de cierre de semana..."
 				></textarea>
 			</div>
 
 			<div class="modal-action">
-				<Button type="submit" variant="primary" class="px-10 bg-warning text-warning-content border-none" isLoading={isSubmitting}>Registrar Merma</Button>
+				<Button 
+					type="submit" 
+					variant="primary" 
+					class="btn-lg btn-block rounded-2xl border-none shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] {movementType === 'IN' ? 'bg-success text-success-content' : movementType === 'SET' ? 'bg-primary text-primary-content' : 'bg-error text-error-content'}" 
+					isLoading={isSubmitting}
+				>
+					Confirmar Movimiento
+				</Button>
 			</div>
 		</form>
 	</div>
-	<form method="dialog" class="modal-backdrop bg-black/40"><button>close</button></form>
+	<form method="dialog" class="modal-backdrop bg-black/60 backdrop-blur-sm"><button>close</button></form>
 </dialog>

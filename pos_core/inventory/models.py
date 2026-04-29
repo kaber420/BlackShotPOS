@@ -259,11 +259,20 @@ class POSPresetCreate(POSPresetBase):
 # --- Registro de Merma / Ajustes de Inventario ---
 
 class AdjustmentReason(str, Enum):
+    # Salidas (Decremento)
     WASTE = "WASTE"
     EXPIRED = "EXPIRED"
     ERROR = "ERROR"
     THEFT = "THEFT"
     PERSONAL_CONSUMPTION = "PERSONAL_CONSUMPTION"
+    
+    # Entradas (Incremento)
+    PURCHASE = "PURCHASE"
+    RESTOCK = "RESTOCK"
+    
+    # Ajustes (Seteo Directo / Corrección)
+    PHYSICAL_COUNT = "PHYSICAL_COUNT"
+    CORRECTION = "CORRECTION"
 
 class InventoryAdjustmentBase(SQLModel):
     ingredient_id: int = Field(foreign_key="ingredient.id")
