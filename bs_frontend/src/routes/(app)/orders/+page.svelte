@@ -64,11 +64,11 @@
     });
 
     // Contadores por grupo
-    let activeOrders    = $derived(orders.filter(o => ACTIVE_STATUSES.has(o.status) || (o.status === 'DELIVERED' && !o.is_paid) || (o.status === 'PAID' && !o.is_paid /* solo en caso de errores */)));
+    let activeOrders    = $derived(orders.filter(o => ACTIVE_STATUSES.has(o.status) || (o.status === 'DELIVERED' && o.balance_due > 0) || (o.status === 'PAID' && o.balance_due > 0 /* solo en caso de errores */)));
     let pendingOrders   = $derived(orders.filter(o => o.status === 'PENDING'));
     let preparingOrders = $derived(orders.filter(o => o.status === 'PREPARING'));
     let readyOrders     = $derived(orders.filter(o => o.status === 'READY'));
-    let deliveredOrders = $derived(orders.filter(o => (o.status === 'DELIVERED' && o.is_paid) || o.status === 'PAID'));
+    let deliveredOrders = $derived(orders.filter(o => (o.status === 'DELIVERED' && o.balance_due === 0) || o.status === 'PAID'));
     let cancelledOrders = $derived(orders.filter(o => o.status === 'CANCELLED'));
 
     let filteredOrders = $derived(

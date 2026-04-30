@@ -6,14 +6,13 @@ from sqlmodel import select
 from fastapi import HTTPException
 from datetime import datetime, timezone
 
-from .models import Shift, ShiftStatus, Order, Payment, PaymentMethod
-
+from .models import Shift, ShiftStatus
+from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus
 
 async def get_active_shift(session: AsyncSession) -> Optional[Shift]:
     statement = select(Shift).where(Shift.status == ShiftStatus.OPEN)
     result = await session.execute(statement)
     return result.scalars().first()
-
 
 async def open_shift(session: AsyncSession, initial_cash: float) -> Shift:
     active = await get_active_shift(session)
@@ -26,7 +25,6 @@ async def open_shift(session: AsyncSession, initial_cash: float) -> Shift:
     await session.refresh(shift)
     return shift
 
-
 async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) -> Shift:
     shift = await session.get(Shift, shift_id)
     if not shift:
@@ -35,7 +33,7 @@ async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) 
     if shift.status == ShiftStatus.CLOSED:
         raise HTTPException(status_code=400, detail="Shift is already closed")
 
-    # Calcular expected_cash sumando initial_cash + total de pagos en efectivo
+    # Calcular expected_cash sumando initial_cash + total de abonos en efectivo (excluyendo propinas)
     statement = select(Payment).join(Order).where(
         Order.shift_id == shift_id,
         Payment.method == PaymentMethod.CASH,
@@ -43,6 +41,8 @@ async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) 
     result = await session.execute(statement)
     cash_payments = result.scalars().all()
 
+    # p.amount es el abono a la orden. p.tip_amount es la propina.
+    # Excluimos propinas del expected_cash según el plan.
     total_cash_sales = sum(p.amount for p in cash_payments)
 
     shift.expected_cash = shift.initial_cash + total_cash_sales
@@ -54,7 +54,6 @@ async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) 
     await session.commit()
     await session.refresh(shift)
     return shift
-
 
 async def list_shifts(session: AsyncSession) -> list:
     """
@@ -76,6 +75,12 @@ async def list_shifts(session: AsyncSession) -> list:
         card     = sum(p.amount for p in payments if p.method == PaymentMethod.CARD)
         transfer = sum(p.amount for p in payments if p.method == PaymentMethod.TRANSFER)
         total    = cash + card + transfer
+
+        # Cálculo de Propinas
+        tips_cash     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CASH)
+        tips_card     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CARD)
+        tips_transfer = sum(p.tip_amount for p in payments if p.method == PaymentMethod.TRANSFER)
+        tips_total    = tips_cash + tips_card + tips_transfer
 
         # Conteo de órdenes del turno
         order_count_stmt = select(sqlfunc.count(Order.id)).where(Order.shift_id == shift.id)
@@ -110,11 +115,16 @@ async def list_shifts(session: AsyncSession) -> list:
                 "transfer": round(transfer, 2),
                 "total": round(total, 2),
             },
+            "tips": {
+                "cash": round(tips_cash, 2),
+                "card": round(tips_card, 2),
+                "transfer": round(tips_transfer, 2),
+                "total": round(tips_total, 2),
+            },
             "orders_count": orders_count,
         })
 
     return out
-
 
 async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
     """
@@ -135,6 +145,12 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
     card     = sum(p.amount for p in payments if p.method == PaymentMethod.CARD)
     transfer = sum(p.amount for p in payments if p.method == PaymentMethod.TRANSFER)
 
+    # Cálculo de Propinas
+    tips_cash     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CASH)
+    tips_card     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CARD)
+    tips_transfer = sum(p.tip_amount for p in payments if p.method == PaymentMethod.TRANSFER)
+    tips_total    = tips_cash + tips_card + tips_transfer
+
     # Órdenes del turno con sus pagos e ítems (para auditoría)
     orders_stmt = (
         select(Order)
@@ -153,12 +169,13 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "id": o.id,
             "type": o.type,
             "status": o.status,
-            "is_paid": o.is_paid,
+            "is_paid": o.status == OrderStatus.PAID,
+            "balance_due": o.balance_due,
             "table_id": o.table_id,
             "external_reference": o.external_reference,
             "created_at": (o.created_at.replace(tzinfo=timezone.utc) if o.created_at.tzinfo is None else o.created_at).isoformat() if o.created_at else None,
             "items_count": len(o.items),
-            "total": round(sum(p.amount for p in o.payments), 2),
+            "total": round(o.total_amount, 2),
         }
         for o in orders_in_shift
     ]
@@ -190,6 +207,12 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "card": round(card, 2),
             "transfer": round(transfer, 2),
             "total": round(cash + card + transfer, 2),
+        },
+        "tips": {
+            "cash": round(tips_cash, 2),
+            "card": round(tips_card, 2),
+            "transfer": round(tips_transfer, 2),
+            "total": round(tips_total, 2),
         },
         "orders": orders_data,
         "orders_count": len(orders_data),

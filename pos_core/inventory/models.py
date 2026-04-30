@@ -213,6 +213,25 @@ class ModifierQuantity(ModifierQuantityBase, table=True):
 class ModifierQuantityUpdate(SQLModel):
     quantity: Optional[float] = None
 
+class TaxBase(SQLModel):
+    name: str = Field(index=True)
+    rate: float = Field(default=0.0)
+    description: Optional[str] = None
+    is_active: bool = Field(default=True)
+
+class Tax(TaxBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    products: List["Product"] = Relationship(back_populates="tax")
+
+class TaxCreate(TaxBase):
+    pass
+
+class TaxUpdate(SQLModel):
+    name: Optional[str] = None
+    rate: Optional[float] = None
+    description: Optional[str] = None
+    is_active: Optional[bool] = None
+
 class ProductBase(SQLModel):
     name: str = Field(index=True)
     description: Optional[str] = None
@@ -229,11 +248,13 @@ class ProductBase(SQLModel):
     calories: float = Field(default=0.0)
     carbs: float = Field(default=0.0)
     fats: float = Field(default=0.0)
+    tax_id: Optional[int] = Field(default=None, foreign_key="tax.id")
 
 class Product(ProductBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
     category: Optional[Category] = Relationship(back_populates="products")
+    tax: Optional[Tax] = Relationship(back_populates="products")
     recipe_items: List[RecipeItem] = Relationship(back_populates="product", sa_relationship_kwargs={"foreign_keys": "[RecipeItem.product_id]"})
     variants: List[ProductVariant] = Relationship(back_populates="product", sa_relationship_kwargs={"lazy": "selectin"})
     modifier_groups: List[ModifierGroup] = Relationship(back_populates="products", link_model=ProductModifierLink, sa_relationship_kwargs={"lazy": "selectin"})
@@ -254,6 +275,7 @@ class ProductUpdate(SQLModel):
     calories: Optional[float] = None
     carbs: Optional[float] = None
     fats: Optional[float] = None
+    tax_id: Optional[int] = None
     modifier_groups: Optional[List[dict]] = None # To handle incoming modifier groups IDs/Dicts gracefully
 
 class POSPresetBase(SQLModel):
@@ -325,6 +347,9 @@ class IngredientBatchRead(SQLModel):
 
 # --- Modelos de Lectura (Read) para respuestas API con relaciones ---
 
+class TaxRead(TaxBase):
+    id: int
+
 class IngredientRead(IngredientBase):
     id: int
     batches: List[IngredientBatchRead] = []
@@ -347,6 +372,7 @@ class ProductVariantRead(ProductVariantBase):
 class ProductRead(ProductBase):
     id: int
     category: Optional[CategoryBase] = None
+    tax: Optional[TaxRead] = None
     variants: List[ProductVariantRead] = []
     modifier_groups: List[ModifierGroupRead] = []
     recipe_markdown: Optional[str] = None

@@ -9,10 +9,10 @@ from pos_core.inventory.router import router as inventory_router
 from pos_core.tables.router import router as tables_router
 from pos_core.sales.router import router as sales_router
 from pos_core.printing.router import router as printing_router
-from pos_core.sales.shifts_router import router as shifts_router
+from pos_core.accounting.router import router as shifts_router
 from pos_core.settings.router import router as settings_router
-from pos_core.sales.analytics_router import router as analytics_router
-from pos_core.sales.audits_router import router as audits_router
+from pos_core.analytics.router import router as analytics_router
+from pos_core.audit.router import router as audits_router
 from pos_core.events.router import router as events_router
 from pos_core.iot.router import router as iot_router
 from pos_core.iot.admin_router import router as admin_iot_router

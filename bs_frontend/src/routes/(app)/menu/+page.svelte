@@ -7,6 +7,7 @@
     import ProductModal from '$lib/components/ProductModal.svelte';
     import CategoryModal from '$lib/components/CategoryModal.svelte';
     import MeasureModal from '$lib/components/MeasureModal.svelte';
+    import ComboBuilderModal from '$lib/components/product/ComboBuilderModal.svelte';
     import Button from '$lib/components/ui/Button.svelte';
 
     let products = $state<Product[]>([]);
@@ -19,6 +20,7 @@
     let isProductModalOpen = $state(false);
     let isCategoryModalOpen = $state(false);
     let isMeasureModalOpen = $state(false);
+    let isComboModalOpen = $state(false);
     let editingProduct = $state<Partial<Product> | null>(null);
 
     const filteredProducts = $derived(
@@ -97,6 +99,14 @@
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                 </svelte:fragment>
                 Nuevo Producto
+            </Button>
+            <Button variant="outline" size="md" class="border-primary text-primary hover:bg-primary/10" onclick={() => isComboModalOpen = true}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </svelte:fragment>
+                Armar Combo
             </Button>
             <Button variant="outline" size="md" onclick={openCategoryModal}>Categorías</Button>
             <Button variant="outline" size="md" onclick={openMeasureModal}>Tallas/Medidas</Button>
@@ -288,4 +298,10 @@
     isOpen={isMeasureModalOpen}
     onClose={() => isMeasureModalOpen = false}
     onRefresh={loadData}
+/>
+
+<ComboBuilderModal 
+    isOpen={isComboModalOpen} 
+    onClose={() => isComboModalOpen = false} 
+    onSave={loadData} 
 />

@@ -4,9 +4,10 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Order, OrderItem, OrderStatus, AuditCategory
+from ..models import Order, OrderItem, OrderStatus
+from pos_core.audit.models import AuditCategory
 from ..repository import order_repo, item_repo
-from .. import audit_service
+from pos_core.audit import service as audit_service
 from pos_core.exceptions import OrderNotFoundError
 
 
@@ -54,6 +55,9 @@ async def cancel_order(
         target_id=str(order_id),
         target_type="order",
     )
+
+    from .order_lifecycle_service import recalculate_order_totals
+    await recalculate_order_totals(session, order_id)
 
     await session.commit()
     await session.refresh(order)
@@ -107,6 +111,9 @@ async def cancel_order_item(
             if order.table_id:
                 from pos_core.tables import service as table_service
                 await table_service.vacate_table_service(session, order.table_id)
+
+    from .order_lifecycle_service import recalculate_order_totals
+    await recalculate_order_totals(session, order_id)
 
     await session.commit()
     await session.refresh(item)

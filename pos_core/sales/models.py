@@ -25,27 +25,7 @@ class PaymentMethod(str, Enum):
     CARD = "CARD"
     TRANSFER = "TRANSFER"
 
-class ShiftStatus(str, Enum):
-    OPEN = "OPEN"
-    CLOSED = "CLOSED"
 
-class Shift(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    end_time: Optional[datetime] = Field(default=None)
-    initial_cash: float
-    expected_cash: float = Field(default=0.0)
-    actual_cash: Optional[float] = Field(default=None)
-    difference: Optional[float] = Field(default=None)
-    status: ShiftStatus = Field(default=ShiftStatus.OPEN)
-    
-    @field_serializer("start_time", "end_time")
-    def serialize_shift_times(self, v: Optional[datetime]) -> Optional[str]:
-        if v is None: return None
-        if v.tzinfo is None: v = v.replace(tzinfo=timezone.utc)
-        return v.isoformat()
-    
-    orders: List["Order"] = Relationship(back_populates="shift")
 
 class OrderItemModifier(SQLModel, table=True):
     """Vínculo entre un item de la orden y los modificadores seleccionados en el POS."""
@@ -59,6 +39,8 @@ class OrderItem(SQLModel, table=True):
     product_variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id")
     quantity: int = Field(default=1)
     unit_price: float = Field(description="Precio unitario al momento de la venta")
+    tax_rate: float = Field(default=0.0, description="Tasa de impuesto aplicada (snapshot)")
+    tax_amount: float = Field(default=0.0, description="Monto de impuesto para este ítem")
     status: OrderStatus = Field(default=OrderStatus.PENDING)
 
     # ── Rastreo de entrega (¿quién entregó este ítem al cliente?) ────────────
@@ -97,6 +79,7 @@ class Payment(SQLModel, table=True):
     amount: float
     received_amount: float = Field(default=0.0)
     change_amount: float = Field(default=0.0)
+    tip_amount: float = Field(default=0.0, description="Monto de propina incluido en este pago")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     
     @field_serializer("timestamp")
@@ -111,7 +94,12 @@ class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     type: OrderType
     status: OrderStatus = Field(default=OrderStatus.PENDING)
-    is_paid: bool = Field(default=False)
+    
+    # Snapshot Financiero
+    subtotal: float = Field(default=0.0)
+    tax_amount: float = Field(default=0.0)
+    total_amount: float = Field(default=0.0)
+    
     table_id: Optional[int] = Field(default=None, foreign_key="table.id")
     shift_id: Optional[int] = Field(default=None, foreign_key="shift.id")
     customer_id: Optional[UUID] = Field(default=None, foreign_key="customer.id")
@@ -140,38 +128,18 @@ class Order(SQLModel, table=True):
 
     items: List[OrderItem] = Relationship(back_populates="order")
     payments: List[Payment] = Relationship(back_populates="order")
-    shift: Optional[Shift] = Relationship(back_populates="orders")
+    shift: Optional["Shift"] = Relationship(back_populates="orders")
     customer: Optional["Customer"] = Relationship()
 
     @property
     def total_price(self) -> float:
-        """Calcula el total de la orden sumando los subtotales de ítems no cancelados."""
-        return sum(
-            item.unit_price * item.quantity 
-            for item in self.items 
-            if item.status != OrderStatus.CANCELLED
-        )
+        """Alias para mantener compatibilidad con código existente que usa total_price."""
+        return self.total_amount
 
-class AuditCategory(str, Enum):
-    SECURITY = "security"
-    SALES = "sales"
-    INVENTORY = "inventory"
-    CONFIG = "config"
+    @property
+    def balance_due(self) -> float:
+        """Calcula el saldo pendiente de la orden."""
+        paid_amount = sum(p.amount for p in self.payments)
+        return max(0.0, self.total_amount - paid_amount)
 
-class AuditLog(SQLModel, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    category: AuditCategory
-    action: str
-    reason: Optional[str] = Field(default=None)
-    actor_uuid: str
-    actor_name: str
-    target_id: Optional[str] = Field(default=None)
-    target_type: Optional[str] = Field(default=None)
-    changes_json: Optional[str] = Field(default=None)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    @field_serializer("timestamp")
-    def serialize_audit_time(self, v: Optional[datetime]) -> Optional[str]:
-        if v is None: return None
-        if v.tzinfo is None: v = v.replace(tzinfo=timezone.utc)
-        return v.isoformat()

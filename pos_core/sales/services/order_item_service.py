@@ -17,9 +17,15 @@ async def add_item_to_order(
     product_variant_id: Optional[int] = None,
     modifier_ids: Optional[List[int]] = None,
 ) -> OrderItem:
-    from pos_core.inventory.models import Product, ProductVariant, Modifier
+    from pos_core.inventory.models import Product, ProductVariant, Modifier, Tax
+    from sqlalchemy.orm import selectinload
+    from sqlalchemy import select
 
-    product = await session.get(Product, product_id)
+    # Obtenemos producto con su impuesto relacionado
+    statement = select(Product).where(Product.id == product_id).options(selectinload(Product.tax))
+    result = await session.execute(statement)
+    product = result.scalar_one_or_none()
+
     if not product:
         raise ValueError(f"Product with id {product_id} not found")
 
@@ -40,16 +46,27 @@ async def add_item_to_order(
                 extra_price += mod.extra_price
                 modifiers.append(mod)
 
+    unit_price = base_price + extra_price
+    tax_rate = product.tax.rate if product.tax else 0.0
+    tax_amount = (unit_price * quantity) * (tax_rate / 100.0)
+
     order_item = OrderItem(
         order_id=order_id,
         product_id=product_id,
         product_variant_id=product_variant_id,
         quantity=quantity,
-        unit_price=base_price + extra_price,
+        unit_price=unit_price,
+        tax_rate=tax_rate,
+        tax_amount=tax_amount,
         modifiers=modifiers,
     )
     session.add(order_item)
     await session.commit()
+    
+    # Recalculamos la orden completa para asegurar integridad
+    from .order_lifecycle_service import recalculate_order_totals
+    await recalculate_order_totals(session, order_id)
+    
     await session.refresh(order_item)
     return order_item
 

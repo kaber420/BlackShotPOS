@@ -6,6 +6,7 @@
 
     let paymentMethod = $state<string>('CASH');
     let amountReceived = $state<number>(0);
+    let tipAmount = $state<number>(0);
     let shouldPrint = $state<boolean>(true);
     let vacateTable = $state<boolean>(true);
     let isLoading = $state(false);
@@ -37,7 +38,7 @@
         
         isLoading = true;
         try {
-            await onConfirm(paymentMethod, amountReceived, shouldPrint, vacateTable);
+            await onConfirm(paymentMethod, amountReceived, tipAmount, shouldPrint, vacateTable);
         } finally {
             isLoading = false;
         }
@@ -120,6 +121,23 @@
                 </div>
                 {/if}
 
+                <div class="animate-in fade-in slide-in-from-top-4 duration-300">
+                    <label class="label p-0 mb-2" for="tip_input">
+                        <span class="label-text font-black uppercase text-[10px] tracking-widest opacity-60">Propina (Opcional)</span>
+                    </label>
+                    <div class="join w-full shadow-sm">
+                        <span class="join-item btn btn-active pointer-events-none font-black text-lg bg-base-200">{appState.settings.currency_symbol}</span>
+                        <input 
+                            id="tip_input"
+                            type="number" 
+                            step="0.01" 
+                            bind:value={tipAmount} 
+                            class="input input-bordered join-item w-full text-xl font-black text-right focus:border-primary" 
+                            placeholder="0.00"
+                        />
+                    </div>
+                </div>
+
                 <div class="flex items-center justify-between p-4 bg-base-200 rounded-xl border border-base-300">
                     <div class="flex items-center gap-3">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 opacity-60">
@@ -157,6 +175,12 @@
                             <span>Recibido</span>
                             <span>{appState.settings.currency_symbol}{amountReceived.toFixed(2)}</span>
                         </div>
+                        {#if tipAmount > 0}
+                        <div class="flex justify-between items-center text-sm text-success font-bold">
+                            <span>Propina</span>
+                            <span>{appState.settings.currency_symbol}{tipAmount.toFixed(2)}</span>
+                        </div>
+                        {/if}
                         
                         <div class="divider my-1"></div>
                         

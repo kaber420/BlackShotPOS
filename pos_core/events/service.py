@@ -31,7 +31,7 @@ async def _fetch_topic_data(topic: str, db: AsyncSession) -> Optional[Any]:
         return sorted(data, key=lambda x: x["created_at"], reverse=True)
 
     elif topic == "dashboard_stats":
-        from pos_core.sales.analytics_service import get_dashboard_stats
+        from pos_core.analytics.service import get_dashboard_stats
         return await get_dashboard_stats(db)
 
     elif topic == "tables":
@@ -86,9 +86,9 @@ async def trigger_broadcast(topic: str, data: Any = None):
         break
 
 
-async def trigger_all_broadcasts():
-    """Dispara actualizaciones para todos los tópicos POS conocidos."""
-    for topic in ["kitchen_orders", "dashboard_stats", "recent_orders", "tables"]:
+async def trigger_standard_broadcasts():
+    """Dispara actualizaciones para los tópicos POS estándar (Cocina, Recientes, Stats, Mesas)."""
+    for topic in ["kitchen_orders", "recent_orders", "dashboard_stats", "tables"]:
         await trigger_broadcast(topic)
 
 

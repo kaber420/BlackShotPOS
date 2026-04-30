@@ -1,20 +1,20 @@
 """
-pos_core/sales/analytics_service.py
+pos_core/analytics/service.py
 =====================================
 Servicio de Analíticas: cálculos de estadísticas para dashboards en tiempo real.
 
 RESPONSABILIDADES:
   - Calcular métricas a partir de las órdenes activas en memoria.
   - Actuar como capa intermedia entre el Router y los datos en caliente.
-  - Para reportes históricos con SQL agregado, ver analytics_router.py directamente.
+  - Para reportes históricos con SQL agregado, ver router.py directamente.
 """
 from datetime import datetime, timezone, timedelta
 from typing import List
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .models import OrderStatus
-from .repository import order_repo
+from pos_core.sales.models import OrderStatus
+from pos_core.sales.repository import order_repo
 from pos_core.sales.schemas import OrderRead
 
 

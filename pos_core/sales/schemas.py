@@ -45,6 +45,7 @@ class PaymentRead(BaseModel):
     id: int
     method: PaymentMethod
     amount: float
+    tip_amount: float = 0.0
     timestamp: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -59,6 +60,8 @@ class OrderItemRead(BaseModel):
     product_variant_id: Optional[int] = None
     quantity: int
     unit_price: float
+    tax_rate: float = 0.0
+    tax_amount: float = 0.0
     status: OrderStatus
 
     # Relaciones anidadas
@@ -87,7 +90,10 @@ class OrderRead(BaseModel):
     id: int
     type: OrderType
     status: OrderStatus
-    is_paid: bool
+    subtotal: float = 0.0
+    tax_amount: float = 0.0
+    total_amount: float = 0.0
+    balance_due: float = 0.0
     table_id: Optional[int] = None
     shift_id: Optional[int] = None
     external_reference: Optional[str] = None

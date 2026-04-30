@@ -10,12 +10,12 @@ export enum OrderType {
     DELIVERY = "DELIVERY"
 }
 
-/** Estados operativos de una orden. PAID fue eliminado en Fase 3:
- *  el flag `is_paid: boolean` reemplaza ese estado. */
+/** Estados operativos de una orden. */
 export enum OrderStatus {
     PENDING = "PENDING",
     PREPARING = "PREPARING",
     READY = "READY",
+    PAID = "PAID",
     DELIVERED = "DELIVERED",
     CANCELLED = "CANCELLED"
 }
@@ -60,6 +60,7 @@ export interface PaymentRead {
     id: number;
     method: PaymentMethod;
     amount: number;
+    tip_amount: number;
     timestamp: string; // ISO 8601 UTC
 }
 
@@ -100,8 +101,10 @@ export interface Order {
     id: number;
     type: OrderType;
     status: OrderStatus;
-    /** true si el pago fue registrado. Reemplaza el antiguo estado PAID. */
-    is_paid: boolean;
+    subtotal: number;
+    tax_amount: number;
+    total_amount: number;
+    balance_due: number;
     table_id: number | null;
     shift_id: number | null;
     external_reference: string | null;
@@ -172,10 +175,16 @@ export const OrderService = {
             method: 'PATCH'
         }),
 
-    pay: (orderId: number, method: PaymentMethod | string, amount: number, vacateTable: boolean = true) =>
+    pay: (orderId: number, method: PaymentMethod | string, amount: number, tipAmount: number = 0, receivedAmount?: number, vacateTable: boolean = true) =>
         fetchApi<PaymentRead>(`/api/v1/pos/orders/${orderId}/payments`, {
             method: 'POST',
-            body: JSON.stringify({ method, amount, vacate_table: vacateTable })
+            body: JSON.stringify({ 
+                method, 
+                amount, 
+                tip_amount: tipAmount,
+                received_amount: receivedAmount ?? null,
+                vacate_table: vacateTable 
+            })
         }),
 
     delete: (orderId: number) =>

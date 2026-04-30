@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import Order, OrderItem, OrderStatus, OrderType
 from ..repository import order_repo, item_repo
 from pos_core.inventory.services.stock_service import process_inventory_depletion
-from pos_core.sales.shifts_service import get_active_shift
+from pos_core.accounting.service import get_active_shift
 from pos_core.events.service import trigger_iot_broadcast
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
 
@@ -157,6 +157,36 @@ async def update_order_status(
             await process_inventory_depletion(session, items_to_deplete)
             await session.commit()
 
+    return order
+
+
+async def recalculate_order_totals(session: AsyncSession, order_id: int) -> Order:
+    """
+    Recalcula subtotal, impuestos y total de una orden basándose en sus items activos.
+    """
+    order = await order_repo.get_with_relations(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
+    
+    subtotal = 0.0
+    tax_amount = 0.0
+    
+    for item in order.items:
+        if item.status != OrderStatus.CANCELLED:
+            item_subtotal = item.unit_price * item.quantity
+            # Aseguramos que el tax_amount del item sea consistente
+            item.tax_amount = item_subtotal * (item.tax_rate / 100.0)
+            
+            subtotal += item_subtotal
+            tax_amount += item.tax_amount
+            
+    order.subtotal = subtotal
+    order.tax_amount = tax_amount
+    order.total_amount = subtotal + tax_amount
+    
+    await order_repo.save(session, order)
+    await session.commit()
+    await session.refresh(order)
     return order
 
 

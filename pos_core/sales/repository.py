@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from .models import Order, OrderItem, Payment, OrderStatus, PaymentMethod
-from pos_core.inventory.models import ProductVariant
+from pos_core.inventory.models import ProductVariant, Product
 
 
 class OrderRepository:
@@ -39,7 +39,7 @@ class OrderRepository:
             select(Order)
             .where(Order.id == order_id)
             .options(
-                selectinload(Order.items).selectinload(OrderItem.product),
+                selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.tax),
                 selectinload(Order.items).selectinload(OrderItem.modifiers),
                 selectinload(Order.items)
                 .selectinload(OrderItem.variant)
@@ -60,7 +60,7 @@ class OrderRepository:
         Filtra opcionalmente por estado.
         """
         statement = select(Order).options(
-            selectinload(Order.items).selectinload(OrderItem.product),
+            selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.tax),
             selectinload(Order.items).selectinload(OrderItem.modifiers),
             selectinload(Order.items)
             .selectinload(OrderItem.variant)
@@ -83,7 +83,7 @@ class OrderRepository:
             .where(Order.status.in_([OrderStatus.PENDING, OrderStatus.PREPARING]))
             .order_by(Order.created_at)
             .options(
-                selectinload(Order.items).selectinload(OrderItem.product),
+                selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.tax),
                 selectinload(Order.items).selectinload(OrderItem.modifiers),
                 selectinload(Order.items)
                 .selectinload(OrderItem.variant)
@@ -110,6 +110,7 @@ class OrderRepository:
         amount: float,
         received_amount: float = 0.0,
         change_amount: float = 0.0,
+        tip_amount: float = 0.0,
     ) -> Payment:
         """
         Construye y persiste un Payment en la sesión activa (sin commit).
@@ -120,7 +121,8 @@ class OrderRepository:
             method=method, 
             amount=amount,
             received_amount=received_amount,
-            change_amount=change_amount
+            change_amount=change_amount,
+            tip_amount=tip_amount
         )
         session.add(payment)
         return payment

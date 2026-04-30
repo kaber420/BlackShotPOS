@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, date
 from typing import Optional
 
 from pos_core.database import get_session
-from .models import Order, Payment, PaymentMethod, OrderStatus, OrderItem, Shift, ShiftStatus
+from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus, OrderItem
+from pos_core.accounting.models import Shift, ShiftStatus
 from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
 
@@ -23,7 +24,7 @@ async def get_dashboard_stats(
     stmt_sales = (
         select(func.sum(Payment.amount))
         .join(Order)
-        .where(Payment.timestamp >= today_start, Order.is_paid == True)
+        .where(Payment.timestamp >= today_start, Order.status == OrderStatus.PAID)
     )
     result_sales = await db.execute(stmt_sales)
     sales_today = result_sales.scalar() or 0.0

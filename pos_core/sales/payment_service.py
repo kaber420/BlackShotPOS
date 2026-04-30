@@ -8,7 +8,7 @@ REGLA DE ORO:
   La coordinación "pagar + liberar mesa" es responsabilidad del Router (orquestador).
 """
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from typing import Optional
 
 from .models import Payment, PaymentMethod, OrderStatus
 from .repository import order_repo, item_repo
@@ -22,73 +22,75 @@ async def add_payment(
     order_id: int,
     method: PaymentMethod,
     amount: float,
+    received_amount: Optional[float] = None,
+    tip_amount: float = 0.0,
 ) -> Payment:
     """
-    Registra un pago y marca la orden como pagada (is_paid=True).
-    
-    LÓGICA DE CONTADURÍA:
-    - amount: El ingreso real (revenue), limitado al total de la orden.
-    - received_amount: El efectivo/monto total que entregó el cliente.
-    - change_amount: El cambio devuelto (received - total).
+    Registra un pago (total o parcial) y opcionalmente una propina.
+    Actualiza el estado de la orden si se cubre el total.
     """
-    # Cargamos con relaciones para calcular el total
+    # Cargamos con relaciones para calcular el balance_due
     order = await order_repo.get_with_relations(session, order_id)
     if not order:
         raise OrderNotFoundError(order_id)
-    if order.is_paid:
-        raise InvalidOrderStateError("Esta orden ya fue pagada.")
+    
+    current_balance = order.balance_due
+    if current_balance <= 0 and tip_amount <= 0:
+         raise InvalidOrderStateError("Esta orden ya está liquidada y no se especificó propina.")
 
-    # 1. Calcular totales reales
-    total_revenue = order.total_price
-    received = amount
-    change = max(0.0, received - total_revenue)
+    # 1. Validar montos
+    # Si el monto pagado es mayor al saldo, el excedente podría ser propina o cambio.
+    # Por simplicidad, el 'amount' es lo que se abona a la deuda.
+    applied_to_order = min(amount, current_balance)
+    
+    # Si el usuario envió más de lo que se debe, y no especificó tip_amount, 
+    # podríamos asumir que la diferencia es propina o simplemente registrarlo como pago.
+    # Pero seguiremos la instrucción: amount es el abono, tip_amount es la propina.
+    
+    actual_received = received_amount if received_amount is not None else (amount + tip_amount)
+    change = max(0.0, actual_received - (amount + tip_amount))
 
-    # 2. Registrar el pago con desglose
+    # 2. Registrar el pago
     payment = await order_repo.create_payment(
         session, 
         order_id, 
         method, 
-        amount=total_revenue,  # La ganancia real
-        received_amount=received,
-        change_amount=change
+        amount=amount, # El abono real a la cuenta
+        received_amount=actual_received,
+        change_amount=change,
+        tip_amount=tip_amount
     )
-    order.is_paid = True
+    
+    # Forzar actualización de la relación de pagos para el cálculo de balance_due
+    # (SQLModel/SQLAlchemy a veces necesita esto si no se hace commit)
+    if payment not in order.payments:
+        order.payments.append(payment)
 
-    # 3. Manejo de Inventario: Si estaba en PENDING, descontar stock ahora que hay dinero de por medio
-    if order.status == OrderStatus.PENDING:
-        # Los ítems ya vienen precargados por get_with_relations
-        if order.items:
-            await process_inventory_depletion(session, order.items)
-            # Avanzamos los ítems a PREPARING para que cocina sepa que ya puede empezar
-            for item in order.items:
-                if item.status == OrderStatus.PENDING:
-                    item.status = OrderStatus.PREPARING
-            order.status = OrderStatus.PREPARING
+    # 3. Actualizar estado de la orden
+    if order.balance_due <= 0:
+        order.status = OrderStatus.PAID
+    elif order.status == OrderStatus.PENDING:
+        # Si se hizo un pago parcial, la orden ya no está 'pendiente' de iniciar
+        order.status = OrderStatus.PREPARING
+
+    # 4. Manejo de Inventario: Descontar stock al recibir el primer pago si estaba PENDING
+    if order.status == OrderStatus.PREPARING and any(i.status == OrderStatus.PENDING for i in order.items):
+        await process_inventory_depletion(session, order.items)
+        for item in order.items:
+            if item.status == OrderStatus.PENDING:
+                item.status = OrderStatus.PREPARING
 
     await order_repo.save(session, order)
     
-    # 4. Encolar evento para sincronización Central
-    # Detalle de productos para analíticas centralizadas
-    detailed_items = [
-        {
-            "name": item.product.name,
-            "quantity": item.quantity,
-            "price": item.unit_price
-        }
-        for item in order.items if item.status != OrderStatus.CANCELLED
-    ]
-
-    # IMPORTANTE: Enviamos el total_revenue como 'amount' para que el Central cuadre sus cuentas.
+    # 5. Sincronización Central
     await enqueue_event(session, "sales.payment_added", {
         "order_id": order.id,
         "payment_id": payment.id,
-        "amount": total_revenue, 
-        "received_amount": received,
-        "change_amount": change,
+        "amount": amount, 
+        "tip_amount": tip_amount,
         "method": payment.method,
-        "timestamp": str(payment.timestamp),
-        "items": detailed_items,
-        "items_count": sum(i.quantity for i in order.items if i.status != OrderStatus.CANCELLED)
+        "is_final_payment": order.status == OrderStatus.PAID,
+        "balance_remaining": order.balance_due
     })
 
     await session.commit()

@@ -4,7 +4,7 @@ from pos_core.database import get_session
 from .models import Table
 from . import service
 from typing import List, Optional
-from pos_core.events.service import trigger_all_broadcasts
+from pos_core.events.service import trigger_standard_broadcasts
 import asyncio
 
 router = APIRouter()
@@ -19,7 +19,7 @@ async def create_table(number: int, capacity: int = 4, location: str = None, db:
     """Añade una mesa al sistema."""
 
     table = await service.create_table(db, number, capacity, location)
-    asyncio.create_task(trigger_all_broadcasts())
+    asyncio.create_task(trigger_standard_broadcasts())
     return table
 
 @router.patch("/tables/{table_id}/status", response_model=Table)
@@ -29,7 +29,7 @@ async def update_table_status(table_id: int, status: str, db: AsyncSession = Dep
     table = await service.update_table_status(db, table_id, status)
     if not table:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
-    asyncio.create_task(trigger_all_broadcasts())
+    asyncio.create_task(trigger_standard_broadcasts())
     return table
 
 @router.patch("/tables/{table_id}", response_model=Table)
@@ -45,7 +45,7 @@ async def update_table(table_id: int, number: Optional[int] = None, capacity: Op
     table = await service.update_table(db, table_id, **update_data)
     if not table:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
-    asyncio.create_task(trigger_all_broadcasts())
+    asyncio.create_task(trigger_standard_broadcasts())
     return table
 
 @router.delete("/tables/{table_id}")
@@ -55,7 +55,7 @@ async def delete_table(table_id: int, db: AsyncSession = Depends(get_session)):
     success = await service.delete_table(db, table_id)
     if not success:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
-    asyncio.create_task(trigger_all_broadcasts())
+    asyncio.create_task(trigger_standard_broadcasts())
     return {"detail": "Mesa desactivada"}
 
 @router.post("/tables/{table_id}/vacate")
@@ -65,5 +65,5 @@ async def vacate_table(table_id: int, db: AsyncSession = Depends(get_session)):
     res = await vacate_table_service(db, table_id)
     if not res:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
-    asyncio.create_task(trigger_all_broadcasts())
+    asyncio.create_task(trigger_standard_broadcasts())
     return res

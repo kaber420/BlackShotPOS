@@ -109,7 +109,7 @@ async def iot_websocket(websocket: WebSocket):
                         o for o in order_dicts
                         if o["table_id"] == table_id
                         and o["status"] not in [OrderStatus.CANCELLED.value]
-                        and not o["is_paid"]
+                        and o["status"] != OrderStatus.PAID.value
                     ]
                     
                     logger.info(f"📤 Enviando {len(active_orders)} órdenes activas a Mesa {table_id}")

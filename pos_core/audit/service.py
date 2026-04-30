@@ -1,5 +1,5 @@
 """
-pos_core/sales/audit_service.py
+pos_core/audit/service.py
 ===============================
 Servicio de Auditoría: Centraliza el registro de acciones sensibles en el sistema.
 """

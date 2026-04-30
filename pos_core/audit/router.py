@@ -5,11 +5,12 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from pos_core.database import get_session
-from .models import AuditLog, Order, OrderStatus
+from .models import AuditLog
+from pos_core.sales.models import Order, OrderStatus
 from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
 from pos_core.sales.services import order_action_service
-from pos_core.events.service import trigger_all_broadcasts
+from pos_core.events.service import trigger_standard_broadcasts
 import asyncio
 
 router = APIRouter()
@@ -48,7 +49,7 @@ async def cancel_order_with_reason(
         )
         
         # Broadcast a las pantallas en tiempo real (KDS y Orders)
-        asyncio.create_task(trigger_all_broadcasts())
+        asyncio.create_task(trigger_standard_broadcasts())
 
         return {"status": "success", "order_id": order.id}
     except Exception as e:
@@ -75,7 +76,7 @@ async def cancel_item_with_reason(
             actor_name=user.email,
         )
         
-        asyncio.create_task(trigger_all_broadcasts())
+        asyncio.create_task(trigger_standard_broadcasts())
         return {"status": "success", "item_id": item.id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

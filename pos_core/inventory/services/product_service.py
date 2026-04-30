@@ -20,6 +20,7 @@ async def create_product(session: AsyncSession, product: ProductCreate) -> Produ
     from sqlalchemy.orm import selectinload
     statement = select(Product).where(Product.id == db_product.id).options(
         selectinload(Product.category),
+        selectinload(Product.tax),
         selectinload(Product.variants),
         selectinload(Product.modifier_groups)
     )
@@ -30,6 +31,7 @@ async def get_products(session: AsyncSession, category_id: Optional[int] = None,
     from sqlalchemy.orm import selectinload
     statement = select(Product).options(
         selectinload(Product.category),
+        selectinload(Product.tax),
         selectinload(Product.modifier_groups).selectinload(ModifierGroup.modifiers).selectinload(Modifier.ingredient),
         selectinload(Product.variants).selectinload(ProductVariant.measure)
     )
@@ -44,6 +46,7 @@ async def get_product_by_id(session: AsyncSession, product_id: int) -> Optional[
     from sqlalchemy.orm import selectinload
     statement = select(Product).where(Product.id == product_id).options(
         selectinload(Product.category),
+        selectinload(Product.tax),
         selectinload(Product.modifier_groups).selectinload(ModifierGroup.modifiers).selectinload(Modifier.ingredient),
         selectinload(Product.variants).selectinload(ProductVariant.measure)
     )

@@ -64,7 +64,7 @@
     };
 
     function getStatusBadgeClass(status: string) {
-        if (status === 'DELIVERED' && !order.is_paid) return 'bg-fuchsia-500 text-white border-transparent';
+        if (status === 'DELIVERED' && order.balance_due > 0) return 'bg-fuchsia-500 text-white border-transparent';
         switch (status) {
             case 'PENDING':   return 'badge-warning';
             case 'PREPARING': return 'badge-primary';
@@ -107,7 +107,7 @@
         order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : 
         order.status === 'PREPARING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-primary/40 border-primary/30' : 
         order.status === 'READY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-success/40 border-success/30' : 
-        (order.status === 'DELIVERED' && !order.is_paid) ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-fuchsia-500/40 border-fuchsia-500/30' :
+        (order.status === 'DELIVERED' && order.balance_due > 0) ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-fuchsia-500/40 border-fuchsia-500/30' :
         order.status === 'CANCELLED' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-error/40 border-error/30' : 
         'shadow-sm border-base-content/5'
     );
@@ -124,7 +124,7 @@
                     <span class="text-xs font-black uppercase tracking-widest opacity-50 px-2 py-1 bg-base-200 rounded w-fit">
                         #{order.id}
                     </span>
-                    {#if order.is_paid}
+                    {#if order.balance_due === 0 && (order.items ?? []).length > 0 && order.status !== 'CANCELLED'}
                         <span class="badge badge-success badge-xs font-black text-[9px] border-none py-1 px-2">PAGADO</span>
                     {/if}
                 </div>
@@ -326,7 +326,7 @@
                     <!-- Text Buttons (Cobrar / Entregar) -->
                     <div class="flex gap-2 items-center flex-wrap">
                         <!-- Botón de Cobrar (Solo si no está pagado, y no está cancelado) -->
-                        {#if onCharge && !order.is_paid && order.status !== 'CANCELLED'}
+                        {#if onCharge && order.balance_due > 0 && order.status !== 'CANCELLED'}
                             <Button variant="primary" size="sm" class="shadow-sm font-bold" onclick={() => onCharge(order)}>
                                 Cobrar
                             </Button>

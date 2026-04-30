@@ -16,6 +16,7 @@ async def get_categories(session: AsyncSession) -> List[Category]:
     from sqlalchemy.orm import selectinload, joinedload
     statement = select(Category).options(
         selectinload(Category.products).options(
+            selectinload(Product.tax),
             selectinload(Product.variants).joinedload(ProductVariant.measure),
             selectinload(Product.modifier_groups).selectinload(ModifierGroup.modifiers).joinedload(Modifier.ingredient)
         )

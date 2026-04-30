@@ -35,7 +35,7 @@
 		showPaymentModal = true;
 	}
 
-	async function processCheckout(method: string, amount: number, shouldPrint: boolean, vacateTable: boolean) {
+	async function processCheckout(method: string, amount: number, tip: number, shouldPrint: boolean, vacateTable: boolean) {
 		if (appState.cart.length === 0) return;
 		
 		try {
@@ -70,8 +70,8 @@
                 }
 			}
 
-            // 3. Register payment (will set is_paid = true in backend)
-            await OrderService.pay(order.id, method, amount, vacateTable);
+            // 3. Register payment (will update order status and balance)
+            await OrderService.pay(order.id, method, finalTotal, tip, amount, vacateTable);
 
             // 4. Print ticket if requested
             if (shouldPrint) {

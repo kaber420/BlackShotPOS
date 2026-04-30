@@ -8,9 +8,9 @@ from pos_core.sales.services import (
     order_item_service,
     order_action_service
 )
-from pos_core.sales import payment_service, analytics_service
+from pos_core.sales import payment_service
 from pos_core.tables import service as table_service
-from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast
+from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast, trigger_standard_broadcasts
 from pos_core.auth.dependencies import require_role, require_permission
 from pos_core.roles import Permission
 from typing import List, Optional
@@ -34,6 +34,8 @@ class OrderItemCreate(BaseModel):
 class PaymentCreate(BaseModel):
     method: PaymentMethod
     amount: float
+    tip_amount: float = 0.0
+    received_amount: Optional[float] = None
     vacate_table: bool = True
 
 class TableTransferCreate(BaseModel):
@@ -54,10 +56,7 @@ async def create_new_order(
         waiter_uuid=str(user.id),
         waiter_name=user.email,
     )
-    asyncio.create_task(trigger_broadcast("kitchen_orders"))
-    asyncio.create_task(trigger_broadcast("recent_orders"))
-    asyncio.create_task(trigger_broadcast("dashboard_stats"))
-    asyncio.create_task(trigger_broadcast("tables"))
+    asyncio.create_task(trigger_standard_broadcasts())
     return order
 
 @router.get("/orders", response_model=List[OrderRead])
@@ -102,10 +101,7 @@ async def add_item(
             product_variant_id=item_in.product_variant_id,
             modifier_ids=item_in.modifier_ids
         )
-        asyncio.create_task(trigger_broadcast("kitchen_orders"))
-        asyncio.create_task(trigger_broadcast("recent_orders"))
-        asyncio.create_task(trigger_broadcast("dashboard_stats"))
-        asyncio.create_task(trigger_broadcast("tables"))
+        asyncio.create_task(trigger_standard_broadcasts())
         return item
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -131,10 +127,7 @@ async def update_status(
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-    asyncio.create_task(trigger_broadcast("kitchen_orders"))
-    asyncio.create_task(trigger_broadcast("recent_orders"))
-    asyncio.create_task(trigger_broadcast("dashboard_stats"))
-    asyncio.create_task(trigger_broadcast("tables"))
+    asyncio.create_task(trigger_standard_broadcasts())
 
     # Notificar a IoT si la orden tiene mesa
     if order.table_id:
@@ -184,10 +177,7 @@ async def update_item_status(
     )
     if not item:
         raise HTTPException(status_code=404, detail="OrderItem not found")
-    asyncio.create_task(trigger_broadcast("kitchen_orders"))
-    asyncio.create_task(trigger_broadcast("recent_orders"))
-    asyncio.create_task(trigger_broadcast("dashboard_stats"))
-    asyncio.create_task(trigger_broadcast("tables"))
+    asyncio.create_task(trigger_standard_broadcasts())
 
     # Notificar a IoT si el ítem tiene mesa asociada vía la orden
     if item and status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
@@ -248,10 +238,7 @@ async def delete_order(
         if not success:
             raise HTTPException(status_code=404, detail="Order not found")
         
-        asyncio.create_task(trigger_broadcast("kitchen_orders"))
-        asyncio.create_task(trigger_broadcast("recent_orders"))
-        asyncio.create_task(trigger_broadcast("dashboard_stats"))
-        asyncio.create_task(trigger_broadcast("tables"))
+        asyncio.create_task(trigger_standard_broadcasts())
         return {"status": "success", "message": "Orden eliminada y mesa liberada"}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -272,17 +259,21 @@ async def pay_order(
         raise HTTPException(status_code=404, detail="Order not found")
 
     # 1. Registrar el pago (dominio financiero puro)
-    payment = await payment_service.add_payment(db, order_id, payment_in.method, payment_in.amount)
+    payment = await payment_service.add_payment(
+        db, 
+        order_id, 
+        payment_in.method, 
+        payment_in.amount,
+        tip_amount=payment_in.tip_amount,
+        received_amount=payment_in.received_amount
+    )
 
     # 2. Si el cliente se va, liberar la mesa (dominio de mesas, independiente)
     if order.table_id and payment_in.vacate_table:
         await table_service.vacate_table_service(db, order.table_id)
 
     # 3. Broadcasts
-    asyncio.create_task(trigger_broadcast("kitchen_orders"))
-    asyncio.create_task(trigger_broadcast("recent_orders"))
-    asyncio.create_task(trigger_broadcast("dashboard_stats"))
-    asyncio.create_task(trigger_broadcast("tables"))
+    asyncio.create_task(trigger_standard_broadcasts())
 
     # 4. Notificar al TablePad si la mesa fue liberada
     if order.table_id and payment_in.vacate_table:

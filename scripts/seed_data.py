@@ -30,6 +30,18 @@ async def seed():
             print("La base de datos ya tiene datos. Saltando sembrado.")
             return
 
+        # 1.5 Crear Impuestos
+        print("Creando impuestos...")
+        from pos_core.inventory.models import Tax
+        tax_iva_16 = Tax(name="IVA 16%", rate=16.0, description="Impuesto al valor agregado general")
+        tax_iva_0 = Tax(name="IVA 0%", rate=0.0, description="Impuesto tasa cero para alimentos")
+        tax_exento = Tax(name="Exento", rate=0.0, description="Sin impuestos aplicables")
+        
+        session.add_all([tax_iva_16, tax_iva_0, tax_exento])
+        await session.commit()
+        await session.refresh(tax_iva_16)
+        await session.refresh(tax_iva_0)
+
         # 2. Crear Categorías
         print("Creando categorías...")
         cat_cafe = Category(name="Café", description="Bebidas calientes a base de espresso")
@@ -74,7 +86,7 @@ async def seed():
         print("Creando productos y variantes...")
         
         # Americano
-        p_americano = Product(name="Americano", description="Espresso con agua caliente", price=35, category_id=cat_cafe.id)
+        p_americano = Product(name="Americano", description="Espresso con agua caliente", price=35, category_id=cat_cafe.id, tax_id=tax_iva_16.id)
         session.add(p_americano)
         await session.commit()
         await session.refresh(p_americano)
@@ -85,7 +97,7 @@ async def seed():
         session.add_all([v_ame_chico, v_ame_mediano, v_ame_grande])
         
         # Latte
-        p_latte = Product(name="Latte", description="Espresso con leche vaporizada", price=45, category_id=cat_cafe.id)
+        p_latte = Product(name="Latte", description="Espresso con leche vaporizada", price=45, category_id=cat_cafe.id, tax_id=tax_iva_16.id)
         session.add(p_latte)
         await session.commit()
         await session.refresh(p_latte)
@@ -96,7 +108,7 @@ async def seed():
         session.add_all([v_lat_chico, v_lat_mediano, v_lat_grande])
 
         # Repostería (Sin variantes usualmente, o variante 'Único')
-        p_croissant = Product(name="Croissant", description="Delicioso pan de mantequilla", price=40, category_id=cat_bread.id)
+        p_croissant = Product(name="Croissant", description="Delicioso pan de mantequilla", price=40, category_id=cat_bread.id, tax_id=tax_iva_0.id)
         session.add(p_croissant)
         await session.commit()
         await session.refresh(p_croissant)

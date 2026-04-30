@@ -1,3 +1,4 @@
+from typing import Optional
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 

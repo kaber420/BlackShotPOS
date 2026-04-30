@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.inventory.models import InventoryAdjustment, InventoryAdjustmentCreate, Ingredient, AdjustmentReason, IngredientBatch
-from pos_core.sales.models import AuditLog, AuditCategory
+from pos_core.audit.models import AuditLog, AuditCategory
 from pos_core.events.service import trigger_broadcast
 from bs_sync.service import enqueue_event
 import logging
