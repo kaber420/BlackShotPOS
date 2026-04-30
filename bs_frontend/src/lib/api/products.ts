@@ -119,6 +119,12 @@ export const ProductService = {
         return fetchApi<any>(url, { method: 'POST' });
     },
 
+    addChildProductToProduct: (productId: number, childProductId: number, quantity: number = 1, childVariantId?: number) => {
+        let url = `/api/v1/pos/products/${productId}/child-products?child_product_id=${childProductId}&quantity=${quantity}`;
+        if (childVariantId) url += `&child_variant_id=${childVariantId}`;
+        return fetchApi<any>(url, { method: 'POST' });
+    },
+
     clearVariantRecipe: (variantId: number) =>
         fetchApi<{detail: string}>(`/api/v1/pos/variants/${variantId}/recipe`, {
             method: 'DELETE'

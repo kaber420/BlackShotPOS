@@ -2,6 +2,7 @@
     import { ProductService, type Product } from '$lib/api/products';
     import { CategoryService, type Category } from '$lib/api/categories';
     import Button from '$lib/components/ui/Button.svelte';
+    import ComboBuilderModal from '$lib/components/product/ComboBuilderModal.svelte';
     import { onMount } from 'svelte';
 
     let products = $state<Product[]>([]);
@@ -27,6 +28,7 @@
 
     let editingId = $state<number | null>(null);
     let isSubmitting = $state(false);
+    let isComboModalOpen = $state(false);
 
     async function loadData() {
         try {
@@ -127,6 +129,14 @@
                     <option value={cat.id}>{cat.name}</option>
                 {/each}
             </select>
+            <Button variant="outline" onclick={() => isComboModalOpen = true}>
+                <svelte:fragment slot="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                    </svg>
+                </svelte:fragment>
+                Armar Combo
+            </Button>
             <Button variant="primary" onclick={() => openModal()}>
                 <svelte:fragment slot="icon">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -302,3 +312,12 @@
         <button>cerrar</button>
     </form>
 </dialog>
+
+<ComboBuilderModal 
+    isOpen={isComboModalOpen} 
+    onClose={() => isComboModalOpen = false} 
+    onSave={() => {
+        isComboModalOpen = false;
+        loadData();
+    }}
+/>

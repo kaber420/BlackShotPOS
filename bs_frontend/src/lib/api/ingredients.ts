@@ -1,5 +1,12 @@
 import { fetchApi } from '../api';
 
+export interface IngredientBatch {
+	id: number;
+	current_quantity: number;
+	expiration_date?: string;
+	arrival_date: string;
+}
+
 export interface Ingredient {
 	id?: number;
 	name: string;
@@ -11,6 +18,7 @@ export interface Ingredient {
 	calories_per_unit?: number;
 	carbs_per_unit?: number;
 	fats_per_unit?: number;
+	batches?: IngredientBatch[];
 }
 
 export enum AdjustmentReason {
@@ -44,6 +52,7 @@ export interface InventoryAdjustmentCreate {
 	quantity: number;
 	reason: AdjustmentReason;
 	note?: string;
+	expiration_date?: string;
 }
 
 export const IngredientService = {

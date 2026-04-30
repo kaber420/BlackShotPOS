@@ -182,6 +182,23 @@ async def get_recipe(product_id: int, db: AsyncSession = Depends(get_session)):
     """Consulta los ingredientes que componen un plato."""
     return await recipe_service.get_product_recipe(db, product_id)
 
+@router.post("/products/{product_id}/child-products", response_model=RecipeItem, dependencies=[Depends(require_role("admin"))])
+async def add_child_product_to_recipe(
+    product_id: int, 
+    child_product_id: int, 
+    quantity: float = 1.0, 
+    child_variant_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_session)
+):
+    """Agrega un producto o variante como componente de otro producto (Combo)."""
+    recipe_item = RecipeItem(
+        product_id=product_id, 
+        child_product_id=child_product_id, 
+        child_variant_id=child_variant_id,
+        quantity=quantity
+    )
+    return await recipe_service.add_ingredient_to_product(db, recipe_item)
+
 @router.post("/variants/{variant_id}/ingredients", response_model=RecipeItem, dependencies=[Depends(require_role("admin"))])
 async def add_ingredient_to_variant(
     variant_id: int, 

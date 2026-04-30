@@ -41,6 +41,7 @@ class Ingredient(IngredientBase, table=True):
     # Un ingrediente puede estar en muchas recetas o modificadores
     recipe_items: List["RecipeItem"] = Relationship(back_populates="ingredient")
     modifiers: List["Modifier"] = Relationship(back_populates="ingredient")
+    batches: List["IngredientBatch"] = Relationship(back_populates="ingredient")
 
 class IngredientCreate(IngredientBase):
     pass
@@ -90,7 +91,7 @@ class ProductVariant(ProductVariantBase, table=True):
     
     product: "Product" = Relationship(back_populates="variants")
     measure: Measure = Relationship(back_populates="variants")
-    recipe_items: List["RecipeItem"] = Relationship(back_populates="variant")
+    recipe_items: List["RecipeItem"] = Relationship(back_populates="variant", sa_relationship_kwargs={"foreign_keys": "[RecipeItem.variant_id]"})
 
 class ProductVariantCreate(ProductVariantBase):
     product_id: Optional[int] = None # Permitir que el router lo asigne
@@ -109,6 +110,8 @@ class RecipeItemBase(SQLModel):
     product_id: Optional[int] = Field(default=None, foreign_key="product.id", nullable=True)
     variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id", nullable=True)
     ingredient_id: Optional[int] = Field(default=None, foreign_key="ingredient.id", nullable=True)
+    child_product_id: Optional[int] = Field(default=None, foreign_key="product.id", nullable=True)
+    child_variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id", nullable=True)
     modifier_group_id: Optional[int] = Field(default=None, foreign_key="modifiergroup.id", ondelete="CASCADE", nullable=True)
     quantity: float = Field(default=0.0, description="Cantidad en la unidad base del ingrediente (g, ml, pz)")
     input_quantity: float = Field(default=0.0, description="Cantidad original ingresada por el chef")
@@ -117,9 +120,11 @@ class RecipeItemBase(SQLModel):
 class RecipeItem(RecipeItemBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
-    product: Optional["Product"] = Relationship(back_populates="recipe_items")
-    variant: Optional["ProductVariant"] = Relationship(back_populates="recipe_items")
+    product: Optional["Product"] = Relationship(back_populates="recipe_items", sa_relationship_kwargs={"foreign_keys": "[RecipeItem.product_id]"})
+    variant: Optional["ProductVariant"] = Relationship(back_populates="recipe_items", sa_relationship_kwargs={"foreign_keys": "[RecipeItem.variant_id]"})
     ingredient: Optional["Ingredient"] = Relationship(back_populates="recipe_items")
+    child_product: Optional["Product"] = Relationship(sa_relationship_kwargs={"foreign_keys": "[RecipeItem.child_product_id]"})
+    child_variant: Optional["ProductVariant"] = Relationship(sa_relationship_kwargs={"foreign_keys": "[RecipeItem.child_variant_id]"})
     modifier_group: Optional["ModifierGroup"] = Relationship()
 
 class RecipeItemCreate(RecipeItemBase):
@@ -129,6 +134,8 @@ class RecipeItemUpdate(SQLModel):
     product_id: Optional[int] = None
     variant_id: Optional[int] = None
     ingredient_id: Optional[int] = None
+    child_product_id: Optional[int] = None
+    child_variant_id: Optional[int] = None
     modifier_group_id: Optional[int] = None
     quantity: Optional[float] = None
     input_quantity: Optional[float] = None
@@ -167,6 +174,8 @@ class ModifierBase(SQLModel):
     extra_price: float = Field(default=0.0)
     modifier_group_id: int = Field(foreign_key="modifiergroup.id", ondelete="CASCADE")
     ingredient_id: Optional[int] = Field(default=None, foreign_key="ingredient.id")
+    product_id: Optional[int] = Field(default=None, foreign_key="product.id", nullable=True)
+    variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id", nullable=True)
     quantity: float = Field(default=0.0, description="Cantidad base a descontar en unidad base")
     input_quantity: float = Field(default=0.0, description="Cantidad original ingresada")
     input_unit: str = Field(default="", description="Unidad original ingresada")
@@ -176,6 +185,8 @@ class Modifier(ModifierBase, table=True):
     
     group: ModifierGroup = Relationship(back_populates="modifiers")
     ingredient: Optional[Ingredient] = Relationship(back_populates="modifiers")
+    product: Optional["Product"] = Relationship()
+    variant: Optional["ProductVariant"] = Relationship()
     quantities: List["ModifierQuantity"] = Relationship(back_populates="modifier", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 
 class ModifierCreate(ModifierBase):
@@ -223,7 +234,7 @@ class Product(ProductBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
     category: Optional[Category] = Relationship(back_populates="products")
-    recipe_items: List[RecipeItem] = Relationship(back_populates="product")
+    recipe_items: List[RecipeItem] = Relationship(back_populates="product", sa_relationship_kwargs={"foreign_keys": "[RecipeItem.product_id]"})
     variants: List[ProductVariant] = Relationship(back_populates="product", sa_relationship_kwargs={"lazy": "selectin"})
     modifier_groups: List[ModifierGroup] = Relationship(back_populates="products", link_model=ProductModifierLink, sa_relationship_kwargs={"lazy": "selectin"})
 
@@ -282,6 +293,7 @@ class InventoryAdjustmentBase(SQLModel):
     actor_uuid: Optional[str] = None
     actor_name: Optional[str] = None
     timestamp: datetime = Field(default_factory=datetime.utcnow)
+    expiration_date: Optional[datetime] = None # Para entradas que generan lotes
 
 class InventoryAdjustment(InventoryAdjustmentBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -293,11 +305,29 @@ class InventoryAdjustmentCreate(SQLModel):
     quantity: float
     reason: AdjustmentReason
     note: Optional[str] = None
+    expiration_date: Optional[datetime] = None
+
+class IngredientBatch(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ingredient_id: int = Field(foreign_key="ingredient.id")
+    original_quantity: float = Field(description="Cantidad inicial del lote")
+    current_quantity: float = Field(description="Cantidad restante")
+    expiration_date: Optional[datetime] = None
+    arrival_date: datetime = Field(default_factory=datetime.utcnow)
+    
+    ingredient: "Ingredient" = Relationship(back_populates="batches")
+
+class IngredientBatchRead(SQLModel):
+    id: int
+    current_quantity: float
+    expiration_date: Optional[datetime]
+    arrival_date: datetime
 
 # --- Modelos de Lectura (Read) para respuestas API con relaciones ---
 
 class IngredientRead(IngredientBase):
     id: int
+    batches: List[IngredientBatchRead] = []
 
 class MeasureRead(MeasureBase):
     id: int

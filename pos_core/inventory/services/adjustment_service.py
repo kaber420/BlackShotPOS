@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from pos_core.inventory.models import InventoryAdjustment, InventoryAdjustmentCreate, Ingredient
+from pos_core.inventory.models import InventoryAdjustment, InventoryAdjustmentCreate, Ingredient, AdjustmentReason, IngredientBatch
 from pos_core.sales.models import AuditLog, AuditCategory
 from pos_core.events.service import trigger_broadcast
 from bs_sync.service import enqueue_event
@@ -54,9 +54,20 @@ async def create_adjustment(
         reason=reason,
         note=adjustment_data.note,
         actor_uuid=actor_uuid,
-        actor_name=actor_name
+        actor_name=actor_name,
+        expiration_date=adjustment_data.expiration_date
     )
     session.add(adjustment)
+
+    # 3.2 Si es una entrada con caducidad, crear el lote (Batch)
+    if reason in [AdjustmentReason.PURCHASE, AdjustmentReason.RESTOCK]:
+        new_batch = IngredientBatch(
+            ingredient_id=adjustment_data.ingredient_id,
+            original_quantity=adjustment_data.quantity,
+            current_quantity=adjustment_data.quantity,
+            expiration_date=adjustment_data.expiration_date
+        )
+        session.add(new_batch)
     
     # 3.5 Registrar en la Bitácora Global de Auditoría
     audit_entry = AuditLog(
