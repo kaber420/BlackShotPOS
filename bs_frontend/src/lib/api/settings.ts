@@ -17,9 +17,9 @@ export interface BusinessSettings {
 }
 
 export const SettingsService = {
-    get: () => fetchApi<BusinessSettings>('/api/v1/pos/settings'),
+    get: () => fetchApi<BusinessSettings>('/api/v1/pos/system/settings'),
     update: (settings: Partial<BusinessSettings>) => 
-        fetchApi<BusinessSettings>('/api/v1/pos/settings', {
+        fetchApi<BusinessSettings>('/api/v1/pos/system/settings', {
             method: 'PATCH',
             body: JSON.stringify(settings)
         })

@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import field_validator, field_serializer
-from pos_core.inventory.models import Modifier, Product, ProductVariant
+from pos_core.catalog.models import Modifier, Product, ProductVariant
 from pos_core.customers.models import Customer
 
 class OrderType(str, Enum):

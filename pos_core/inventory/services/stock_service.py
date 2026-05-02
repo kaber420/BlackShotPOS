@@ -2,9 +2,10 @@ from typing import Optional
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Ingredient, ProductVariant, ModifierQuantity, IngredientBatch
+from ..models import Ingredient, IngredientBatch
+from pos_core.catalog.models import ProductVariant, ModifierQuantity
 from pos_core.events.service import trigger_broadcast
-from .recipe_service import get_variant_recipe, get_product_recipe
+from pos_core.catalog.services.recipe_service import get_variant_recipe, get_product_recipe
 
 async def process_inventory_depletion(session: AsyncSession, order_items) -> None:
     """

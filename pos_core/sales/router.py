@@ -183,7 +183,7 @@ async def update_item_status(
     if item and status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
         # Necesitamos el table_id y el nombre del producto para una mejor experiencia IoT
         async def notify_iot_item():
-            from pos_core.inventory.models import Product
+            from pos_core.catalog.models import Product
             async for db_session in get_session():
                 # Recargar ítem con producto para el nombre
                 db_item = await db_session.get(OrderItem, item_id)

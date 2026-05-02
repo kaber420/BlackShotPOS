@@ -11,7 +11,7 @@
 
     onMount(async () => {
         try {
-            audits = await fetchApi('/api/v1/pos/audits');
+            audits = await fetchApi('/api/v1/pos/system/audit/audits');
         } catch (e: any) {
             error = e.message;
         } finally {

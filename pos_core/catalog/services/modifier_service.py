@@ -4,10 +4,10 @@ from typing import List, Optional
 
 from ..models import (
     ModifierGroup, ModifierGroupCreate, ModifierGroupUpdate,
-    Modifier, ModifierCreate, ModifierUpdate, ModifierQuantity,
-    Ingredient
+    Modifier, ModifierCreate, ModifierUpdate, ModifierQuantity
 )
-from .. import unit_converter
+from pos_core.inventory.models import Ingredient
+from pos_core.inventory import unit_converter
 
 async def create_modifier_group(session: AsyncSession, group: ModifierGroupCreate) -> ModifierGroup:
     db_group = ModifierGroup.model_validate(group)

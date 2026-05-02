@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
@@ -6,7 +7,8 @@ import os
 from pos_core.database import init_db
 from pos_core.setup import setup_environment
 from pos_core.inventory.router import router as inventory_router
-from pos_core.inventory.production_router import router as production_area_router
+from pos_core.catalog.router import router as catalog_router
+from pos_core.catalog.production_router import router as production_area_router
 from pos_core.tables.router import router as tables_router
 from pos_core.sales.router import router as sales_router
 from pos_core.printing.router import router as printing_router
@@ -37,6 +39,15 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Configuración de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En producción deberíamos restringir esto
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Asegurar que el directorio de datos existe antes de montar
 os.makedirs("data/img", exist_ok=True)
 
@@ -55,22 +66,23 @@ async def business_logic_exception_handler(request: Request, exc: BusinessLogicE
         },
     )
 
-# Inclusión de rutas de inventario y mesas
-app.include_router(inventory_router, prefix="/api/v1/pos", tags=["Inventario"])
-app.include_router(production_area_router, prefix="/api/v1/pos/production", tags=["Áreas de Producción"])
-app.include_router(tables_router, prefix="/api/v1/pos", tags=["Mesas"])
-app.include_router(sales_router, prefix="/api/v1/pos", tags=["Ventas"])
-app.include_router(shifts_router, prefix="/api/v1/pos/shifts", tags=["Cortes de Caja"])
-app.include_router(printing_router, prefix="/api/v1/pos", tags=["Impresión"])
-app.include_router(settings_router, prefix="/api/v1/pos/settings", tags=["Configuración"])
-app.include_router(analytics_router, prefix="/api/v1/pos/analytics", tags=["Analíticas"])
-app.include_router(audits_router, prefix="/api/v1/pos", tags=["Auditoría"])
-app.include_router(events_router, prefix="/api/v1/pos", tags=["Eventos"])
-app.include_router(iot_router, prefix="/api/v1/pos", tags=["IoT"])
+# Inclusión de rutas por dominio
+app.include_router(catalog_router, prefix="/api/v1/pos/catalog", tags=["Catálogo"])
+app.include_router(production_area_router, prefix="/api/v1/pos/catalog/production", tags=["Áreas de Producción"])
+app.include_router(inventory_router, prefix="/api/v1/pos/inventory", tags=["Inventario"])
+app.include_router(tables_router, prefix="/api/v1/pos/tables", tags=["Mesas"])
+app.include_router(sales_router, prefix="/api/v1/pos/sales", tags=["Ventas"])
+app.include_router(shifts_router, prefix="/api/v1/pos/sales/shifts", tags=["Cortes de Caja"])
+app.include_router(customer_router, prefix="/api/v1/pos/sales/customers", tags=["Clientes"])
+app.include_router(printing_router, prefix="/api/v1/pos/system/printing", tags=["Impresión"])
+app.include_router(settings_router, prefix="/api/v1/pos/system/settings", tags=["Configuración"])
+app.include_router(analytics_router, prefix="/api/v1/pos/system/analytics", tags=["Analíticas"])
+app.include_router(audits_router, prefix="/api/v1/pos/system/audit", tags=["Auditoría"])
+app.include_router(events_router, prefix="/api/v1/pos/events", tags=["Eventos"])
+app.include_router(iot_router, prefix="/api/v1/pos/iot", tags=["IoT"])
 app.include_router(admin_iot_router, prefix="/api/v1/pos/admin/iot", tags=["IoT Admin"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/api/users", tags=["Users"])
-app.include_router(customer_router, prefix="/api/v1/pos/customers", tags=["Clientes"])
 
 
 @app.get("/")

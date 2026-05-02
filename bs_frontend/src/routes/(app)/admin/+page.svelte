@@ -19,8 +19,8 @@
         loading = true;
         try {
             const [summaryRes, shiftsRes] = await Promise.all([
-                fetchApi(`/api/v1/pos/analytics/business-summary?period=${period}`),
-                fetchApi('/api/v1/pos/shifts/'),
+                fetchApi(`/api/v1/pos/system/analytics/business-summary?period=${period}`),
+                fetchApi('/api/v1/pos/sales/shifts/'),
             ]);
             summary = summaryRes;
             // Solo mostrar los últimos 5

@@ -49,7 +49,7 @@ async def _get_order_with_items(order_id: int, session: AsyncSession) -> Order:
 # ── Ticket de venta (Generación de datos) ────────────────────────────────────
 
 @router.get(
-    "/print/ticket/{order_id}/raw",
+    "/ticket/{order_id}/raw",
     summary="Descargar ticket de venta como bytes ESC/POS",
     description=(
         "Devuelve el ticket en formato binario ESC/POS. "
@@ -73,7 +73,7 @@ async def get_ticket_raw(
 
 
 @router.get(
-    "/print/ticket/{order_id}/html",
+    "/ticket/{order_id}/html",
     summary="Ver ticket de venta en HTML (para imprimir desde el navegador)",
     response_class=HTMLResponse,
     tags=["Impresión"],
@@ -91,7 +91,7 @@ async def get_ticket_html(
 # ── Comanda de cocina (Generación de datos) ──────────────────────────────────
 
 @router.get(
-    "/print/comanda/{order_id}/raw",
+    "/comanda/{order_id}/raw",
     summary="Descargar comanda de cocina como bytes ESC/POS",
     tags=["Impresión"],
 )
@@ -111,7 +111,7 @@ async def get_comanda_raw(
 
 
 @router.get(
-    "/print/comanda/{order_id}/html",
+    "/comanda/{order_id}/html",
     summary="Ver comanda de cocina en HTML (para imprimir desde el navegador)",
     response_class=HTMLResponse,
     tags=["Impresión"],

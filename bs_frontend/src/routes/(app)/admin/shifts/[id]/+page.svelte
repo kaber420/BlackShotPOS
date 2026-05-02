@@ -12,7 +12,7 @@
 
     onMount(async () => {
         try {
-            report = await fetchApi(`/api/v1/pos/shifts/${shiftId}/report`);
+            report = await fetchApi(`/api/v1/pos/sales/shifts/${shiftId}/report`);
         } catch (e) {
             console.error("Error al cargar reporte de turno", e);
         } finally {

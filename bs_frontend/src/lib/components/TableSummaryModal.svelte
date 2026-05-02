@@ -2,8 +2,10 @@
     import { appState } from '$lib/app_state.svelte';
     import Button from '$lib/components/ui/Button.svelte';
     import { TableService } from '$lib/api/tables';
-    import { OrderService, OrderStatus } from '$lib/api/orders';
+    import { OrderService, OrderStatus, type Order } from '$lib/api/orders';
+    import { loadOrderToCart, setActiveTable } from '$lib/app_state.svelte';
     import SplitBillModal from './SplitBillModal.svelte';
+    import { goto } from '$app/navigation';
 
     let { 
         isOpen = false, 
@@ -27,10 +29,27 @@
     
     let isSplitBillOpen = $state(false);
 
-    function handleSplitSuccess() {
+    // Split calculator state
+    let numPeople = $state(1);
+    let amountPerPerson = $derived(balanceDue / (numPeople || 1));
+
+    $effect(() => {
+        if (isOpen && balanceDue > 0) {
+            appState.suggestedPaymentAmount = amountPerPerson;
+            appState.suggestedPeopleCount = numPeople;
+        }
+    });
+
+    function handleSplitSuccess(newOrder: Order) {
         isSplitBillOpen = false;
+        
+        // Cargar la nueva orden directamente al carrito para cobro inmediato
+        loadOrderToCart(newOrder);
+        appState.activeTable = table;
+        appState.cartVisible = true;
+        
         onActionComplete();
-        onClose(); // Cerrar para obligar a refrescar o ver la nueva mesa
+        onClose(); 
     }
 
     async function handleVacate() {
@@ -159,6 +178,36 @@
                             <span>Total Original: ${totalWithTax.toFixed(0)}</span>
                         </div>
                     </div>
+
+                    {#if balanceDue > 0}
+                        <div class="bg-base-200/50 p-4 rounded-2xl border border-base-200 flex flex-col items-center gap-2">
+                            <span class="text-[9px] font-black opacity-40 uppercase tracking-widest">Calculadora de División</span>
+                            <div class="flex items-center gap-3">
+                                <button 
+                                    class="w-8 h-8 rounded-full bg-base-100 hover:bg-base-200 flex items-center justify-center font-black transition-colors"
+                                    onclick={() => numPeople = Math.max(1, numPeople - 1)}
+                                >-</button>
+                                <div class="flex flex-col items-center">
+                                    <span class="text-lg font-black">{numPeople}</span>
+                                    <span class="text-[8px] font-bold uppercase opacity-40">Personas</span>
+                                </div>
+                                <button 
+                                    class="w-8 h-8 rounded-full bg-base-100 hover:bg-base-200 flex items-center justify-center font-black transition-colors"
+                                    onclick={() => numPeople++}
+                                >+</button>
+                            </div>
+                            <div class="divider my-0 opacity-20"></div>
+                            <div class="flex flex-col items-center">
+                                <span class="text-[9px] font-bold uppercase opacity-40">Cada quien paga</span>
+                                <span class="text-xl font-black text-secondary">${amountPerPerson.toFixed(0)}</span>
+                            </div>
+                            <div class="flex gap-2 mt-1">
+                                <button class="text-[8px] font-black bg-base-100 hover:bg-primary/20 px-2 py-1 rounded-md border border-base-300 transition-colors" onclick={() => { numPeople = 2; }}>50%</button>
+                                <button class="text-[8px] font-black bg-base-100 hover:bg-primary/20 px-2 py-1 rounded-md border border-base-300 transition-colors" onclick={() => { numPeople = 3; }}>33%</button>
+                                <button class="text-[8px] font-black bg-base-100 hover:bg-primary/20 px-2 py-1 rounded-md border border-base-300 transition-colors" onclick={() => { numPeople = 4; }}>25%</button>
+                            </div>
+                        </div>
+                    {/if}
                 </div>
                 
                 <div class="grid grid-cols-3 gap-3">
@@ -228,4 +277,3 @@
         border-radius: 10px;
     }
 </style>
-

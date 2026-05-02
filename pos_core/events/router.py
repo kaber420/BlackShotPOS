@@ -32,6 +32,10 @@ async def pos_websocket(websocket: WebSocket):
             import uuid
             import jwt
             
+            # Limpiar prefijo 'Bearer ' si existe (común si se copia de headers)
+            if token.startswith("Bearer "):
+                token = token[7:]
+
             payload = jwt.decode(token, SECRET, algorithms=["HS256"], audience=["fastapi-users:auth"])
             user_id = payload.get("sub")
             
@@ -43,6 +47,7 @@ async def pos_websocket(websocket: WebSocket):
             user = None
 
     if not user:
+        logger.warning(f"🔌 WebSocket POS: Intento de conexión no autorizada")
         await websocket.send_json({"error": "Unauthorized", "detail": "Token inválido o faltante"})
         await websocket.close(code=1008)
         return

@@ -58,7 +58,7 @@ export interface Product {
 
 export const ProductService = {
     getAll: (categoryId?: number, includeInactive: boolean = false) => {
-        let url = '/api/v1/pos/products?';
+        let url = '/api/v1/pos/catalog/products?';
         const params = new URLSearchParams();
         if (categoryId) params.append('category_id', categoryId.toString());
         if (includeInactive) params.append('include_inactive', 'true');
@@ -67,108 +67,108 @@ export const ProductService = {
     },
     
     create: (product: Partial<Product>) => 
-        fetchApi<Product>('/api/v1/pos/products', {
+        fetchApi<Product>('/api/v1/pos/catalog/products', {
             method: 'POST',
             body: JSON.stringify(product)
         }),
 
     update: (id: number, product: Partial<Product>) =>
-        fetchApi<Product>(`/api/v1/pos/products/${id}`, {
+        fetchApi<Product>(`/api/v1/pos/catalog/products/${id}`, {
             method: 'PUT',
             body: JSON.stringify(product)
         }),
 
     delete: (id: number) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/products/${id}`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/products/${id}`, {
             method: 'DELETE'
         }),
 
     // Medidas y Variantes
-    getMeasures: () => fetchApi<Measure[]>('/api/v1/pos/measures'),
+    getMeasures: () => fetchApi<Measure[]>('/api/v1/pos/catalog/measures'),
     createMeasure: (measure: Partial<Measure>) => 
-        fetchApi<Measure>('/api/v1/pos/measures', {
+        fetchApi<Measure>('/api/v1/pos/catalog/measures', {
             method: 'POST',
             body: JSON.stringify(measure)
         }),
     
     createVariant: (productId: number, variant: Partial<ProductVariant>) =>
-        fetchApi<ProductVariant>(`/api/v1/pos/products/${productId}/variants`, {
+        fetchApi<ProductVariant>(`/api/v1/pos/catalog/products/${productId}/variants`, {
             method: 'POST',
             body: JSON.stringify(variant)
         }),
 
     updateVariant: (variantId: number, variant: Partial<ProductVariant>) =>
-        fetchApi<ProductVariant>(`/api/v1/pos/variants/${variantId}`, {
+        fetchApi<ProductVariant>(`/api/v1/pos/catalog/variants/${variantId}`, {
             method: 'PUT',
             body: JSON.stringify(variant)
         }),
 
     deleteVariant: (variantId: number) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/variants/${variantId}`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/variants/${variantId}`, {
             method: 'DELETE'
         }),
 
     // Recetas (Ingredientes)
     getVariantRecipe: (variantId: number) => 
-        fetchApi<any[]>(`/api/v1/pos/variants/${variantId}/recipe`),
+        fetchApi<any[]>(`/api/v1/pos/catalog/variants/${variantId}/recipe`),
     
     addIngredientToVariant: (variantId: number, ingredientId: number, quantity: number, input_quantity?: number, input_unit?: string) => {
-        let url = `/api/v1/pos/variants/${variantId}/ingredients?ingredient_id=${ingredientId}&quantity=${quantity}`;
+        let url = `/api/v1/pos/catalog/variants/${variantId}/ingredients?ingredient_id=${ingredientId}&quantity=${quantity}`;
         if (input_quantity !== undefined) url += `&input_quantity=${input_quantity}`;
         if (input_unit) url += `&input_unit=${input_unit}`;
         return fetchApi<any>(url, { method: 'POST' });
     },
 
     addChildProductToProduct: (productId: number, childProductId: number, quantity: number = 1, childVariantId?: number) => {
-        let url = `/api/v1/pos/products/${productId}/child-products?child_product_id=${childProductId}&quantity=${quantity}`;
+        let url = `/api/v1/pos/catalog/products/${productId}/child-products?child_product_id=${childProductId}&quantity=${quantity}`;
         if (childVariantId) url += `&child_variant_id=${childVariantId}`;
         return fetchApi<any>(url, { method: 'POST' });
     },
 
     clearVariantRecipe: (variantId: number) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/variants/${variantId}/recipe`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/variants/${variantId}/recipe`, {
             method: 'DELETE'
         }),
 
     addModifierGroupToVariant: (variantId: number, groupId: number, quantity: number, input_quantity?: number, input_unit?: string) => {
-        let url = `/api/v1/pos/variants/${variantId}/modifier-groups?modifier_group_id=${groupId}&quantity=${quantity}`;
+        let url = `/api/v1/pos/catalog/variants/${variantId}/modifier-groups?modifier_group_id=${groupId}&quantity=${quantity}`;
         if (input_quantity !== undefined) url += `&input_quantity=${input_quantity}`;
         if (input_unit) url += `&input_unit=${input_unit}`;
         return fetchApi<any>(url, { method: 'POST' });
     },
 
     // Modificadores
-    getModifierGroups: () => fetchApi<ModifierGroup[]>('/api/v1/pos/modifier-groups'),
+    getModifierGroups: () => fetchApi<ModifierGroup[]>('/api/v1/pos/catalog/modifier-groups'),
     
     createModifierGroup: (group: Partial<ModifierGroup>) =>
-        fetchApi<ModifierGroup>('/api/v1/pos/modifier-groups', {
+        fetchApi<ModifierGroup>('/api/v1/pos/catalog/modifier-groups', {
             method: 'POST',
             body: JSON.stringify(group)
         }),
 
     deleteModifierGroup: (id: number) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/modifier-groups/${id}`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/modifier-groups/${id}`, {
             method: 'DELETE'
         }),
 
     createModifier: (modifier: Partial<Modifier>) =>
-        fetchApi<Modifier>('/api/v1/pos/modifiers', {
+        fetchApi<Modifier>('/api/v1/pos/catalog/modifiers', {
             method: 'POST',
             body: JSON.stringify(modifier)
         }),
 
     deleteModifier: (id: number) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/modifiers/${id}`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/modifiers/${id}`, {
             method: 'DELETE'
         }),
 
     linkModifierGroup: (productId: number, groupId: number) =>
-        fetchApi<any>(`/api/v1/pos/products/${productId}/modifier-groups/${groupId}`, {
+        fetchApi<any>(`/api/v1/pos/catalog/products/${productId}/modifier-groups/${groupId}`, {
             method: 'POST'
         }),
     
     updateModifierMeasureQuantity: (modifierId: number, measure_id: number, quantity: number, input_quantity?: number, input_unit?: string) => {
-        let url = `/api/v1/pos/modifiers/${modifierId}/measures/${measure_id}/quantity?quantity=${quantity}`;
+        let url = `/api/v1/pos/catalog/modifiers/${modifierId}/measures/${measure_id}/quantity?quantity=${quantity}`;
         if (input_quantity !== undefined) url += `&input_quantity=${input_quantity}`;
         if (input_unit) url += `&input_unit=${input_unit}`;
         return fetchApi<any>(url, { method: 'POST' });
@@ -178,14 +178,14 @@ export const ProductService = {
     uploadImage: (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        return fetchApi<{url: string, filename: string}>('/api/v1/pos/upload', {
+        return fetchApi<{url: string, filename: string}>('/api/v1/pos/catalog/upload', {
             method: 'POST',
             body: formData
         });
     },
 
     deleteImage: (filename: string) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/upload/${filename}`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/upload/${filename}`, {
             method: 'DELETE'
         })
 };

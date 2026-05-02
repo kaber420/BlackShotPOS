@@ -12,8 +12,16 @@
     let isLoading = $state(false);
 
     let change = $derived(Math.max(0, amountReceived - total));
+    let remainingTotal = $derived(Math.max(0, total - amountReceived));
     let isAmountSufficient = $derived(amountReceived > 0);
     let isPartial = $derived(amountReceived > 0 && amountReceived < total);
+
+    // Initialize with suggested values
+    $effect(() => {
+        if (isOpen) {
+            amountReceived = appState.suggestedPaymentAmount || total;
+        }
+    });
 
     function selectMethod(method: string) {
         paymentMethod = method;
@@ -22,9 +30,6 @@
         }
     }
 
-    function applyPercentage(pct: number) {
-        amountReceived = Number((total * pct).toFixed(2));
-    }
 
     function addCash(amount: number) {
         if (amount === 0) {
@@ -115,11 +120,7 @@
                         />
                     </div>
                     
-                    <div class="grid grid-cols-3 gap-2 mt-2">
-                        <Button variant="outline" size="sm" class="font-bold text-[10px]" onclick={() => applyPercentage(0.5)}>50% Mitad</Button>
-                        <Button variant="outline" size="sm" class="font-bold text-[10px]" onclick={() => applyPercentage(0.3333)}>33% Tercio</Button>
-                        <Button variant="outline" size="sm" class="font-bold text-[10px]" onclick={() => applyPercentage(0.25)}>25% Cuarto</Button>
-                    </div>
+
 
                 {#if paymentMethod === 'CASH'}
                     

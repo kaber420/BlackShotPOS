@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 
 from .models import Order, OrderItem, Payment, OrderStatus, PaymentMethod
-from pos_core.inventory.models import ProductVariant, Product
+from pos_core.catalog.models import ProductVariant, Product
 
 
 class OrderRepository:

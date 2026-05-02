@@ -30,7 +30,8 @@ async def init_db():
     """Inicializa la base de datos creando las tablas si no existen."""
     async with engine.begin() as conn:
         # Importamos los modelos aquí para asegurar que se registren en SQLModel.metadata
-        from pos_core.inventory.models import Category, Product, Ingredient, RecipeItem, Measure, ProductVariant
+        from pos_core.catalog.models import Category, Product, RecipeItem, Measure, ProductVariant
+        from pos_core.inventory.models import Ingredient
         from pos_core.tables.models import Table
         from pos_core.sales.models import Order, OrderItem, Payment
         from pos_core.accounting.models import Shift

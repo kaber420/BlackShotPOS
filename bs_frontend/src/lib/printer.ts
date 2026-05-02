@@ -163,7 +163,7 @@ export function getPreferredMethod(): PrintMethod | null {
 
 // ── Obtener bytes del backend ─────────────────────────────────────────────────
 
-const BASE_URL = '/api/v1/pos';
+const BASE_URL = '/api/v1/pos/system/printing';
 
 async function fetchRawBytes(endpoint: string): Promise<Uint8Array> {
   const response = await fetch(`${BASE_URL}${endpoint}`, {
@@ -292,7 +292,7 @@ function printViaDownload(data: Uint8Array, filename: string): void {
  * @param method   Método de impresión ('usb' | 'bluetooth' | 'download')
  */
 export async function printTicket(orderId: number, method: PrintMethod = 'browser'): Promise<void> {
-  const data = await fetchRawBytes(`/print/ticket/${orderId}/raw`);
+  const data = await fetchRawBytes(`/ticket/${orderId}/raw`);
   await _dispatch(data, method, `ticket_${orderId}.bin`, orderId, 'ticket');
 }
 
@@ -303,7 +303,7 @@ export async function printTicket(orderId: number, method: PrintMethod = 'browse
  * @param method   Método de impresión ('usb' | 'bluetooth' | 'download' | 'browser')
  */
 export async function printComanda(orderId: number, method: PrintMethod = 'browser'): Promise<void> {
-  const data = await fetchRawBytes(`/print/comanda/${orderId}/raw`);
+  const data = await fetchRawBytes(`/comanda/${orderId}/raw`);
   await _dispatch(data, method, `comanda_${orderId}.bin`, orderId, 'comanda');
 }
 
@@ -329,7 +329,7 @@ async function _dispatch(data: Uint8Array, method: PrintMethod, filename: string
 
 /** Abre una ventana nueva con el HTML del ticket para imprimir usando el diálogo del sistema. */
 function printViaBrowser(orderId: number, type: 'ticket' | 'comanda'): void {
-  const url = `${BASE_URL}/print/${type}/${orderId}/html`;
+  const url = `${BASE_URL}/${type}/${orderId}/html`;
   
   // Abrir en una ventana pequeña o un popup
   const width = 400;

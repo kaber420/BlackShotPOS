@@ -56,22 +56,22 @@ export interface InventoryAdjustmentCreate {
 }
 
 export const IngredientService = {
-	getAll: () => fetchApi<Ingredient[]>('/api/v1/pos/ingredients'),
+	getAll: () => fetchApi<Ingredient[]>('/api/v1/pos/inventory/ingredients'),
 	
 	create: (ingredient: Ingredient) => 
-		fetchApi<Ingredient>('/api/v1/pos/ingredients', {
+		fetchApi<Ingredient>('/api/v1/pos/inventory/ingredients', {
 			method: 'POST',
 			body: JSON.stringify(ingredient)
 		}),
 
 	update: (id: number, ingredient: Partial<Ingredient>) =>
-		fetchApi<Ingredient>(`/api/v1/pos/ingredients/${id}`, {
+		fetchApi<Ingredient>(`/api/v1/pos/inventory/ingredients/${id}`, {
 			method: 'PUT',
 			body: JSON.stringify(ingredient)
 		}),
 
 	delete: (id: number) =>
-		fetchApi<{detail: string}>(`/api/v1/pos/ingredients/${id}`, {
+		fetchApi<{detail: string}>(`/api/v1/pos/inventory/ingredients/${id}`, {
 			method: 'DELETE'
 		}),
 

@@ -54,7 +54,7 @@
                     type: appState.activeTable ? 'DINE_IN' : 'TAKEAWAY',
                     table_id: appState.activeTable ? appState.activeTable.id : null
                 };
-    			order = await fetchApi<any>('/api/v1/pos/orders', {
+    			order = await fetchApi<any>('/api/v1/pos/sales/orders', {
 	    			method: 'POST',
 		    		body: JSON.stringify(orderPayload)
 			    });
@@ -63,7 +63,7 @@
 			// 2. Add New items only (those without db_id)
 			for (const item of appState.cart) {
                 if (!item.db_id) {
-    				await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
+    				await fetchApi(`/api/v1/pos/sales/orders/${order.id}/items`, {
 	    				method: 'POST',
 		    			body: JSON.stringify({
 			    			product_id: item.product_id,
@@ -81,7 +81,7 @@
             // 4. Print ticket if requested
             if (shouldPrint) {
                 try {
-                    await fetchApi(`/api/v1/pos/print/ticket/${order.id}/network`, { method: 'POST' });
+                    await fetchApi(`/api/v1/pos/system/printing/ticket/${order.id}/network`, { method: 'POST' });
                 } catch (pe) {
                     console.error("Error al imprimir ticket", pe);
                 }
@@ -122,7 +122,7 @@
                     type: appState.activeTable ? 'DINE_IN' : 'TAKEAWAY',
                     table_id: appState.activeTable ? appState.activeTable.id : null
                 };
-                order = await fetchApi<any>('/api/v1/pos/orders', {
+                order = await fetchApi<any>('/api/v1/pos/sales/orders', {
                     method: 'POST',
                     body: JSON.stringify(orderPayload)
                 });
@@ -131,7 +131,7 @@
             for (const item of appState.cart) {
                 if (item.db_id) continue;
                 
-                await fetchApi(`/api/v1/pos/orders/${order.id}/items`, {
+                await fetchApi(`/api/v1/pos/sales/orders/${order.id}/items`, {
                     method: 'POST',
                     body: JSON.stringify({
                         product_id: item.product_id,

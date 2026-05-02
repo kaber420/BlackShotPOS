@@ -9,12 +9,12 @@ import asyncio
 
 router = APIRouter()
 
-@router.get("/tables", response_model=List[Table])
+@router.get("/", response_model=List[Table])
 async def list_tables(include_inactive: bool = False, db: AsyncSession = Depends(get_session)):
     """Estado actual de todas las mesas."""
     return await service.get_tables(db, include_inactive)
 
-@router.post("/tables", response_model=Table)
+@router.post("/", response_model=Table)
 async def create_table(number: int, capacity: int = 4, location: str = None, db: AsyncSession = Depends(get_session)):
     """Añade una mesa al sistema."""
 
@@ -22,7 +22,7 @@ async def create_table(number: int, capacity: int = 4, location: str = None, db:
     asyncio.create_task(trigger_standard_broadcasts())
     return table
 
-@router.patch("/tables/{table_id}/status", response_model=Table)
+@router.patch("/{table_id}/status", response_model=Table)
 async def update_table_status(table_id: int, status: str, db: AsyncSession = Depends(get_session)):
     """Cambia el estado de una mesa (Libre, Ocupada, Reservada)."""
 
@@ -32,7 +32,7 @@ async def update_table_status(table_id: int, status: str, db: AsyncSession = Dep
     asyncio.create_task(trigger_standard_broadcasts())
     return table
 
-@router.patch("/tables/{table_id}", response_model=Table)
+@router.patch("/{table_id}", response_model=Table)
 async def update_table(table_id: int, number: Optional[int] = None, capacity: Optional[int] = None, location: Optional[str] = None, is_active: Optional[bool] = None, db: AsyncSession = Depends(get_session)):
     """Actualiza propiedades de una mesa."""
 
@@ -48,7 +48,7 @@ async def update_table(table_id: int, number: Optional[int] = None, capacity: Op
     asyncio.create_task(trigger_standard_broadcasts())
     return table
 
-@router.delete("/tables/{table_id}")
+@router.delete("/{table_id}")
 async def delete_table(table_id: int, db: AsyncSession = Depends(get_session)):
     """Desactiva una mesa."""
 
@@ -58,7 +58,7 @@ async def delete_table(table_id: int, db: AsyncSession = Depends(get_session)):
     asyncio.create_task(trigger_standard_broadcasts())
     return {"detail": "Mesa desactivada"}
 
-@router.post("/tables/{table_id}/vacate")
+@router.post("/{table_id}/vacate")
 async def vacate_table(table_id: int, db: AsyncSession = Depends(get_session)):
     """Libera una mesa manualmente."""
     from pos_core.tables.service import vacate_table_service

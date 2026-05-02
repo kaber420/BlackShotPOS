@@ -48,7 +48,7 @@
         loading = true;
         error = null;
         try {
-            let url = `/api/v1/pos/analytics/business-summary?period=${period}`;
+            let url = `/api/v1/pos/system/analytics/business-summary?period=${period}`;
             if (period === 'custom') {
                 if (!fromDate || !toDate) {
                     summary = null;
@@ -69,9 +69,9 @@
         teamLoading = true;
         try {
             const [w, c, d] = await Promise.all([
-                fetchApi('/api/v1/pos/analytics/waiters/performance'),
-                fetchApi('/api/v1/pos/analytics/kitchen/performance'),
-                fetchApi('/api/v1/pos/analytics/kitchen/dish-speed'),
+                fetchApi('/api/v1/pos/system/analytics/waiters/performance'),
+                fetchApi('/api/v1/pos/system/analytics/kitchen/performance'),
+                fetchApi('/api/v1/pos/system/analytics/kitchen/dish-speed'),
             ]);
             waiterStats = w;
             cookStats = c;

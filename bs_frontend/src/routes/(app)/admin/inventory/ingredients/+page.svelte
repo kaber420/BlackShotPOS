@@ -124,14 +124,19 @@
 	async function loadAllData() {
 		try {
 			isLoading = true;
+			error = '';
+			
+			// Cargamos en paralelo para máxima velocidad
 			const [ings, groups] = await Promise.all([
 				IngredientService.getAll(),
 				ProductService.getModifierGroups()
 			]);
+			
 			ingredients = ings;
 			modifierGroups = groups;
 		} catch (e: any) {
-			error = e.message || 'Error al cargar datos';
+			console.error('Error cargando datos maestros:', e);
+			error = 'Error al cargar datos maestros: ' + (e.message || 'Error desconocido');
 		} finally {
 			isLoading = false;
 		}
@@ -271,6 +276,14 @@
 			<h1 class="text-4xl font-black text-base-content tracking-tighter">Inventario Maestros</h1>
 			<p class="opacity-60 font-medium">Gestiona tu materia prima y grupos de personalización.</p>
 		</div>
+    
+    {#if error}
+        <div class="alert alert-error mb-6 rounded-2xl shadow-lg border-none bg-error/20 text-error-content font-bold">
+            <span class="text-xl">⚠️</span>
+            <span>{error}</span>
+            <button class="btn btn-sm btn-ghost" onclick={loadAllData}>Reintentar</button>
+        </div>
+    {/if}
 		
 		<div class="tabs tabs-boxed bg-base-200 p-1 rounded-xl">
 			<button class="tab tab-md transition-all duration-300 {activeTab === 'ingredients' ? 'tab-active bg-primary text-primary-content shadow-md' : ''}" onclick={() => activeTab = 'ingredients'}>

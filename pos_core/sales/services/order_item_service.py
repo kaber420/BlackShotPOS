@@ -17,7 +17,7 @@ async def add_item_to_order(
     product_variant_id: Optional[int] = None,
     modifier_ids: Optional[List[int]] = None,
 ) -> OrderItem:
-    from pos_core.inventory.models import Product, ProductVariant, Modifier, Tax
+    from pos_core.catalog.models import Product, ProductVariant, Modifier, Tax
     from sqlalchemy.orm import selectinload
     from sqlalchemy import select
 

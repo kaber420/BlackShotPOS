@@ -54,6 +54,8 @@ export const appState = $state({
         locale: 'es-MX'
     } as any,
     cartVisible: false,
+    suggestedPaymentAmount: 0,
+    suggestedPeopleCount: 1,
 });
 
 /**

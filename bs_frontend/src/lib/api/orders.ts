@@ -135,15 +135,15 @@ export interface Order {
 
 export const OrderService = {
     getAll: (status?: OrderStatus) => {
-        const url = status ? `/api/v1/pos/orders?status=${status}` : '/api/v1/pos/orders';
+        const url = status ? `/api/v1/pos/sales/orders?status=${status}` : '/api/v1/pos/sales/orders';
         return fetchApi<Order[]>(url);
     },
 
     getById: (id: number) =>
-        fetchApi<Order>(`/api/v1/pos/orders/${id}`),
+        fetchApi<Order>(`/api/v1/pos/sales/orders/${id}`),
 
     create: (order: { type: OrderType; table_id?: number; external_reference?: string }) =>
-        fetchApi<Order>('/api/v1/pos/orders', {
+        fetchApi<Order>('/api/v1/pos/sales/orders', {
             method: 'POST',
             body: JSON.stringify(order)
         }),
@@ -155,7 +155,7 @@ export const OrderService = {
         productVariantId?: number,
         modifierIds: number[] = []
     ) =>
-        fetchApi<OrderItem>(`/api/v1/pos/orders/${orderId}/items`, {
+        fetchApi<OrderItem>(`/api/v1/pos/sales/orders/${orderId}/items`, {
             method: 'POST',
             body: JSON.stringify({
                 product_id: productId,
@@ -166,17 +166,17 @@ export const OrderService = {
         }),
 
     updateStatus: (orderId: number, status: OrderStatus) =>
-        fetchApi<Order>(`/api/v1/pos/orders/${orderId}/status?status=${status}`, {
+        fetchApi<Order>(`/api/v1/pos/sales/orders/${orderId}/status?status=${status}`, {
             method: 'PATCH'
         }),
 
     updateItemStatus: (orderId: number, itemId: number, status: OrderStatus) =>
-        fetchApi<OrderItem>(`/api/v1/pos/orders/${orderId}/items/${itemId}/status?status=${status}`, {
+        fetchApi<OrderItem>(`/api/v1/pos/sales/orders/${orderId}/items/${itemId}/status?status=${status}`, {
             method: 'PATCH'
         }),
 
     pay: (orderId: number, method: PaymentMethod | string, amount: number, tipAmount: number = 0, receivedAmount?: number, vacateTable: boolean = true) =>
-        fetchApi<PaymentRead>(`/api/v1/pos/orders/${orderId}/payments`, {
+        fetchApi<PaymentRead>(`/api/v1/pos/sales/orders/${orderId}/payments`, {
             method: 'POST',
             body: JSON.stringify({ 
                 method, 
@@ -188,24 +188,24 @@ export const OrderService = {
         }),
 
     delete: (orderId: number) =>
-        fetchApi<{ status: string; message: string }>(`/api/v1/pos/orders/${orderId}`, {
+        fetchApi<{ status: string; message: string }>(`/api/v1/pos/sales/orders/${orderId}`, {
             method: 'DELETE'
         }),
 
     cancelWithReason: (orderId: number, reason: string) =>
-        fetchApi<{ status: string }>(`/api/v1/pos/audits/orders/${orderId}/cancel`, {
+        fetchApi<{ status: string }>(`/api/v1/pos/system/audit/orders/${orderId}/cancel`, {
             method: 'POST',
             body: JSON.stringify({ reason })
         }),
 
     transfer: (orderId: number, newTableId: number) =>
-        fetchApi<Order>(`/api/v1/pos/orders/${orderId}/transfer`, {
+        fetchApi<Order>(`/api/v1/pos/sales/orders/${orderId}/transfer`, {
             method: 'POST',
             body: JSON.stringify({ new_table_id: newTableId })
         }),
 
     splitOrder: (orderId: number, items: { item_id: number, quantity: number }[]) =>
-        fetchApi<Order>(`/api/v1/pos/orders/${orderId}/split`, {
+        fetchApi<Order>(`/api/v1/pos/sales/orders/${orderId}/split`, {
             method: 'POST',
             body: JSON.stringify({ items })
         })

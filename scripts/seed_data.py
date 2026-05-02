@@ -6,7 +6,8 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from pos_core.database import engine, init_db, async_session_maker
-from pos_core.inventory.models import Category, Product, Ingredient, RecipeItem, Measure, ProductVariant
+from pos_core.catalog.models import Category, Product, RecipeItem, Measure, ProductVariant
+from pos_core.inventory.models import Ingredient
 from sqlmodel import select
 
 async def seed():
@@ -32,7 +33,7 @@ async def seed():
 
         # 1.5 Crear Impuestos
         print("Creando impuestos...")
-        from pos_core.inventory.models import Tax
+        from pos_core.catalog.models import Tax
         tax_iva_16 = Tax(name="IVA 16%", rate=16.0, description="Impuesto al valor agregado general")
         tax_iva_0 = Tax(name="IVA 0%", rate=0.0, description="Impuesto tasa cero para alimentos")
         tax_exento = Tax(name="Exento", rate=0.0, description="Sin impuestos aplicables")

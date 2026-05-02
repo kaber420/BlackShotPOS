@@ -17,7 +17,7 @@
 
     onMount(async () => {
         try {
-            shifts = await fetchApi('/api/v1/pos/shifts/');
+            shifts = await fetchApi('/api/v1/pos/sales/shifts/');
         } catch (e) {
             console.error("Error al cargar historial de turnos", e);
         } finally {

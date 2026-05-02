@@ -172,7 +172,7 @@ async def get_business_summary(
     # Resolver nombres de los productos top
     top_products = []
     for row in top_rows:
-        from pos_core.inventory.models import Product
+        from pos_core.catalog.models import Product
         product = await db.get(Product, row.product_id)
         top_products.append({
             "product_id": row.product_id,
@@ -375,7 +375,7 @@ async def get_dish_speed(
     rows = result.all()
 
     # Resolver nombres de productos
-    from pos_core.inventory.models import Product
+    from pos_core.catalog.models import Product
     product_ids = [row.product_id for row in rows]
     names: dict[int, str] = {}
     if product_ids:
