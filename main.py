@@ -6,6 +6,7 @@ import os
 from pos_core.database import init_db
 from pos_core.setup import setup_environment
 from pos_core.inventory.router import router as inventory_router
+from pos_core.inventory.production_router import router as production_area_router
 from pos_core.tables.router import router as tables_router
 from pos_core.sales.router import router as sales_router
 from pos_core.printing.router import router as printing_router
@@ -56,6 +57,7 @@ async def business_logic_exception_handler(request: Request, exc: BusinessLogicE
 
 # Inclusión de rutas de inventario y mesas
 app.include_router(inventory_router, prefix="/api/v1/pos", tags=["Inventario"])
+app.include_router(production_area_router, prefix="/api/v1/pos/production", tags=["Áreas de Producción"])
 app.include_router(tables_router, prefix="/api/v1/pos", tags=["Mesas"])
 app.include_router(sales_router, prefix="/api/v1/pos", tags=["Ventas"])
 app.include_router(shifts_router, prefix="/api/v1/pos/shifts", tags=["Cortes de Caja"])

@@ -183,3 +183,112 @@ async def transfer_order_table(
     await session.commit()
     await session.refresh(order)
     return order
+
+async def split_order_items(
+    session: AsyncSession,
+    original_order_id: int,
+    items_to_split: list, # List of SplitItemCreate
+    actor_uuid: str,
+    actor_name: str,
+) -> Order:
+    """
+    Divide una orden transfiriendo los ítems especificados a una nueva orden
+    en la misma mesa.
+    """
+    from pos_core.sales.schemas import SplitItemCreate
+    
+    original_order = await order_repo.get_with_relations(session, original_order_id)
+    if not original_order:
+        raise OrderNotFoundError(original_order_id)
+        
+    if not items_to_split:
+        raise ValueError("No se especificaron ítems para dividir.")
+        
+    # Crear nueva orden
+    new_order = Order(
+        type=original_order.type,
+        status=original_order.status,
+        table_id=original_order.table_id,
+        shift_id=original_order.shift_id,
+        customer_id=original_order.customer_id,
+        waiter_uuid=actor_uuid,
+        waiter_name=actor_name,
+    )
+    session.add(new_order)
+    await session.flush() # Para obtener new_order.id
+    
+    for split_item in items_to_split:
+        item_id = split_item.item_id
+        qty_to_split = split_item.quantity
+        
+        if qty_to_split <= 0:
+            continue
+            
+        # Buscar el item en la orden original
+        orig_item = next((i for i in original_order.items if i.id == item_id), None)
+        if not orig_item:
+            raise ValueError(f"El ítem {item_id} no pertenece a la orden {original_order_id}.")
+            
+        if orig_item.status == OrderStatus.CANCELLED:
+            raise ValueError(f"El ítem {item_id} está cancelado y no se puede dividir.")
+            
+        if qty_to_split > orig_item.quantity:
+            raise ValueError(f"Cantidad a dividir ({qty_to_split}) mayor que la existente ({orig_item.quantity}) para el ítem {item_id}.")
+            
+        if qty_to_split == orig_item.quantity:
+            # Transferir el ítem completo
+            orig_item.order_id = new_order.id
+        else:
+            # Transferencia parcial: clonar ítem y reducir cantidad original
+            orig_item.quantity -= qty_to_split
+            
+            new_item = OrderItem(
+                order_id=new_order.id,
+                product_id=orig_item.product_id,
+                product_variant_id=orig_item.product_variant_id,
+                quantity=qty_to_split,
+                unit_price=orig_item.unit_price,
+                tax_rate=orig_item.tax_rate,
+                tax_amount=0.0, # se recalcula luego
+                status=orig_item.status,
+                cook_uuid=orig_item.cook_uuid,
+                cook_name=orig_item.cook_name,
+                delivered_by_uuid=orig_item.delivered_by_uuid,
+                delivered_by_name=orig_item.delivered_by_name,
+                preparing_at=orig_item.preparing_at,
+                ready_at=orig_item.ready_at,
+                delivered_at=orig_item.delivered_at
+            )
+            session.add(new_item)
+            await session.flush()
+            
+            # Clonar modificadores si existen
+            if orig_item.modifiers:
+                for mod in orig_item.modifiers:
+                    new_item.modifiers.append(mod)
+
+    # Recalcular totales para ambas órdenes
+    from .order_lifecycle_service import recalculate_order_totals
+    await recalculate_order_totals(session, original_order.id)
+    await recalculate_order_totals(session, new_order.id)
+    
+    # Registrar auditoría
+    items_log = [{"item_id": i.item_id, "quantity": i.quantity} for i in items_to_split]
+    await audit_service.log_action(
+        session,
+        category=AuditCategory.SALES,
+        action="ORDER_SPLIT",
+        reason="División de cuenta por productos",
+        actor_uuid=actor_uuid,
+        actor_name=actor_name,
+        target_id=str(original_order.id),
+        target_type="order",
+        changes_json=json.dumps({
+            "new_order_id": new_order.id,
+            "items_split": items_log
+        })
+    )
+    
+    await session.commit()
+    await session.refresh(new_order)
+    return new_order

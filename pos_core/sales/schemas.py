@@ -120,3 +120,13 @@ class OrderRead(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+# ---------------------------------------------------------------------------
+# SCHEMAS DE DIVISIÓN DE CUENTA
+# ---------------------------------------------------------------------------
+
+class SplitItemCreate(BaseModel):
+    item_id: int
+    quantity: int
+
+class SplitOrderCreate(BaseModel):
+    items: List[SplitItemCreate]

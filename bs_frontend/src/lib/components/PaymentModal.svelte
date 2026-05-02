@@ -12,13 +12,18 @@
     let isLoading = $state(false);
 
     let change = $derived(Math.max(0, amountReceived - total));
-    let isAmountSufficient = $derived(paymentMethod !== 'CASH' || amountReceived >= total);
+    let isAmountSufficient = $derived(amountReceived > 0);
+    let isPartial = $derived(amountReceived > 0 && amountReceived < total);
 
     function selectMethod(method: string) {
         paymentMethod = method;
-        if (method !== 'CASH') {
+        if (amountReceived === 0) {
             amountReceived = total;
         }
+    }
+
+    function applyPercentage(pct: number) {
+        amountReceived = Number((total * pct).toFixed(2));
     }
 
     function addCash(amount: number) {
@@ -92,10 +97,11 @@
                     </div>
                 </div>
 
-                {#if paymentMethod === 'CASH'}
                 <div class="animate-in fade-in slide-in-from-top-4 duration-300">
                     <label class="label p-0 mb-2" for="cash_input">
-                        <span class="label-text font-black uppercase text-[10px] tracking-widest opacity-60">Efectivo Recibido</span>
+                        <span class="label-text font-black uppercase text-[10px] tracking-widest opacity-60">
+                            {paymentMethod === 'CASH' ? 'Efectivo Recibido' : 'Monto a Cobrar'}
+                        </span>
                     </label>
                     <div class="join w-full shadow-sm">
                         <span class="join-item btn btn-active pointer-events-none font-black text-lg bg-base-200">{appState.settings.currency_symbol}</span>
@@ -109,6 +115,14 @@
                         />
                     </div>
                     
+                    <div class="grid grid-cols-3 gap-2 mt-2">
+                        <Button variant="outline" size="sm" class="font-bold text-[10px]" onclick={() => applyPercentage(0.5)}>50% Mitad</Button>
+                        <Button variant="outline" size="sm" class="font-bold text-[10px]" onclick={() => applyPercentage(0.3333)}>33% Tercio</Button>
+                        <Button variant="outline" size="sm" class="font-bold text-[10px]" onclick={() => applyPercentage(0.25)}>25% Cuarto</Button>
+                    </div>
+
+                {#if paymentMethod === 'CASH'}
+                    
                     <div class="grid grid-cols-4 gap-2 mt-3">
                         <Button size="sm" class="font-bold" onclick={() => addCash(20)}>+20</Button>
                         <Button size="sm" class="font-bold" onclick={() => addCash(50)}>+50</Button>
@@ -118,8 +132,8 @@
                         <Button variant="outline" size="sm" class="font-bold col-span-2" onclick={setExact}>Exacto</Button>
                         <Button variant="ghost" size="sm" danger class="font-bold" onclick={() => addCash(0)}>Cero</Button>
                     </div>
-                </div>
                 {/if}
+                </div>
 
                 <div class="animate-in fade-in slide-in-from-top-4 duration-300">
                     <label class="label p-0 mb-2" for="tip_input">
@@ -168,8 +182,8 @@
                    
                    <div class="flex flex-col gap-2">
                         <div class="flex justify-between items-center text-sm opacity-70">
-                            <span>Monto Total</span>
-                            <span>{appState.settings.currency_symbol}{total.toFixed(2)}</span>
+                            <span>Saldo Pendiente</span>
+                            <span class="font-bold">{appState.settings.currency_symbol}{total.toFixed(2)}</span>
                         </div>
                         <div class="flex justify-between items-center text-sm opacity-70">
                             <span>Recibido</span>
@@ -202,7 +216,7 @@
                         {isLoading}
                         onclick={handleProcess}
                     >
-                        Confirmar Cobro
+                        {isPartial ? 'Registrar Abono' : 'Confirmar Cobro'}
                     </Button>
                     <Button variant="ghost" size="sm" class="opacity-60" onclick={onClose}>Cancelar</Button>
                 </div>

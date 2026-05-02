@@ -27,11 +27,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-# ── Configuración de impresora de red (Opción B) ────────────────────────────
-PRINTER_HOST = os.getenv("PRINTER_HOST", "")       # IP de la impresora en LAN
-PRINTER_PORT = int(os.getenv("PRINTER_PORT", "9100"))  # Puerto estándar ESC/POS
-
-
 async def _get_order_with_items(order_id: int, session: AsyncSession) -> Order:
     """Helper: carga una orden con todos sus items, productos, variantes y pagos."""
     statement = (
@@ -51,31 +46,14 @@ async def _get_order_with_items(order_id: int, session: AsyncSession) -> Order:
     return order
 
 
-def _send_to_network_printer(data: bytes) -> None:
-    """
-    Envía bytes ESC/POS a una impresora de red vía TCP (puerto 9100).
-    Lanza RuntimeError si PRINTER_HOST no está configurado o la conexión falla.
-    """
-    if not PRINTER_HOST:
-        raise RuntimeError(
-            "PRINTER_HOST no está configurado en .env. "
-            "Usa el endpoint /raw para imprimir desde el navegador."
-        )
-    try:
-        with socket.create_connection((PRINTER_HOST, PRINTER_PORT), timeout=5) as sock:
-            sock.sendall(data)
-    except (OSError, TimeoutError) as exc:
-        raise RuntimeError(f"No se pudo conectar a la impresora en {PRINTER_HOST}:{PRINTER_PORT}: {exc}") from exc
-
-
-# ── Ticket de venta ──────────────────────────────────────────────────────────
+# ── Ticket de venta (Generación de datos) ────────────────────────────────────
 
 @router.get(
     "/print/ticket/{order_id}/raw",
     summary="Descargar ticket de venta como bytes ESC/POS",
     description=(
         "Devuelve el ticket en formato binario ESC/POS. "
-        "El frontend puede enviarlo a una impresora USB local con la WebUSB API."
+        "El frontend es el responsable de enviarlo a la impresora (USB, BT, etc)."
     ),
     tags=["Impresión"],
 )
@@ -110,31 +88,7 @@ async def get_ticket_html(
     return formatter.format_ticket_html(order, settings)
 
 
-@router.post(
-    "/print/ticket/{order_id}/network",
-    summary="Imprimir ticket de venta en impresora de red",
-    description=(
-        "Genera el ticket y lo envía directamente a la impresora configurada "
-        "en PRINTER_HOST vía TCP:9100. Requiere que PRINTER_HOST esté en .env."
-    ),
-    tags=["Impresión"],
-)
-async def print_ticket_network(
-    order_id: int,
-    session: AsyncSession = Depends(get_session),
-    user=Depends(require_role("cashier")),
-):
-    order = await _get_order_with_items(order_id, session)
-    settings = await get_settings(session)
-    data = formatter.format_ticket(order, settings)
-    try:
-        _send_to_network_printer(data)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    return {"status": "ok", "message": f"Ticket #{order_id} enviado a la impresora"}
-
-
-# ── Comanda de cocina ────────────────────────────────────────────────────────
+# ── Comanda de cocina (Generación de datos) ──────────────────────────────────
 
 @router.get(
     "/print/comanda/{order_id}/raw",
@@ -170,23 +124,3 @@ async def get_comanda_html(
     order = await _get_order_with_items(order_id, session)
     settings = await get_settings(session)
     return formatter.format_comanda_html(order, settings)
-
-
-@router.post(
-    "/print/comanda/{order_id}/network",
-    summary="Imprimir comanda de cocina en impresora de red",
-    tags=["Impresión"],
-)
-async def print_comanda_network(
-    order_id: int,
-    session: AsyncSession = Depends(get_session),
-    user=Depends(require_role("waiter")),
-):
-    order = await _get_order_with_items(order_id, session)
-    settings = await get_settings(session)
-    data = formatter.format_comanda(order, settings)
-    try:
-        _send_to_network_printer(data)
-    except RuntimeError as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    return {"status": "ok", "message": f"Comanda #{order_id} enviada a la impresora"}

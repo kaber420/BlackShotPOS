@@ -3,6 +3,7 @@
     import Button from '$lib/components/ui/Button.svelte';
     import { TableService } from '$lib/api/tables';
     import { OrderService, OrderStatus } from '$lib/api/orders';
+    import SplitBillModal from './SplitBillModal.svelte';
 
     let { 
         isOpen = false, 
@@ -21,6 +22,16 @@
     let taxRate = $derived(appState.settings?.tax_rate || 0.16);
     let taxAmount = $derived(subtotal * taxRate);
     let totalWithTax = $derived(subtotal + taxAmount);
+    let balanceDue = $derived(order?.balance_due ?? totalWithTax);
+    let paidAmount = $derived(totalWithTax - balanceDue);
+    
+    let isSplitBillOpen = $state(false);
+
+    function handleSplitSuccess() {
+        isSplitBillOpen = false;
+        onActionComplete();
+        onClose(); // Cerrar para obligar a refrescar o ver la nueva mesa
+    }
 
     async function handleVacate() {
         if (!table) return;
@@ -141,29 +152,37 @@
             <div class="p-8 bg-base-100 border-t border-base-200 flex flex-col gap-6">
                 <div class="flex justify-between items-end px-1">
                     <div>
-                        <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Total Final con IVA</span>
-                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${totalWithTax.toFixed(0)}</span>
-                        <div class="flex gap-3 mt-1 opacity-30 text-[9px] font-black uppercase tracking-widest">
-                            <span>Subtotal: ${subtotal.toFixed(0)}</span>
-                            <span>IVA: ${taxAmount.toFixed(0)}</span>
+                        <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Saldo Pendiente</span>
+                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${balanceDue.toFixed(0)}</span>
+                        <div class="flex flex-col gap-1 mt-2 opacity-60 text-[10px] font-black uppercase tracking-widest">
+                            <span class="text-success">Pagado: ${paidAmount.toFixed(0)}</span>
+                            <span>Total Original: ${totalWithTax.toFixed(0)}</span>
                         </div>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-3 gap-3">
                     <button 
                         class="flex-1 bg-base-200 hover:bg-base-300 text-base-content rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95" 
                         onclick={() => order ? onAddMore() : (setActiveTable(table, null), goto('/'))}
                     >
                         Añadir Productos
                     </button>
+
+                    <button 
+                        class="flex-1 bg-secondary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-secondary/20 disabled:opacity-50" 
+                        onclick={() => isSplitBillOpen = true}
+                        disabled={isProcessing || !order?.items?.length}
+                    >
+                        Dividir Cuenta
+                    </button>
                     
                     <button 
                         class="flex-1 bg-primary text-white rounded-2xl py-5 font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-xl shadow-primary/20 disabled:opacity-50" 
                         onclick={onCheckout}
-                        disabled={isProcessing || !order?.items?.length}
+                        disabled={isProcessing || !order?.items?.length || balanceDue <= 0}
                     >
-                        Cobrar Cuenta
+                        {balanceDue <= 0 ? 'Pagado' : 'Cobrar'}
                     </button>
                 </div>
 
@@ -192,6 +211,13 @@
         </div>
     </div>
 {/if}
+
+<SplitBillModal 
+    isOpen={isSplitBillOpen}
+    order={order}
+    onClose={() => isSplitBillOpen = false}
+    onSuccess={handleSplitSuccess}
+/>
 
 <style>
     .elegant-scroll::-webkit-scrollbar {

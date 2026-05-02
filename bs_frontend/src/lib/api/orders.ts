@@ -202,6 +202,12 @@ export const OrderService = {
         fetchApi<Order>(`/api/v1/pos/orders/${orderId}/transfer`, {
             method: 'POST',
             body: JSON.stringify({ new_table_id: newTableId })
+        }),
+
+    splitOrder: (orderId: number, items: { item_id: number, quantity: number }[]) =>
+        fetchApi<Order>(`/api/v1/pos/orders/${orderId}/split`, {
+            method: 'POST',
+            body: JSON.stringify({ items })
         })
 };
 

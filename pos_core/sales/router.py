@@ -16,7 +16,7 @@ from pos_core.roles import Permission
 from typing import List, Optional
 from pydantic import BaseModel
 import asyncio
-from pos_core.sales.schemas import OrderRead
+from pos_core.sales.schemas import OrderRead, SplitOrderCreate
 
 router = APIRouter()
 
@@ -222,6 +222,31 @@ async def update_item_status(
         asyncio.create_task(notify_iot_item())
 
     return item
+
+@router.post("/orders/{order_id}/split", response_model=OrderRead)
+async def split_order(
+    order_id: int,
+    split_in: SplitOrderCreate,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(require_permission(Permission.TAKE_ORDERS))
+):
+    """
+    Divide una orden existente separando los ítems especificados en una nueva orden.
+    """
+    try:
+        new_order = await order_action_service.split_order_items(
+            session=db,
+            original_order_id=order_id,
+            items_to_split=split_in.items,
+            actor_uuid=str(user.id),
+            actor_name=user.email
+        )
+        asyncio.create_task(trigger_standard_broadcasts())
+        # Cargar relaciones completas para la respuesta
+        full_order = await order_service.get_order_with_relations(db, new_order.id)
+        return full_order
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.delete("/orders/{order_id}")
 async def delete_order(

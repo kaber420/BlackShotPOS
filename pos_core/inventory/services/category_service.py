@@ -15,6 +15,7 @@ async def get_categories(session: AsyncSession) -> List[Category]:
     """Obtiene todas las categorías activas con sus productos y detalles cargados."""
     from sqlalchemy.orm import selectinload, joinedload
     statement = select(Category).options(
+        selectinload(Category.production_area),
         selectinload(Category.products).options(
             selectinload(Product.tax),
             selectinload(Product.variants).joinedload(ProductVariant.measure),

@@ -23,7 +23,7 @@ async def main():
         user_manager = UserManager(user_db)
         
         email = "admin@blackshot.pos"
-        password = "admin_password" # Se recomienda cambiar esto tras el primer login
+        password = "admin1234" # Se recomienda cambiar esto tras el primer login
         role = "admin"
         
         print(f"Registrando usuario: {email} con rol: {role}...")

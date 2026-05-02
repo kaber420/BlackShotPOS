@@ -52,7 +52,7 @@
 		return selectedModifiers.some(m => m.id === modId);
 	}
 
-	let currentPrice = $derived(() => {
+	let currentPrice = $derived.by(() => {
 		const base = selectedVariant ? selectedVariant.price : (product?.price || 0);
 		const extras = selectedModifiers.reduce((acc, m) => acc + (m.extra_price || 0), 0);
 		return base + extras;
@@ -225,7 +225,7 @@
                 >
                     <span>Añadir al Pedido</span>
                     <span class="w-1.5 h-1.5 rounded-full bg-white/40 group-hover:scale-150 transition-transform"></span>
-                    <span class="font-mono text-2xl tracking-tighter">${currentPrice().toFixed(2)}</span>
+                    <span class="font-mono text-2xl tracking-tighter">${currentPrice.toFixed(2)}</span>
                 </button>
             </div>
         </div>

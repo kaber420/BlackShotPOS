@@ -7,12 +7,26 @@ class CategoryBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
     is_modifier_category: bool = Field(default=False)
+    production_area_id: Optional[int] = Field(default=None, foreign_key="productionarea.id")
+
+class ProductionAreaBase(SQLModel):
+    name: str = Field(index=True, unique=True)
+    description: Optional[str] = None
+    printer_ip: Optional[str] = None
+    printer_port: int = Field(default=9100)
+    printer_type: str = Field(default="network", description="network, bluetooth, usb")
+    is_active: bool = Field(default=True)
+
+class ProductionArea(ProductionAreaBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    categories: List["Category"] = Relationship(back_populates="production_area")
 
 class Category(CategoryBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     
     # Relación uno-a-muchos con productos
     products: List["Product"] = Relationship(back_populates="category")
+    production_area: Optional[ProductionArea] = Relationship(back_populates="categories")
 
 class CategoryCreate(CategoryBase):
     pass
@@ -21,6 +35,18 @@ class CategoryUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
     is_modifier_category: Optional[bool] = None
+    production_area_id: Optional[int] = None
+
+class ProductionAreaCreate(ProductionAreaBase):
+    pass
+
+class ProductionAreaUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    printer_ip: Optional[str] = None
+    printer_port: Optional[int] = None
+    printer_type: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class IngredientBase(SQLModel):
     name: str = Field(index=True, unique=True)
@@ -377,11 +403,16 @@ class ProductRead(ProductBase):
     modifier_groups: List[ModifierGroupRead] = []
     recipe_markdown: Optional[str] = None
 
+class ProductionAreaRead(ProductionAreaBase):
+    id: int
+
 class CategoryRead(CategoryBase):
     id: int
     products: List[ProductRead] = []
+    production_area: Optional[ProductionAreaRead] = None
 
 # Resolver referencias circulares si las hay
 ProductRead.model_rebuild()
 ModifierGroupRead.model_rebuild()
 CategoryRead.model_rebuild()
+ProductionAreaRead.model_rebuild()

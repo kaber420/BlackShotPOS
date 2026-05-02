@@ -15,7 +15,12 @@
 
 	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
 	let taxTotal = $derived(cartTotal * (appState.settings?.tax_rate || 0.16));
-	let finalTotal = $derived(cartTotal + taxTotal);
+	let finalTotal = $derived.by(() => {
+        let activeBalance = appState.activeOrder ? appState.activeOrder.balance_due : 0;
+        let newItemsTotal = appState.cart.filter(i => !i.db_id).reduce((acc, i) => acc + i.total_price, 0);
+        let newItemsTax = newItemsTotal * (appState.settings?.tax_rate || 0.16);
+        return appState.activeOrder ? (activeBalance + newItemsTotal + newItemsTax) : (cartTotal + taxTotal);
+    });
 	let itemCount = $derived(appState.cart.length);
 
 	let previousItemCount = $state(0);

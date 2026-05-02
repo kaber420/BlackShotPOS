@@ -39,7 +39,16 @@ def start():
     # Si no se especifica comando, por defecto es 'run'
     if args.command is None or args.command == "run":
         host = getattr(args, "host", None) or os.getenv("HOST", "127.0.0.1")
-        port = getattr(args, "port", None) or int(os.getenv("PORT", 8000))
+        
+        # Medida de seguridad: No usar puertos "fantasmas"
+        env_port = os.getenv("PORT")
+        if not env_port and not getattr(args, "port", None):
+            print("\n❌ ERROR DE CONFIGURACIÓN:")
+            print("No se ha definido la variable 'PORT' en el archivo .env ni se pasó el argumento --port.")
+            print("Para evitar confusiones con 'puertos fantasmas', el servidor no iniciará.")
+            sys.exit(1)
+
+        port = getattr(args, "port", None) or int(env_port)
 
         print(f"\n🚀 Iniciando servidor de Blackshot POS (Local) en {host}:{port}...")
         uvicorn.run("main:app", host=host, port=port, reload=True)
@@ -49,8 +58,15 @@ def start():
         print("\n🔄 Iniciando Agente de Sincronización en segundo plano...")
         subprocess.Popen([sys.executable, "-m", "bs_sync.agent"], cwd=root_dir)
 
+        # Medida de seguridad: No usar puertos "fantasmas"
+        env_port = os.getenv("PORT")
+        if not env_port and not getattr(args, "port", None):
+            print("\n❌ ERROR DE CONFIGURACIÓN (SYNC):")
+            print("No se ha definido la variable 'PORT' en el archivo .env ni se pasó el argumento --port.")
+            sys.exit(1)
+
         host = getattr(args, "host", None) or os.getenv("HOST", "127.0.0.1")
-        port = getattr(args, "port", None) or int(os.getenv("PORT", 8000))
+        port = getattr(args, "port", None) or int(env_port)
 
         print(f"\n🚀 Iniciando servidor de Blackshot POS (Sincronizado) en {host}:{port}...")
         uvicorn.run("main:app", host=host, port=port, reload=True)
