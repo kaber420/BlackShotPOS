@@ -1,7 +1,7 @@
 <!-- FloatingCart.svelte -->
 <script lang="ts">
 	import { slide, fade, fly } from 'svelte/transition';
-	import { appState, removeFromCart, clearCart, setActiveTable, updateCartItemQuantity } from '$lib/app_state.svelte';
+	import { appState, removeFromCart, clearCart, setActiveTable, updateCartItemQuantity, setShowOpenShiftModal } from '$lib/app_state.svelte';
 	import { fetchApi } from '$lib/api';
 	import { OrderService } from '$lib/api/orders';
 	import { addToast } from '$lib/toast.svelte.js';
@@ -37,6 +37,11 @@
 
 	function openCheckout() {
 		if (itemCount === 0) return;
+		if (!appState.activeShift) {
+			setShowOpenShiftModal(true);
+			addToast("Debes abrir turno para procesar el cobro", "warning");
+			return;
+		}
 		showPaymentModal = true;
 	}
 
@@ -111,6 +116,11 @@
 
     async function sendToKitchen() {
         if (appState.cart.length === 0) return;
+        if (!appState.activeShift) {
+            setShowOpenShiftModal(true);
+            addToast("Debes abrir turno para enviar a cocina", "warning");
+            return;
+        }
         
         try {
             isLoading = true;

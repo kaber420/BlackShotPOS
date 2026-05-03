@@ -40,6 +40,7 @@ export const appState = $state({
     activeTable: savedSession.activeTable,
     activeOrder: savedSession.activeOrder,
     activeShift: null as any | null,
+    showOpenShiftModal: false,
     // Usuario autenticado
     userRole: null as string | null,
     userName: null as string | null,
@@ -182,8 +183,13 @@ export const can = {
     manageIoT:           () => appState.permissions['can_manage_iot']          ?? false,
 };
 
+export function setShowOpenShiftModal(show: boolean) {
+    appState.showOpenShiftModal = show;
+}
+
 export function setActiveShift(shift: any | null) {
     appState.activeShift = shift;
+    if (shift) appState.showOpenShiftModal = false;
 }
 
 export function addToCart(product: any, modifiers: any[] = [], variant?: any) {

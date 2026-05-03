@@ -9,12 +9,14 @@
 	import FloatingCart from '$lib/components/FloatingCart.svelte';
     import Button from '$lib/components/ui/Button.svelte';
 	import { posSocket } from '$lib/pos_socket.svelte';
+	import OpenShiftModal from '$lib/components/accounting/OpenShiftModal.svelte';
+	import CloseShiftModal from '$lib/components/accounting/CloseShiftModal.svelte';
+	import { setShowOpenShiftModal } from '$lib/app_state.svelte';
 
 	let { children } = $props();
 
 	let isCheckingShift = $state(true);
-	let initialCash = $state(0);
-	let isOpeningShift = $state(false);
+	let showCloseModal = $state(false);
 	
 	onMount(async () => {
 		try {
@@ -29,16 +31,9 @@
 		}
 	});
 
-	async function handleOpenShift() {
-		isOpeningShift = true;
-		try {
-			const shift = await openShift(initialCash);
-			setActiveShift(shift);
-		} catch (e) {
-			alert("Error al abrir turno: " + e);
-		} finally {
-			isOpeningShift = false;
-		}
+	async function reloadShift() {
+		const res = await checkActiveShift();
+		setActiveShift(res.shift);
 	}
 
 	async function handleLogout() {
@@ -54,6 +49,7 @@
 	const ALL_NAV = [
 		{ name: 'POS',        href: '/',                                  perm: 'takeOrders' },
 		{ name: 'Mesas',      href: '/tables',                            perm: 'manageTables' },
+		{ name: 'Caja',       href: '/accounting',                        perm: 'manageShifts' },
 		{ name: 'Órdenes',    href: '/orders',                            perm: 'viewOrders' },
 		{ name: 'Cocina',     href: '/kitchen',                           perm: 'viewKitchen' },
 		{ name: 'Menú',       href: '/menu',                              perm: 'manageMenu' },
@@ -131,6 +127,24 @@
 		</div>
 
 		<div class="navbar-end gap-3">
+			<!-- Shift Status -->
+			{#if appState.isLoggedIn && can.manageShifts()}
+				{#if appState.activeShift}
+					<div class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-success/10 text-success rounded-xl border border-success/20">
+						<div class="w-1.5 h-1.5 bg-success rounded-full animate-pulse"></div>
+						<span class="text-[10px] font-black uppercase tracking-widest">Turno Abierto</span>
+					</div>
+				{:else}
+					<button 
+						onclick={() => setShowOpenShiftModal(true)}
+						class="hidden md:flex items-center gap-2 px-3 py-1.5 bg-warning/10 text-warning-content rounded-xl border border-warning/20 hover:bg-warning/20 transition-all cursor-pointer group"
+					>
+						<div class="w-1.5 h-1.5 bg-warning rounded-full group-hover:scale-125 transition-transform"></div>
+						<span class="text-[10px] font-black uppercase tracking-widest">Abrir Turno</span>
+					</button>
+				{/if}
+			{/if}
+
 			<div class="hidden lg:flex items-center gap-2 mr-4 text-xs font-bold opacity-50 uppercase tracking-widest bg-base-200 px-3 py-1 rounded-lg">
 				Tema: 
 				<select class="select select-ghost select-xs font-bold p-0 min-h-0 h-auto focus:outline-none" onchange={changeTheme} value={appState.currentTheme}>
@@ -160,7 +174,8 @@
 								{/if}
 
 								{#if can.manageShifts()}
-									<li><a href="/admin/corte">💵 Corte de Caja</a></li>
+									<li><a href="/accounting">💵 Mi Contabilidad</a></li>
+									<li><a href="/admin/registers">🖥️ Monitor de Cajas</a></li>
 								{/if}
 
 								{#if can.manageSettings()}
@@ -179,6 +194,29 @@
 									<li><a href="/admin/devices">🔌 Gestionar Dispositivos</a></li>
 								{/if}
 							</ul>
+							<div class="py-2 border-t border-base-200">
+								{#if appState.activeShift}
+									<button 
+										class="w-full text-left px-4 py-2 hover:bg-error/10 text-error flex items-center gap-2 transition-colors rounded-lg"
+										onclick={() => { showCloseModal = true; }}
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+										<span class="text-xs font-black uppercase tracking-widest">Realizar Corte (Z)</span>
+									</button>
+								{:else if can.manageShifts()}
+									<button 
+										class="w-full text-left px-4 py-2 hover:bg-primary/10 text-primary flex items-center gap-2 transition-colors rounded-lg"
+										onclick={() => setShowOpenShiftModal(true)}
+									>
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+										<span class="text-xs font-black uppercase tracking-widest">Abrir Turno</span>
+									</button>
+								{/if}
+								<a href="/accounting" class="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center gap-2 transition-colors rounded-lg">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+									<span class="text-xs font-black uppercase tracking-widest">Mi Contabilidad</span>
+								</a>
+							</div>
 							<div class="card-actions pt-2 border-t border-base-200">
 								<Button variant="danger" size="sm" class="btn-block" onclick={handleLogout}>Cerrar Sesión</Button>
 							</div>
@@ -205,42 +243,17 @@
 	<!-- Subtle Gradient for Depth (Optional) -->
 	<div class="fixed bottom-0 left-0 w-full h-32 bg-gradient-to-t from-base-200/50 to-transparent pointer-events-none"></div>
 
-	<!-- Open Shift Modal (Blocking) -->
-	{#if !isCheckingShift && !appState.activeShift}
-	<div class="modal modal-open bg-base-300/80 backdrop-blur-sm z-50">
-		<div class="modal-box shadow-2xl border border-base-content/10">
-			<h3 class="font-black text-2xl text-primary flex items-center gap-2 mb-2">
-				<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8">
-					<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-				</svg>
-				Apertura de Caja
-			</h3>
-			<p class="py-2 text-base-content/80 font-medium">No hay un turno activo. Para registrar ventas, necesitas iniciar la caja indicando el fondo inicial con el que cuentas.</p>
-			
-			<div class="form-control w-full mt-4">
-				<label class="label">
-					<span class="label-text font-bold">Fondo de Caja (Efectivo Inicial)</span>
-				</label>
-				<div class="join w-full shadow-sm">
-					<span class="join-item btn btn-active pointer-events-none font-black text-lg bg-base-200 border-base-300 text-base-content/50">$</span>
-					<input type="number" step="0.01" min="0" bind:value={initialCash} placeholder="0.00" class="input input-bordered join-item w-full text-lg font-bold text-right" />
-				</div>
-			</div>
+	<!-- Open Shift Modal (Triggered) -->
+	{#if appState.showOpenShiftModal}
+	    <OpenShiftModal />
+	{/if}
 
-			<div class="modal-action mt-6 flex gap-3">
-				<Button 
-                    variant="primary" 
-                    size="lg" 
-                    class="btn-block font-bold" 
-                    onclick={handleOpenShift} 
-                    disabled={initialCash < 0}
-                    isLoading={isOpeningShift}
-                >
-					Abrir Turno de Caja
-				</Button>
-			</div>
-		</div>
-	</div>
+	<!-- Close Shift Modal (Global) -->
+	{#if showCloseModal && appState.activeShift}
+		<CloseShiftModal 
+			shift={appState.activeShift} 
+			onClose={() => { showCloseModal = false; reloadShift(); }} 
+		/>
 	{/if}
 	
 	{#if appState.isLoggedIn && can.takeOrders?.()}

@@ -5,27 +5,126 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import select
 from fastapi import HTTPException
 from datetime import datetime, timezone
+from uuid import UUID
 
-from .models import Shift, ShiftStatus
+from .models import Shift, ShiftStatus, CashRegister, CashMovement, CashMovementType
 from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus
 
-async def get_active_shift(session: AsyncSession) -> Optional[Shift]:
+# --- CASH REGISTER MANAGEMENT ---
+
+async def get_cash_registers(session: AsyncSession) -> List[CashRegister]:
+    stmt = select(CashRegister).where(CashRegister.is_active == True)
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+async def create_cash_register(session: AsyncSession, name: str) -> CashRegister:
+    register = CashRegister(name=name)
+    session.add(register)
+    await session.commit()
+    await session.refresh(register)
+    return register
+
+# --- SHIFT MANAGEMENT ---
+
+async def get_active_shift(session: AsyncSession, user_id: Optional[UUID] = None) -> Optional[Shift]:
     statement = select(Shift).where(Shift.status == ShiftStatus.OPEN)
+    if user_id:
+        statement = statement.where(Shift.user_id == user_id)
+    
     result = await session.execute(statement)
     return result.scalars().first()
 
-async def open_shift(session: AsyncSession, initial_cash: float) -> Shift:
-    active = await get_active_shift(session)
-    if active:
-        raise HTTPException(status_code=400, detail="There is already an open shift.")
+async def get_all_active_shifts(session: AsyncSession) -> List[Shift]:
+    statement = select(Shift).where(Shift.status == ShiftStatus.OPEN)
+    result = await session.execute(statement)
+    return result.scalars().all()
 
-    shift = Shift(initial_cash=initial_cash)
+async def open_shift(session: AsyncSession, initial_cash: float, register_id: int, user_id: UUID) -> Shift:
+    # Verificar si el usuario ya tiene un turno abierto
+    active_user = await get_active_shift(session, user_id=user_id)
+    if active_user:
+        raise HTTPException(status_code=400, detail="User already has an open shift.")
+
+    # Verificar si la caja ya tiene un turno abierto por alguien más
+    stmt = select(Shift).where(Shift.register_id == register_id).where(Shift.status == ShiftStatus.OPEN)
+    active_reg = await session.execute(stmt)
+    if active_reg.scalars().first():
+        raise HTTPException(status_code=400, detail="This register is already in use by another shift.")
+
+    # Verificar que la caja exista
+    register = await session.get(CashRegister, register_id)
+    if not register:
+        raise HTTPException(status_code=404, detail="Cash register not found")
+
+    shift = Shift(
+        initial_cash=initial_cash,
+        register_id=register_id,
+        user_id=user_id
+    )
     session.add(shift)
     await session.commit()
     await session.refresh(shift)
     return shift
 
-async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) -> Shift:
+async def calculate_shift_totals(session: AsyncSession, shift_id: int):
+    """Calcula los totales esperados para un turno."""
+    # Pagos por método
+    pay_stmt = select(Payment).join(Order).where(Order.shift_id == shift_id)
+    pay_res = await session.execute(pay_stmt)
+    payments = pay_res.scalars().all()
+
+    cash_sales     = sum(p.amount for p in payments if p.method == PaymentMethod.CASH)
+    card_sales     = sum(p.amount for p in payments if p.method == PaymentMethod.CARD)
+    transfer_sales = sum(p.amount for p in payments if p.method == PaymentMethod.TRANSFER)
+
+    # Movimientos de caja
+    mov_stmt = select(CashMovement).where(CashMovement.shift_id == shift_id)
+    mov_res = await session.execute(mov_stmt)
+    movements = mov_res.scalars().all()
+
+    incomes  = sum(m.amount for m in movements if m.type == CashMovementType.INCOME)
+    expenses = sum(m.amount for m in movements if m.type == CashMovementType.EXPENSE)
+
+    return {
+        "cash_sales": cash_sales,
+        "card_sales": card_sales,
+        "transfer_sales": transfer_sales,
+        "incomes": incomes,
+        "expenses": expenses,
+    }
+
+async def add_cash_movement(
+    session: AsyncSession, 
+    shift_id: int, 
+    amount: float, 
+    type: CashMovementType, 
+    reason: str, 
+    user_id: UUID
+) -> CashMovement:
+    shift = await session.get(Shift, shift_id)
+    if not shift or shift.status == ShiftStatus.CLOSED:
+        raise HTTPException(status_code=400, detail="Active shift required for movements")
+
+    movement = CashMovement(
+        shift_id=shift_id,
+        amount=amount,
+        type=type,
+        reason=reason,
+        user_id=user_id
+    )
+    session.add(movement)
+    await session.commit()
+    await session.refresh(movement)
+    return movement
+
+async def close_shift(
+    session: AsyncSession, 
+    shift_id: int, 
+    actual_cash: float, 
+    actual_card: float = 0.0, 
+    actual_transfer: float = 0.0, 
+    notes: str = None
+) -> Shift:
     shift = await session.get(Shift, shift_id)
     if not shift:
         raise HTTPException(status_code=404, detail="Shift not found")
@@ -33,21 +132,19 @@ async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) 
     if shift.status == ShiftStatus.CLOSED:
         raise HTTPException(status_code=400, detail="Shift is already closed")
 
-    # Calcular expected_cash sumando initial_cash + total de abonos en efectivo (excluyendo propinas)
-    statement = select(Payment).join(Order).where(
-        Order.shift_id == shift_id,
-        Payment.method == PaymentMethod.CASH,
-    )
-    result = await session.execute(statement)
-    cash_payments = result.scalars().all()
+    totals = await calculate_shift_totals(session, shift_id)
 
-    # p.amount es el abono a la orden. p.tip_amount es la propina.
-    # Excluimos propinas del expected_cash según el plan.
-    total_cash_sales = sum(p.amount for p in cash_payments)
+    # El efectivo esperado es: fondo inicial + ventas efectivo + entradas - salidas
+    shift.expected_cash = shift.initial_cash + totals["cash_sales"] + totals["incomes"] - totals["expenses"]
+    shift.expected_card = totals["card_sales"]
+    shift.expected_transfer = totals["transfer_sales"]
 
-    shift.expected_cash = shift.initial_cash + total_cash_sales
     shift.actual_cash = actual_cash
-    shift.difference = actual_cash - shift.expected_cash
+    shift.actual_card = actual_card
+    shift.actual_transfer = actual_transfer
+    
+    shift.difference_cash = actual_cash - shift.expected_cash
+    shift.notes = notes
     shift.status = ShiftStatus.CLOSED
     shift.end_time = datetime.now(timezone.utc)
 
@@ -56,164 +153,112 @@ async def close_shift(session: AsyncSession, shift_id: int, actual_cash: float) 
     return shift
 
 async def list_shifts(session: AsyncSession) -> list:
-    """
-    Lista todos los turnos (activos y cerrados) con totales pre-calculados.
-    Ordenados por fecha de inicio descendente (el más reciente primero).
-    """
     stmt = select(Shift).order_by(Shift.start_time.desc())
     result = await session.execute(stmt)
     shifts = result.scalars().all()
 
     out = []
     for shift in shifts:
-        # Totales de pagos de este turno
+        totals = await calculate_shift_totals(session, shift.id)
+        
+        # Cálculo de Propinas (para reporte resumido)
         pay_stmt = select(Payment).join(Order).where(Order.shift_id == shift.id)
         pay_res = await session.execute(pay_stmt)
         payments = pay_res.scalars().all()
+        tips_total = sum(p.tip_amount for p in payments)
 
-        cash     = sum(p.amount for p in payments if p.method == PaymentMethod.CASH)
-        card     = sum(p.amount for p in payments if p.method == PaymentMethod.CARD)
-        transfer = sum(p.amount for p in payments if p.method == PaymentMethod.TRANSFER)
-        total    = cash + card + transfer
-
-        # Cálculo de Propinas
-        tips_cash     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CASH)
-        tips_card     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CARD)
-        tips_transfer = sum(p.tip_amount for p in payments if p.method == PaymentMethod.TRANSFER)
-        tips_total    = tips_cash + tips_card + tips_transfer
-
-        # Conteo de órdenes del turno
-        order_count_stmt = select(sqlfunc.count(Order.id)).where(Order.shift_id == shift.id)
-        order_count_res  = await session.execute(order_count_stmt)
-        orders_count     = order_count_res.scalar() or 0
-
-        # Duración del turno en minutos (None si aún está abierto)
+        # Duración
         duration_minutes: Optional[int] = None
         if shift.end_time and shift.start_time:
-            # Normalizar a aware si vienen naive de la DB
-            start = shift.start_time
-            if start.tzinfo is None: start = start.replace(tzinfo=timezone.utc)
-            end = shift.end_time
-            if end.tzinfo is None: end = end.replace(tzinfo=timezone.utc)
-            
-            delta = end - start
-            duration_minutes = int(delta.total_seconds() // 60)
+            start = shift.start_time.replace(tzinfo=timezone.utc) if shift.start_time.tzinfo is None else shift.start_time
+            end = shift.end_time.replace(tzinfo=timezone.utc) if shift.end_time.tzinfo is None else shift.end_time
+            duration_minutes = int((end - start).total_seconds() // 60)
 
         out.append({
             "id": shift.id,
+            "register_id": shift.register_id,
             "status": shift.status,
-            "start_time": (shift.start_time.replace(tzinfo=timezone.utc) if shift.start_time.tzinfo is None else shift.start_time).isoformat() if shift.start_time else None,
-            "end_time": (shift.end_time.replace(tzinfo=timezone.utc) if shift.end_time.tzinfo is None else shift.end_time).isoformat() if shift.end_time else None,
+            "start_time": shift.start_time.isoformat() if shift.start_time else None,
+            "end_time": shift.end_time.isoformat() if shift.end_time else None,
             "duration_minutes": duration_minutes,
             "initial_cash": shift.initial_cash,
             "expected_cash": shift.expected_cash,
             "actual_cash": shift.actual_cash,
-            "difference": shift.difference,
+            "difference_cash": shift.difference_cash,
             "sales": {
-                "cash": round(cash, 2),
-                "card": round(card, 2),
-                "transfer": round(transfer, 2),
-                "total": round(total, 2),
+                "cash": round(totals["cash_sales"], 2),
+                "card": round(totals["card_sales"], 2),
+                "transfer": round(totals["transfer_sales"], 2),
+                "total": round(totals["cash_sales"] + totals["card_sales"] + totals["transfer_sales"], 2),
             },
-            "tips": {
-                "cash": round(tips_cash, 2),
-                "card": round(tips_card, 2),
-                "transfer": round(tips_transfer, 2),
-                "total": round(tips_total, 2),
-            },
-            "orders_count": orders_count,
+            "tips_total": round(tips_total, 2),
         })
 
     return out
 
 async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
-    """
-    Reporte completo de un turno.
-    Incluye totales financieros y la lista completa de órdenes procesadas
-    durante el turno (para auditabilidad histórica).
-    """
     shift = await session.get(Shift, shift_id)
     if not shift:
         raise HTTPException(status_code=404, detail="Shift not found")
 
-    # Pagos del turno para calcular totales
-    pay_stmt = select(Payment).join(Order).where(Order.shift_id == shift_id)
-    pay_res = await session.execute(pay_stmt)
-    payments = pay_res.scalars().all()
+    totals = await calculate_shift_totals(session, shift_id)
+    
+    # Movimientos detallados
+    mov_stmt = select(CashMovement).where(CashMovement.shift_id == shift_id)
+    mov_res = await session.execute(mov_stmt)
+    movements = mov_res.scalars().all()
+    movements_data = [
+        {
+            "id": m.id,
+            "amount": m.amount,
+            "type": m.type,
+            "reason": m.reason,
+            "timestamp": m.timestamp.isoformat()
+        } for m in movements
+    ]
 
-    cash     = sum(p.amount for p in payments if p.method == PaymentMethod.CASH)
-    card     = sum(p.amount for p in payments if p.method == PaymentMethod.CARD)
-    transfer = sum(p.amount for p in payments if p.method == PaymentMethod.TRANSFER)
-
-    # Cálculo de Propinas
-    tips_cash     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CASH)
-    tips_card     = sum(p.tip_amount for p in payments if p.method == PaymentMethod.CARD)
-    tips_transfer = sum(p.tip_amount for p in payments if p.method == PaymentMethod.TRANSFER)
-    tips_total    = tips_cash + tips_card + tips_transfer
-
-    # Órdenes del turno con sus pagos e ítems (para auditoría)
+    # Órdenes del turno
     orders_stmt = (
         select(Order)
         .where(Order.shift_id == shift_id)
-        .options(
-            selectinload(Order.payments),
-            selectinload(Order.items),
-        )
+        .options(selectinload(Order.payments))
         .order_by(Order.created_at)
     )
     orders_res = await session.execute(orders_stmt)
-    orders_in_shift = orders_res.scalars().all()
-
+    orders = orders_res.scalars().all()
+    
     orders_data = [
         {
             "id": o.id,
-            "type": o.type,
+            "total": o.total_amount,
             "status": o.status,
-            "is_paid": o.status == OrderStatus.PAID,
-            "balance_due": o.balance_due,
-            "table_id": o.table_id,
-            "external_reference": o.external_reference,
-            "created_at": (o.created_at.replace(tzinfo=timezone.utc) if o.created_at.tzinfo is None else o.created_at).isoformat() if o.created_at else None,
-            "items_count": len(o.items),
-            "total": round(o.total_amount, 2),
-        }
-        for o in orders_in_shift
+            "created_at": o.created_at.isoformat()
+        } for o in orders
     ]
-
-    # Duración del turno
-    duration_minutes: Optional[int] = None
-    if shift.end_time and shift.start_time:
-        # Normalizar a aware si vienen naive de la DB
-        start = shift.start_time
-        if start.tzinfo is None: start = start.replace(tzinfo=timezone.utc)
-        end = shift.end_time
-        if end.tzinfo is None: end = end.replace(tzinfo=timezone.utc)
-        
-        delta = end - start
-        duration_minutes = int(delta.total_seconds() // 60)
 
     return {
         "shift_id": shift.id,
+        "register_id": shift.register_id,
+        "user_id": str(shift.user_id) if shift.user_id else None,
         "status": shift.status,
-        "start_time": (shift.start_time.replace(tzinfo=timezone.utc) if shift.start_time.tzinfo is None else shift.start_time).isoformat() if shift.start_time else None,
-        "end_time": (shift.end_time.replace(tzinfo=timezone.utc) if shift.end_time.tzinfo is None else shift.end_time).isoformat() if shift.end_time else None,
-        "duration_minutes": duration_minutes,
+        "start_time": shift.start_time.isoformat(),
+        "end_time": shift.end_time.isoformat() if shift.end_time else None,
         "initial_cash": shift.initial_cash,
-        "expected_cash": shift.expected_cash,
-        "actual_cash": shift.actual_cash,
-        "difference": shift.difference,
-        "sales": {
-            "cash": round(cash, 2),
-            "card": round(card, 2),
-            "transfer": round(transfer, 2),
-            "total": round(cash + card + transfer, 2),
+        "expected": {
+            "cash": shift.expected_cash,
+            "card": shift.expected_card,
+            "transfer": shift.expected_transfer,
         },
-        "tips": {
-            "cash": round(tips_cash, 2),
-            "card": round(tips_card, 2),
-            "transfer": round(tips_transfer, 2),
-            "total": round(tips_total, 2),
+        "actual": {
+            "cash": shift.actual_cash,
+            "card": shift.actual_card,
+            "transfer": shift.actual_transfer,
         },
-        "orders": orders_data,
-        "orders_count": len(orders_data),
+        "difference_cash": shift.difference_cash,
+        "movements": movements_data,
+        "orders_summary": {
+            "count": len(orders),
+            "total_sales": round(totals["cash_sales"] + totals["card_sales"] + totals["transfer_sales"], 2)
+        },
+        "notes": shift.notes
     }

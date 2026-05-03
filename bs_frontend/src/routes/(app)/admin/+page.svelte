@@ -42,14 +42,14 @@
     const quickLinks = [
         { 
             name: 'Realizar Corte', 
-            href: '/admin/corte', 
+            href: '/accounting', 
             icon: '💵', 
-            desc: 'Cierra el turno actual',
+            desc: 'Gestión de caja y turno actual',
             show: can.manageShifts()
         },
         { 
             name: 'Historial de Cortes', 
-            href: '/admin/shifts', 
+            href: '/accounting', 
             icon: '📋', 
             desc: 'Auditoría de turnos pasados',
             show: can.viewReports()

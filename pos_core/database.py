@@ -34,7 +34,7 @@ async def init_db():
         from pos_core.inventory.models import Ingredient
         from pos_core.tables.models import Table
         from pos_core.sales.models import Order, OrderItem, Payment
-        from pos_core.accounting.models import Shift
+        from pos_core.accounting.models import Shift, CashRegister, CashMovement
         from pos_core.audit.models import AuditLog
         from pos_core.settings.models import BusinessSettings
         from pos_core.iot.models import IoTDevice
