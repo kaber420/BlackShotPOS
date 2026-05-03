@@ -1,6 +1,6 @@
 # 🗺️ Roadmap Maestro: Evolución Blackshot POS
 
-Este documento unifica la visión estratégica y operativa para transformar Blackshot en un sistema de gestión de grado industrial. Combina mejoras lógicas, control interno y gestión de personal.
+Este documento unifica la visión estratégica y operativa para transformar Blackshot en un sistema de gestión de grado comercial. Combina mejoras lógicas, control interno y gestión de personal.
 
 ---
 
@@ -16,17 +16,17 @@ Este documento unifica la visión estratégica y operativa para transformar Blac
 ## 2. Gestión de Personal y Permisos Granulares (P1)
 *Objetivo: Controlar quién puede hacer qué y medir su desempeño.*
 
-- **Roles como Presets + Overrides:**
-    - Implementar presets de permisos por rol (admin, manager, waiter, kitchen).
-    - Almacenar permisos individuales en el JSON de `metadata` del usuario para casos excepcionales (ej. un mesero que sí puede cobrar).
-- **Recetario Markdown:** 
-    - Instrucciones de preparación visibles en el KDS para estandarizar la calidad.
-    - Soporte de renderizado Markdown para procedimientos complejos.
-- **Métricas de Productividad:**
-    - Reportes de ventas por mesero/barista.
-    - Tiempos promedio de preparación en el KDS para medir eficiencia en cocina.
-- **Control de Acceso (Clock-in/out):**
-    - Registro de asistencia mediante PIN directamente en el POS.
+- [x] **Roles como Presets + Overrides:**
+    - [x] Implementar presets de permisos por rol (admin, manager, waiter, kitchen).
+    - [x] Almacenar permisos individuales en el JSON de `metadata` del usuario para casos excepcionales (ej. un mesero que sí puede cobrar).
+- [x] **Recetario Markdown:** 
+    - [x] Instrucciones de preparación visibles en el KDS para estandarizar la calidad.
+    - [x] Soporte de renderizado Markdown para procedimientos complejos.
+- [x] **Métricas de Productividad:**
+    - [x] Reportes de ventas por mesero/barista.
+    - [x] Tiempos promedio de preparación en el KDS para medir eficiencia en cocina.
+- [ ] **Control de Acceso (Clock-in/out):**
+    - [ ] Registro de asistencia mediante PIN directamente en el POS.
 
 ---
 
@@ -48,6 +48,11 @@ Este documento unifica la visión estratégica y operativa para transformar Blac
 *Objetivo: Velocidad y precisión en el servicio.*
 
 - **Control de Tiempos (Hold & Fire):** Permitir que el mesero marque ítems para "retener" (Hold) y enviarlos a cocina manualmente cuando el cliente esté listo (Fire).
+- **Comunicación Interna (Radio Mode):** 
+    - Implementar sistema de comunicación por voz tipo PTT (Push-to-talk).
+    - **Híbrido Radio-Gateway:** Enlace con walkie-talkies físicos mediante hardware (Raspberry Pi/Nodo).
+    - Historial de mensajes y reproducción automática.
+    - Detalles en: [PLAN_INTERCOM_RADIO.md](file:///home/kaberromero/Documentos/proyectos/BlackShotPOS/docs/PLAN_INTERCOM_RADIO.md)
 - **Hardware Inteligente:** Integración de básculas y generación de etiquetas (labels) para vasos con modificadores.
 
 ---

@@ -26,6 +26,11 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 - `central_core/`: Sistema central de gestión. Maneja **Regiones**, **Sucursales**, **Catálogos Globales** y agregación de ventas.
 - `bs_sync/`: Agente de sincronización que reside en el POS y empuja datos a la Central.
 - `bs_frontend/`: Aplicación frontend del POS.
+- `tests/`: Pruebas unitarias y de integración del sistema.
+- `migrations/`: Scripts de migración manual de base de datos.
+- `scripts/`: Utilidades y automatización.
+    - `scripts/seeds/`: Scripts de sembrado de datos iniciales.
+    - `scripts/tools/`: Herramientas de diagnóstico y simuladores.
 
 ### Características Notables
 
@@ -49,14 +54,14 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 
 ### Blackshot POS (Local)
 1. Instalar dependencias en el root: `pip install -e .`
-2. Poblar datos: `python scripts/seed_data.py`
+2. Poblar datos: `python scripts/seeds/seed_data.py`
 3. Iniciar API: `blackshot`
 4. Iniciar Frontend: `cd bs_frontend && npm run dev`
 
 ### Blackshot Central (Gestión)
 1. Navegar a `central_core/`.
 2. Instalar dependencias: `pip install -e .`
-3. Poblar datos iniciales: `python seed_central.py`
+3. Poblar datos iniciales: `python ../scripts/seeds/seed_central.py`
 4. Iniciar Central: `blackshot-central` (Corre en puerto 8001 por defecto).
 
 ### Sincronización

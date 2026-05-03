@@ -43,6 +43,11 @@ Este documento sirve como registro de los hitos arquitectónicos y de funcionali
 - **Cambio:** Adopción de Clean Architecture, inyección de dependencias estricta en FastAPI y eliminación de "God Objects".
 - **Resultado:** Reducción drástica de bugs silenciosos y facilidad para escalar el sistema.
 
+### [COMPLETO] Permisos Granulares y Overrides
+- **Cambio:** Implementación de un sistema de permisos basado en roles con capacidad de "override" individual.
+- **Detalle:** Los permisos se definen en presets por rol (Mesero, Cocina, Gerente), pero pueden ser personalizados para usuarios específicos mediante el campo `metadata` en la base de datos.
+- **Resultado:** Flexibilidad total para otorgar facultades excepcionales (ej. un mesero con permiso de cobro) sin alterar la estructura de roles global.
+
 ### [COMPLETO] Panel de Administración de Negocio
 - **Documento Original:** `ADMIN_PANEL_PLAN.md`
 - **Cambio:** Implementación de la ruta `/admin` en el frontend, dashboard de KPIs, historial de cortes de caja (`shifts`) y auditoría de turnos cerrados.
@@ -59,6 +64,17 @@ Este documento sirve como registro de los hitos arquitectónicos y de funcionali
 ### [COMPLETO] Estandarización de Producción
 - **Recetario Markdown:** Implementación de instrucciones de preparación detalladas visibles en el KDS para garantizar la calidad y estandarización.
 - **Áreas de Producción:** Ruteo inteligente de comandas por producto o categoría (en proceso de refinamiento).
+
+---
+
+## 📊 Inteligencia de Negocio (Analytics)
+
+### [COMPLETO] Métricas de Desempeño y Productividad
+- **Cambio:** Creación de endpoints especializados en `pos_core/analytics` para medir la eficiencia operativa.
+- **Métricas Incluidas:** 
+    - **Meseros:** Ventas totales, órdenes atendidas y tiempo promedio de entrega (Ready -> Delivered).
+    - **Cocina:** Tiempo promedio de preparación por cocinero y por platillo (identificación de cuellos de botella).
+- **Resultado:** Visibilidad total sobre el desempeño del personal y la velocidad de la cocina para toma de decisiones basada en datos.
 
 ---
 

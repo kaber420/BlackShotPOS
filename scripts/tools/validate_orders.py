@@ -2,7 +2,7 @@ import asyncio
 import os
 import sys
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from pos_core.database import async_session_maker
 from pos_core.sales.repository import order_repo

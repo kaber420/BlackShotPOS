@@ -3,7 +3,7 @@ import os
 import sys
 
 # Añadir el directorio raíz al path para poder importar pos_core
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from pos_core.database import engine, init_db, async_session_maker
 from pos_core.catalog.models import Category, Product, RecipeItem, Measure, ProductVariant
@@ -14,7 +14,7 @@ async def seed():
     print("--- Iniciando Sembrado de Datos ---")
     
     # 0. Eliminar DB anterior para asegurar esquema fresco
-    db_path = os.path.join(os.path.dirname(__file__), "..", "pos_database.db")
+    db_path = os.path.join(os.path.dirname(__file__), "..", "..", "pos_database.db")
     if os.path.exists(db_path):
         print("Eliminando base de datos antigua...")
         os.remove(db_path)

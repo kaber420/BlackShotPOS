@@ -4,7 +4,7 @@ import asyncio
 from uuid import UUID
 
 # Añadir el directorio raíz al path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from pos_core.database import async_session_maker, init_db
 from pos_core.auth.models import User
