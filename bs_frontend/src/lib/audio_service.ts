@@ -51,6 +51,13 @@ export class AudioService {
             this.mediaRecorder.onstop = () => {
                 const blob = new Blob(this.chunks, { type: this.mediaRecorder?.mimeType });
                 console.log("🎤 AudioService: Grabación terminada. Total:", blob.size, "bytes");
+                
+                // Stop all tracks to release the microphone (removes the browser icon)
+                if (this.stream) {
+                    this.stream.getTracks().forEach(track => track.stop());
+                    this.stream = null;
+                }
+                
                 resolve(blob);
             };
 

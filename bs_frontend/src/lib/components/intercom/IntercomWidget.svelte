@@ -33,13 +33,6 @@
         } finally {
             isLoadingAreas = false;
         }
-
-        // Try to get mic stream early to avoid blocking
-        try {
-            await audioService.getMicrophoneStream();
-        } catch (e) {
-            console.warn("Microphone access denied or not available:", e);
-        }
     });
 
     async function toggleRecording() {
