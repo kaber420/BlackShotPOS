@@ -69,6 +69,13 @@
             show: can.manageUsers()
         },
         { 
+            name: 'Estaciones de Producción', 
+            href: '/admin/config/stations', 
+            icon: '🍳', 
+            desc: 'Configuración de áreas de preparación',
+            show: can.manageMenu()
+        },
+        { 
             name: 'Bitácora / Auditoría', 
             href: '/admin/audits', 
             icon: '🛡️', 

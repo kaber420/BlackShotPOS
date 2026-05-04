@@ -8,6 +8,7 @@ from pos_core.auth.dependencies import require_role
 
 router = APIRouter()
 
+@router.post("/areas", response_model=ProductionAreaRead)
 @router.post("/", response_model=ProductionAreaRead)
 async def create_production_area(
     area_in: ProductionAreaCreate,
@@ -21,6 +22,7 @@ async def create_production_area(
     await session.refresh(area)
     return area
 
+@router.get("/areas", response_model=List[ProductionAreaRead])
 @router.get("/", response_model=List[ProductionAreaRead])
 async def list_production_areas(
     session: AsyncSession = Depends(get_session),
@@ -31,6 +33,7 @@ async def list_production_areas(
     result = await session.execute(statement)
     return result.scalars().all()
 
+@router.get("/areas/{area_id}", response_model=ProductionAreaRead)
 @router.get("/{area_id}", response_model=ProductionAreaRead)
 async def get_production_area(
     area_id: int,
@@ -43,6 +46,7 @@ async def get_production_area(
         raise HTTPException(status_code=404, detail="Área de producción no encontrada")
     return area
 
+@router.put("/areas/{area_id}", response_model=ProductionAreaRead)
 @router.put("/{area_id}", response_model=ProductionAreaRead)
 async def update_production_area(
     area_id: int,
@@ -64,6 +68,7 @@ async def update_production_area(
     await session.refresh(area)
     return area
 
+@router.delete("/areas/{area_id}")
 @router.delete("/{area_id}")
 async def delete_production_area(
     area_id: int,

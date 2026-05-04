@@ -43,12 +43,23 @@ async def seed():
         await session.refresh(tax_iva_16)
         await session.refresh(tax_iva_0)
 
+        # 1.6 Crear Áreas de Producción
+        print("Creando áreas de producción...")
+        from pos_core.catalog.models import ProductionArea
+        area_bar = ProductionArea(name="Barra", description="Estación de bebidas calientes y frías", printer_ip="192.168.1.100")
+        area_kitchen = ProductionArea(name="Cocina", description="Estación de repostería y alimentos", printer_ip="192.168.1.101")
+        
+        session.add_all([area_bar, area_kitchen])
+        await session.commit()
+        await session.refresh(area_bar)
+        await session.refresh(area_kitchen)
+
         # 2. Crear Categorías
         print("Creando categorías...")
-        cat_cafe = Category(name="Café", description="Bebidas calientes a base de espresso")
-        cat_te = Category(name="Té & Infusiones", description="Tés de hoja suelta y tisanas")
-        cat_frias = Category(name="Bebidas Frías", description="Frappés, Iced Coffee y Sodas")
-        cat_bread = Category(name="Repostería", description="Pan dulce y acompañamientos")
+        cat_cafe = Category(name="Café", description="Bebidas calientes a base de espresso", production_area_id=area_bar.id)
+        cat_te = Category(name="Té & Infusiones", description="Tés de hoja suelta y tisanas", production_area_id=area_bar.id)
+        cat_frias = Category(name="Bebidas Frías", description="Frappés, Iced Coffee y Sodas", production_area_id=area_bar.id)
+        cat_bread = Category(name="Repostería", description="Pan dulce y acompañamientos", production_area_id=area_kitchen.id)
         
         session.add_all([cat_cafe, cat_te, cat_frias, cat_bread])
         await session.commit()
