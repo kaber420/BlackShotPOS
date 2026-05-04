@@ -134,26 +134,26 @@ class OrderItemRepository:
     """
 
     async def get_by_id(
-        self, session: AsyncSession, order_id: int, item_id: int
+        self, session: AsyncSession, order_id: int, item_id: int, include_modifiers: bool = True
     ) -> Optional[OrderItem]:
-        """Obtiene un OrderItem por PK dentro de una orden, con modificadores cargados."""
-        statement = (
-            select(OrderItem)
-            .where(OrderItem.id == item_id, OrderItem.order_id == order_id)
-            .options(selectinload(OrderItem.modifiers))
+        """Obtiene un OrderItem por PK dentro de una orden."""
+        statement = select(OrderItem).where(
+            OrderItem.id == item_id, OrderItem.order_id == order_id
         )
+        if include_modifiers:
+            statement = statement.options(selectinload(OrderItem.modifiers))
+            
         result = await session.execute(statement)
         return result.scalar_one_or_none()
 
     async def get_items_for_order(
-        self, session: AsyncSession, order_id: int
+        self, session: AsyncSession, order_id: int, include_modifiers: bool = True
     ) -> List[OrderItem]:
-        """Retorna todos los ítems de una orden con modificadores precargados."""
-        statement = (
-            select(OrderItem)
-            .where(OrderItem.order_id == order_id)
-            .options(selectinload(OrderItem.modifiers))
-        )
+        """Retorna todos los ítems de una orden."""
+        statement = select(OrderItem).where(OrderItem.order_id == order_id)
+        if include_modifiers:
+            statement = statement.options(selectinload(OrderItem.modifiers))
+            
         result = await session.execute(statement)
         return list(result.scalars().all())
 

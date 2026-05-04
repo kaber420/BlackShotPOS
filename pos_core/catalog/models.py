@@ -10,7 +10,7 @@ class CategoryBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
     is_modifier_category: bool = Field(default=False)
-    production_area_id: Optional[int] = Field(default=None, foreign_key="productionarea.id")
+    production_area_id: Optional[int] = Field(default=None, foreign_key="productionarea.id", index=True)
 
 class ProductionAreaBase(SQLModel):
     name: str = Field(index=True, unique=True)
@@ -221,6 +221,7 @@ class TaxUpdate(SQLModel):
 
 class ProductBase(SQLModel):
     name: str = Field(index=True)
+    sku: Optional[str] = Field(default=None, index=True)
     description: Optional[str] = None
     recipe_markdown: Optional[str] = Field(
         default=None,
@@ -229,8 +230,8 @@ class ProductBase(SQLModel):
     price: float
     image_url: Optional[str] = None
     stock: Optional[int] = 0
-    is_active: bool = Field(default=True)
-    category_id: Optional[int] = Field(default=None, foreign_key="category.id")
+    is_active: bool = Field(default=True, index=True)
+    category_id: Optional[int] = Field(default=None, foreign_key="category.id", index=True)
     protein: float = Field(default=0.0)
     calories: float = Field(default=0.0)
     carbs: float = Field(default=0.0)
@@ -250,6 +251,7 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(SQLModel):
     name: Optional[str] = None
+    sku: Optional[str] = None
     description: Optional[str] = None
     recipe_markdown: Optional[str] = None
     price: Optional[float] = None

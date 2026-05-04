@@ -27,8 +27,16 @@ async def create_product(session: AsyncSession, product: ProductCreate) -> Produ
     result = await session.execute(statement)
     return result.scalar_one()
 
-async def get_products(session: AsyncSession, category_id: Optional[int] = None, include_inactive: bool = False) -> List[Product]:
+async def get_products(
+    session: AsyncSession, 
+    category_id: Optional[int] = None, 
+    include_inactive: bool = False,
+    search: Optional[str] = None,
+    offset: int = 0,
+    limit: int = 100
+) -> List[Product]:
     from sqlalchemy.orm import selectinload
+    from sqlalchemy import or_
     statement = select(Product).options(
         selectinload(Product.category),
         selectinload(Product.tax),
@@ -39,6 +47,19 @@ async def get_products(session: AsyncSession, category_id: Optional[int] = None,
         statement = statement.where(Product.is_active == True)
     if category_id:
         statement = statement.where(Product.category_id == category_id)
+    
+    if search:
+        search_query = f"%{search}%"
+        statement = statement.where(
+            or_(
+                Product.name.ilike(search_query),
+                Product.description.ilike(search_query),
+                Product.sku.ilike(search_query)
+            )
+        )
+    
+    statement = statement.offset(offset).limit(limit)
+    
     result = await session.execute(statement)
     return result.scalars().all()
 

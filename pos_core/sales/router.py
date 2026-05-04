@@ -10,7 +10,7 @@ from pos_core.sales.services import (
 )
 from pos_core.sales import payment_service
 from pos_core.tables import service as table_service
-from pos_core.events.service import trigger_broadcast, trigger_iot_broadcast, trigger_standard_broadcasts
+from pos_core.events.service import trigger_broadcast, trigger_standard_broadcasts
 from pos_core.auth.dependencies import require_role, require_permission
 from pos_core.roles import Permission
 from typing import List, Optional
@@ -129,29 +129,6 @@ async def update_status(
         raise HTTPException(status_code=404, detail="Order not found")
     asyncio.create_task(trigger_standard_broadcasts())
 
-    # Notificar a IoT si la orden tiene mesa
-    if order.table_id:
-        # Mapeo de estados locales para IoT
-        status_map = {
-            OrderStatus.PENDING: ("EN COLA", 0),
-            OrderStatus.PREPARING: ("PREPARANDO", 50),
-            OrderStatus.READY: ("LISTO", 100),
-            OrderStatus.DELIVERED: ("ENTREGADO", 100),
-        }
-        
-        status_str, prog = status_map.get(status, (status.value, 0))
-        
-        asyncio.create_task(trigger_iot_broadcast(
-            order.table_id, 
-            "order_update", 
-            "", 
-            data={
-                "order_id": order.id, 
-                "status": status_str, 
-                "progress": prog
-            }
-        ))
-
     return order
 
 @router.patch("/orders/{order_id}/items/{item_id}/status", response_model=OrderItem)
@@ -178,48 +155,6 @@ async def update_item_status(
     if not item:
         raise HTTPException(status_code=404, detail="OrderItem not found")
     asyncio.create_task(trigger_standard_broadcasts())
-
-    # Notificar a IoT si el ítem tiene mesa asociada vía la orden
-    if item and status in (OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED):
-        # Necesitamos el table_id y el nombre del producto para una mejor experiencia IoT
-        async def notify_iot_item():
-            from pos_core.catalog.models import Product
-            async for db_session in get_session():
-                # Recargar ítem con producto para el nombre
-                db_item = await db_session.get(OrderItem, item_id)
-                if db_item:
-                    db_order = await db_session.get(Order, order_id)
-                    db_product = await db_session.get(Product, db_item.product_id)
-                    if db_order and db_order.table_id and db_product:
-                        ev = "order_update"
-                        
-                        # Mapeo de estados locales para IoT
-                        status_map = {
-                            OrderStatus.PREPARING: ("PREPARANDO", 50),
-                            OrderStatus.READY: ("LISTO", 100),
-                            OrderStatus.DELIVERED: ("ENTREGADO", 100),
-                        }
-                        
-                        status_str, prog = status_map.get(status, (status.value, 0))
-                        
-                        # Mapeo del estado general de la orden
-                        order_status_map = {
-                            OrderStatus.PENDING: "EN COLA",
-                            OrderStatus.PREPARING: "PREPARANDO",
-                            OrderStatus.READY: "LISTO",
-                            OrderStatus.DELIVERED: "ENTREGADO"
-                        }
-                        
-                        await trigger_iot_broadcast(db_order.table_id, ev, "", data={
-                            "order_id": db_order.id, 
-                            "status": order_status_map.get(db_order.status, db_order.status),
-                            "progress": 100 if db_order.status == OrderStatus.READY else 50 if db_order.status == OrderStatus.PREPARING else 0,
-                            "item_id": item_id,
-                            "item_status": status_str,
-                            "item_name": db_product.name
-                        })
-                break
-        asyncio.create_task(notify_iot_item())
 
     return item
 
@@ -300,10 +235,6 @@ async def pay_order(
     # 3. Broadcasts
     asyncio.create_task(trigger_standard_broadcasts())
 
-    # 4. Notificar al TablePad si la mesa fue liberada
-    if order.table_id and payment_in.vacate_table:
-        asyncio.create_task(trigger_iot_broadcast(order.table_id, "clear_table", "", data={}))
-
     return payment
 
 @router.post("/orders/{order_id}/transfer", response_model=Order)
@@ -334,25 +265,6 @@ async def transfer_order(
         raise HTTPException(status_code=400, detail=str(e))
 
     # Broadcasts para actualizar todos los clientes
-    asyncio.create_task(trigger_broadcast("tables"))
-    asyncio.create_task(trigger_broadcast("recent_orders"))
-
-    # Eventos IoT
-    if old_table_id:
-        # Limpiar la tablet de la mesa antigua
-        asyncio.create_task(trigger_iot_broadcast(old_table_id, "clear_table", "", data={}))
-    
-    # Enviar estado actual a la nueva mesa (esto asume que la orden tiene ítems, 
-    # pero enviamos un refresh general o order_update)
-    asyncio.create_task(trigger_iot_broadcast(
-        transfer_in.new_table_id, 
-        "order_update", 
-        "", 
-        data={
-            "order_id": updated_order.id, 
-            "status": updated_order.status.value, 
-            "progress": 0 # Podría mejorarse si se calcula el progreso exacto
-        }
-    ))
+    asyncio.create_task(trigger_standard_broadcasts())
 
     return updated_order

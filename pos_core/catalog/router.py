@@ -82,9 +82,23 @@ async def delete_category(category_id: int, db: AsyncSession = Depends(get_sessi
 # --- Endpoints de Productos ---
 
 @router.get("/products", response_model=List[ProductRead])
-async def list_products(category_id: Optional[int] = None, include_inactive: bool = False, db: AsyncSession = Depends(get_session)):
-    """Listado de productos, filtrable por categoría."""
-    return await product_service.get_products(db, category_id, include_inactive)
+async def list_products(
+    category_id: Optional[int] = None, 
+    include_inactive: bool = False, 
+    search: Optional[str] = None,
+    offset: int = 0,
+    limit: int = 100,
+    db: AsyncSession = Depends(get_session)
+):
+    """Listado de productos con soporte para paginación y búsqueda."""
+    return await product_service.get_products(
+        db, 
+        category_id=category_id, 
+        include_inactive=include_inactive, 
+        search=search, 
+        offset=offset, 
+        limit=limit
+    )
 
 @router.post("/products", response_model=ProductRead, dependencies=[Depends(require_role("admin"))])
 async def create_product(product: ProductCreate, db: AsyncSession = Depends(get_session)):

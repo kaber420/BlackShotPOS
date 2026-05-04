@@ -44,19 +44,42 @@ Este documento unifica la visión estratégica y operativa para transformar Blac
 
 ---
 
-## 4. Eficiencia Operativa y UX (P2)
-*Objetivo: Velocidad y precisión en el servicio.*
+## 4. Eficiencia Operativa y Hardware (P2)
+*Objetivo: Velocidad, precisión y conexión con el mundo físico.*
 
 - **Control de Tiempos (Hold & Fire):** Permitir que el mesero marque ítems para "retener" (Hold) y enviarlos a cocina manualmente cuando el cliente esté listo (Fire).
 - **Comunicación Interna (Radio Mode):** 
     - Implementar sistema de comunicación por voz tipo PTT (Push-to-talk).
     - **Híbrido Radio-Gateway:** Enlace con walkie-talkies físicos mediante hardware (Raspberry Pi/Nodo).
-    - Historial de mensajes y reproducción automática.
-    - Detalles en: [PLAN_INTERCOM_RADIO.md](file:///home/kaberromero/Documentos/proyectos/BlackShotPOS/docs/PLAN_INTERCOM_RADIO.md)
-- **Hardware Inteligente:** Integración de básculas y generación de etiquetas (labels) para vasos con modificadores.
+- **Integración de Básculas Digitales:**
+    - Uso de **Web Serial API** para lectura directa de peso desde básculas digitales comerciales vía RS232/USB.
+    - Soporte para productos "Pesados" con cálculo de precio dinámico en el carrito.
+- **Etiquetado de Producción:** Generación de etiquetas (labels) para vasos con modificadores detallados.
 
 ---
 
-## 5. Resiliencia y Escalabilidad (P3)
+## 5. UI/UX e Inventario Avanzado (P1)
+*Objetivo: Versatilidad en la gestión y soporte para hardware de escaneo.*
+
+- **Soporte de Identificadores (SKU/Barcodes):**
+    - Implementación de campo SKU en Productos e Ingredientes.
+    - Soporte para escaneo de códigos de barras en POS y recepción de mercancía.
+- **Vistas Duales (Cuadros vs. Lista):** 
+    - Implementar toggle de visualización en el catálogo (Vista de botones para ventas rápidas vs. Vista de tabla para administración/inventario).
+- **Gestión Avanzada de Inventario:**
+    - **Control por Lotes (Batches):** Seguimiento de caducidades y lotes de entrada (FIFO/FEFO).
+    - **Edición Masiva (Bulk Update):** Herramienta para actualizar múltiples items (precios, stock, categorías) de manera simultánea.
+
+## 5. Ecosistema IoT y Experiencia de Cliente (P2)
+*Objetivo: Empoderar al cliente y digitalizar la mesa.*
+
+- **TableLink (TablePad IoT):** 
+    - Despliegue de dispositivos ESP32-S3 por mesa para visualización dinámica del estado de la orden ("EN COLA", "PREPARANDO", "LISTO").
+    - Acciones directas desde la mesa: Llamar Mesero, Solicitar Cuenta y Feedback.
+    - Sincronización bidireccional en tiempo real con el POS central.
+
+---
+
+## 6. Resiliencia y Escalabilidad (P3)
 - **Modo Offline Local-First:** Sincronización inteligente de pedidos cuando falle el internet.
 - **Aislamiento Multi-tenancy:** Preparar la arquitectura para soportar múltiples organizaciones independientes (si se decide escalar a SaaS).

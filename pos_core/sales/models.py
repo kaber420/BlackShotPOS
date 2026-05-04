@@ -34,7 +34,7 @@ class OrderItemModifier(SQLModel, table=True):
 
 class OrderItem(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    order_id: int = Field(foreign_key="order.id")
+    order_id: int = Field(foreign_key="order.id", index=True)
     product_id: int = Field(foreign_key="product.id")
     product_variant_id: Optional[int] = Field(default=None, foreign_key="productvariant.id")
     quantity: int = Field(default=1)
@@ -74,13 +74,13 @@ class OrderItem(SQLModel, table=True):
 
 class Payment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    order_id: int = Field(foreign_key="order.id")
+    order_id: int = Field(foreign_key="order.id", index=True)
     method: PaymentMethod
     amount: float
     received_amount: float = Field(default=0.0)
     change_amount: float = Field(default=0.0)
     tip_amount: float = Field(default=0.0, description="Monto de propina incluido en este pago")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     
     @field_serializer("timestamp")
     def serialize_payment_time(self, v: Optional[datetime]) -> Optional[str]:
@@ -93,18 +93,18 @@ class Payment(SQLModel, table=True):
 class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     type: OrderType
-    status: OrderStatus = Field(default=OrderStatus.PENDING)
+    status: OrderStatus = Field(default=OrderStatus.PENDING, index=True)
     
     # Snapshot Financiero
     subtotal: float = Field(default=0.0)
     tax_amount: float = Field(default=0.0)
     total_amount: float = Field(default=0.0)
     
-    table_id: Optional[int] = Field(default=None, foreign_key="table.id")
+    table_id: Optional[int] = Field(default=None, foreign_key="table.id", index=True)
     shift_id: Optional[int] = Field(default=None, foreign_key="shift.id")
     customer_id: Optional[UUID] = Field(default=None, foreign_key="customer.id")
     external_reference: Optional[str] = Field(default=None, description="PIN de Uber, ID de Rappi, etc.")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     # ── Rastreo del mesero creador ────────────────────────────────────────────
