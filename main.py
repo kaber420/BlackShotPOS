@@ -21,6 +21,7 @@ from pos_core.iot.router import router as iot_router
 from pos_core.iot.admin_router import router as admin_iot_router
 from pos_core.auth.router import auth_router, user_router
 from pos_core.customers.router import router as customer_router
+from pos_core.communications.router import router as communications_router
 
 
 @asynccontextmanager
@@ -81,6 +82,7 @@ app.include_router(audits_router, prefix="/api/v1/pos/system/audit", tags=["Audi
 app.include_router(events_router, prefix="/api/v1/pos/events", tags=["Eventos"])
 app.include_router(iot_router, prefix="/api/v1/pos/iot", tags=["IoT"])
 app.include_router(admin_iot_router, prefix="/api/v1/pos/admin/iot", tags=["IoT Admin"])
+app.include_router(communications_router, prefix="/api/v1/pos/communications", tags=["Comunicaciones/Intercom"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/api/users", tags=["Users"])
 

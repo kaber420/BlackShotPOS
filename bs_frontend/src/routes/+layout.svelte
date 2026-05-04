@@ -5,6 +5,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { appState, setAuth } from '$lib/app_state.svelte';
+	import IntercomWidget from '$lib/components/intercom/IntercomWidget.svelte';
 
 	let { children } = $props();
 
@@ -35,4 +36,7 @@
 
 <div data-theme={appState.currentTheme}>
 	{@render children()}
+	{#if appState.isLoggedIn}
+		<IntercomWidget />
+	{/if}
 </div>

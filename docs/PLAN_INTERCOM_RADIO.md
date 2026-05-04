@@ -1,69 +1,77 @@
 # 📻 Plan: Blackshot Intercom (Radio Mode)
 
 ## 1. Visión General
-Transformar la comunicación interna de la sucursal de mensajes de texto lentos a un sistema de **Radio/PTT (Push-To-Talk)**. El objetivo es permitir que el personal (baristas, meseros, cocina) se comunique instantáneamente mediante notas de voz que se reproducen automáticamente en todas las terminales, manteniendo un historial para consultas posteriores.
+Transformar la comunicación interna de la sucursal de mensajes de texto lentos a un sistema de **Radio/PTT (Push-To-Talk)**. El objetivo es permitir que el personal se comunique instantáneamente mediante fragmentos de voz (Opus) dirigidos a canales específicos o globales.
 
 ---
 
-## 2. Arquitectura Técnica
+## 2. Modos de Operación (Escucha)
+
+Para evitar interrumpir en momentos críticos o en áreas ruidosas, cada terminal podrá configurar su **Modo de Escucha**:
+
+| Modo | Nombre | Comportamiento |
+| :--- | :--- | :--- |
+| 🔈 **Live** | **Radio en Vivo** | El audio se reproduce automáticamente apenas llega. Ideal para Cocina/Barra. |
+| 🔇 **Inbox** | **Modo Buzón** | Solo muestra una notificación visual. El usuario debe pulsar "Play" manualmente. |
+| 🔕 **Muted** | **Silencio** | No reproduce ni notifica, solo guarda en el historial. |
+
+---
+
+## 3. Canales y Direccionamiento
+
+El sistema no enviará todo a todos por defecto. Se segmentará por **Canales de Área**:
+
+- **Canales Automáticos:** Basados en las `Production Areas` existentes (Cocina, Barra, Caja, Administración).
+- **Canal Global (General):** Envía el mensaje a todas las terminales de la sucursal.
+- **Selección Múltiple:** El emisor puede marcar varios canales antes de hablar (ej. Cocina + Barra).
+
+---
+
+## 4. Arquitectura Técnica
 
 ### Backend (`pos_core/communications`)
-- **Módulo Dedicado:** Crear carpeta `pos_core/communications` para lógica de mensajes.
-- **Persistencia:** Base de datos SQLite para el historial de mensajes (quién, cuándo, qué tipo).
-- **Almacenamiento de Audio:** Carpeta `uploads/intercom/` para guardar los fragmentos de voz (.webm o .ogg).
-- **Real-Time:** Uso del tópico `"intercom"` en el `PubSubManager` existente para difusión instantánea.
+- **Modelos:** 
+    - `IntercomMessage`: Almacena meta-datos (emisor, timestamp, archivo_path).
+    - `IntercomChannel`: Tabla intermedia para direccionar mensajes a N áreas.
+- **Real-Time:** Los eventos de WebSocket llevarán el campo `target_areas: []`. El frontend decidirá si reproducir según su configuración local.
 
 ### Frontend (`bs_frontend`)
-- **Grabación:** Implementación de `MediaRecorder API` para capturar audio desde el navegador.
-- **Reproducción Automática:** Al recibir un evento de tipo `voice_message`, el frontend disparará la reproducción del audio inmediatamente (si el usuario tiene la pestaña activa).
-- **Gestión de Colas:** Si llegan dos audios seguidos, se encolan para no solaparse.
+- **Grabación:** `MediaRecorder` con `audio/webm; codecs=opus`.
+- **Lógica de Filtro:** 
+    - Si `terminal.area` está en `message.target_areas` OR `message.is_global`:
+        - Si `config.mode == 'Live'`: Play().
+        - Si `config.mode == 'Inbox'`: Mostrar Badge de "Nuevo Mensaje".
 
 ---
 
-## 3. Experiencia de Usuario (UX)
+## 5. Experiencia de Usuario (UX)
 
-### Componentes de Interfaz
-- **Botón Flotante PTT:** Un botón de "Micrófono" que al mantener presionado cambia a rojo y muestra "GRABANDO...".
-- **Indicador "ON AIR":** Cuando alguien está transmitiendo, todas las terminales muestran un aviso visual: "🎙️ [Nombre] hablando...".
-- **Sidebar de Historial:** Un cajón lateral (Drawer) con la lista de audios del día, permitiendo repetir cualquier mensaje.
-
-### Estética "Radio"
-- **SFX (Sonidos):** 
-    - *Beep-in:* Sonido corto de walkie-talkie al iniciar la recepción.
-    - *Beep-out:* Sonido de estática corta al terminar.
-- **Waveforms:** Visualización de ondas de audio en el historial para identificar rápidamente la duración y el volumen.
+### Componente PTT (Push-To-Talk)
+- **Selector de Canal:** Un pequeño dropdown o tags sobre el botón de micro para elegir a quién hablar.
+- **Feedback Visual:**
+    - Al grabar: Círculo pulsante rojo.
+    - Al recibir: Animación de ondas (Waveform) activa.
 
 ---
 
-## 4. Fases de Implementación
+## 6. Fases de Implementación
 
-### Fase 1: Infraestructura Base
-- [ ] Crear modelo `IntercomMessage` y migración de BD.
-- [ ] Implementar endpoint `POST /api/v1/pos/communications/voice` para recibir audios.
-- [ ] Configurar el broadcast vía WebSockets al recibir el archivo.
+### Fase 1: Infraestructura y Canales
+- [ ] Crear modelos `IntercomMessage` y relaciones con `ProductionArea`.
+- [ ] Endpoint `POST /api/v1/pos/communications/voice` con soporte para `channel_ids`.
 
-### Fase 2: Componente Frontend
-- [ ] Crear el `IntercomWidget.svelte`.
-- [ ] Implementar lógica de grabación `startRecording/stopRecording`.
-- [ ] Implementar el "Auto-Player" con efectos de sonido.
+### Fase 2: El Widget Intercom
+- [ ] Implementar `IntercomWidget.svelte` con selector de modo (Live/Inbox).
+- [ ] Lógica de grabación y envío.
+- [ ] Sistema de colas de reproducción (para que dos audios no suenen a la vez).
 
-### Fase 3: Historial y Pulido
-- [ ] Crear el Sidebar para ver mensajes pasados.
-- [ ] Añadir filtros por canal (ej. General, Solo Cocina).
-- [ ] Optimización de almacenamiento (borrado automático de audios antiguos).
+### Fase 3: Gateway y Pulido
+- [ ] Historial con mini-reproductor y ondas.
+- [ ] (Opcional) Integración con radios físicos (Gateway).
 
 ---
 
-## 6. Módulo Gateway: Enlace Híbrido (Radio Física)
-Para empresas que ya usan Walkie-Talkies (FRS/GMRS), se implementará un nodo traductor que digitaliza el espectro radioeléctrico.
+## 7. Módulo Gateway: Enlace Híbrido (Radio Física)
+*(Mantenido para futura expansión)*
+Integración vía Raspberry Pi para digitalizar el aire de radios walkie-talkie analógicos y subirlos a los canales de Blackshot.
 
-### Arquitectura del Nodo
-1. **Hardware:** Raspberry Pi o PC con interfaz de audio USB conectada a un radio base.
-2. **Software (Traductor):** Servicio ligero (Go/Python) que:
-    - **Digitaliza el Aire:** Detecta audio en la entrada de línea y lo sube al servidor vía WebSockets.
-    - **Transmite al Aire:** Recibe audio del servidor y lo saca por la tarjeta de sonido hacia el radio (usando VOX).
-
-### Funciones Avanzadas
-- **Indicador de Canal Ocupado:** Bloquea el botón PTT en la web si el nodo detecta que alguien está hablando físicamente por el radio.
-- **Auditoría Total:** Todo lo que se habla por radio físico queda grabado y trackeado en el historial de Blackshot.
-- **Ubicuidad:** La gerencia puede hablar a los radios físicos desde cualquier lugar del mundo a través de la interfaz web.

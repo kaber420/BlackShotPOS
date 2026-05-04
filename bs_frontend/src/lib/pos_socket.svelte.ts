@@ -1,5 +1,9 @@
 import type { Order } from '$lib/api/orders';
 import type { Table } from '$lib/api/tables';
+import type { IntercomMessage } from '$lib/api/intercom';
+import { IntercomService } from '$lib/api/intercom';
+import { audioService } from '$lib/audio_service';
+import { appState } from '$lib/app_state.svelte';
 
 export type SocketStatus = 'connecting' | 'open' | 'closed';
 
@@ -14,6 +18,13 @@ class PosSocketManager {
     dashboardStats = $state<any>(null);
     iotDevices = $state<any[]>([]);
     ingredients = $state<any[]>([]);
+    
+    // Intercom
+    intercomMessages = $state<IntercomMessage[]>([]);
+    intercomSettings = $state({
+        mode: 'Live' as 'Live' | 'Inbox' | 'Muted',
+        currentAreaId: null as number | null,
+    });
 
     private subscribedTopics = new Set<string>();
     private reconnectTimeout: any = null;
@@ -98,6 +109,24 @@ class PosSocketManager {
                             case 'inventory':
                                 this.ingredients = data.data;
                                 break;
+                            case 'intercom':
+                                const intercomMsg = data.data as IntercomMessage;
+                                console.log("📻 SOCKET: Mensaje intercom recibido", intercomMsg);
+                                this.intercomMessages = [intercomMsg, ...this.intercomMessages];
+                                
+                                // Auto-play logic
+                                const matchesArea = intercomMsg.is_global || 
+                                    (this.intercomSettings.currentAreaId && intercomMsg.target_areas.includes(this.intercomSettings.currentAreaId));
+                                
+                                console.log("📻 SOCKET: ¿Coincide área?", matchesArea, "Modo:", this.intercomSettings.mode);
+
+                                if (matchesArea && this.intercomSettings.mode === 'Live') {
+                                    const absoluteUrl = window.location.origin + intercomMsg.audio_url;
+                                    audioService.playAudio(absoluteUrl).catch(err => {
+                                        console.warn("Auto-play blocked or failed:", err);
+                                    });
+                                }
+                                break;
                         }
                     } else {
                         console.warn("SOCKET: Formato de mensaje desconocido (faltaban topic/data)");
@@ -149,6 +178,24 @@ class PosSocketManager {
             this.socket = null;
         }
         this.status = 'closed';
+    }
+
+    async initIntercom() {
+        try {
+            const history = await IntercomService.getHistory();
+            this.intercomMessages = history;
+            
+            // Cargar configuración de área desde localStorage si existe
+            if (typeof localStorage !== 'undefined') {
+                const savedArea = localStorage.getItem('bs_intercom_area');
+                if (savedArea) this.intercomSettings.currentAreaId = parseInt(savedArea);
+                
+                const savedMode = localStorage.getItem('bs_intercom_mode');
+                if (savedMode) this.intercomSettings.mode = savedMode as any;
+            }
+        } catch (e) {
+            console.error("Error al inicializar intercom:", e);
+        }
     }
 }
 
