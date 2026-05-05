@@ -5,7 +5,8 @@ from typing import List, Optional
 from pos_core.database import get_session
 from .models import (
     Ingredient, IngredientCreate, IngredientUpdate,
-    InventoryAdjustment, InventoryAdjustmentCreate, AdjustmentReason
+    InventoryAdjustment, InventoryAdjustmentCreate, AdjustmentReason,
+    IngredientPaginated
 )
 from .services import ingredient_service, adjustment_service
 from pos_core.auth.dependencies import require_role, get_current_active_user
@@ -15,10 +16,18 @@ router = APIRouter()
 
 # --- Endpoints de Ingredientes ---
 
-@router.get("/ingredients", response_model=List[Ingredient])
-async def list_ingredients(db: AsyncSession = Depends(get_session)):
-    """Listado de materia prima en el almacén."""
-    return await ingredient_service.get_ingredients(db)
+@router.get("/ingredients", response_model=IngredientPaginated)
+async def list_ingredients(
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0,
+    db: AsyncSession = Depends(get_session)
+):
+    """Listado de materia prima en el almacén con filtros y paginación."""
+    return await ingredient_service.get_ingredients(
+        db, search=search, category=category, limit=limit, offset=offset
+    )
 
 @router.post("/ingredients", response_model=Ingredient, dependencies=[Depends(require_role("admin"))])
 async def create_ingredient(ingredient: IngredientCreate, db: AsyncSession = Depends(get_session)):

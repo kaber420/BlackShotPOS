@@ -18,7 +18,15 @@ export interface Ingredient {
 	calories_per_unit?: number;
 	carbs_per_unit?: number;
 	fats_per_unit?: number;
+	category: string;
 	batches?: IngredientBatch[];
+}
+
+export interface IngredientPaginated {
+	items: Ingredient[];
+	total: number;
+	page: number;
+	pages: number;
 }
 
 export enum AdjustmentReason {
@@ -56,7 +64,16 @@ export interface InventoryAdjustmentCreate {
 }
 
 export const IngredientService = {
-	getAll: () => fetchApi<Ingredient[]>('/api/v1/pos/inventory/ingredients'),
+	getIngredients: (params?: { search?: string; category?: string; limit?: number; offset?: number }) => {
+		const searchParams = new URLSearchParams();
+		if (params?.search) searchParams.append('search', params.search);
+		if (params?.category) searchParams.append('category', params.category);
+		if (params?.limit) searchParams.append('limit', params.limit.toString());
+		if (params?.offset) searchParams.append('offset', params.offset.toString());
+		
+		const query = searchParams.toString();
+		return fetchApi<IngredientPaginated>(`/api/v1/pos/inventory/ingredients${query ? `?${query}` : ''}`);
+	},
 	
 	create: (ingredient: Ingredient) => 
 		fetchApi<Ingredient>('/api/v1/pos/inventory/ingredients', {

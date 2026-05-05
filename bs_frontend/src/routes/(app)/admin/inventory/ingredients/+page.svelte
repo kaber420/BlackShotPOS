@@ -7,10 +7,23 @@
 	import { posSocket } from '$lib/pos_socket.svelte';
 
 	let ingredients = $state<Ingredient[]>([]);
+	let totalIngredients = $state(0);
+	let currentPage = $state(1);
+	let pageSize = $state(20);
+	let totalPages = $state(1);
+	
+	let searchQuery = $state('');
+	let selectedCategory = $state<string | null>(null);
+	let viewMode = $state<'grid' | 'list'>('grid');
+
 	let modifierGroups = $state<ModifierGroup[]>([]);
 	let isLoading = $state(true);
 	let activeTab = $state<'ingredients' | 'groups'>('ingredients');
 	let error = $state('');
+	
+	// Derivamos categorías únicas de lo que tenemos cargado (simplificado por ahora)
+	// En una implementación real, podríamos tener un endpoint de categorías.
+	let categories = $derived(['Insumo', 'Desechable', 'Lácteo', 'Proteína', 'Verdura', 'Abarrote', ...new Set(ingredients.map(i => i.category))]);
 
 	// Unidades de medida restringidas por tipo
 	const UNIT_OPTIONS = {
@@ -44,7 +57,8 @@
 		measure_type: 'weight', 
 		unit: 'g', 
 		current_stock: 0, 
-		minimum_stock: 0 
+		minimum_stock: 0,
+		category: 'Insumo'
 	});
 	let groupForm = $state<Partial<ModifierGroup>>({ name: '', min_selection: 0, max_selection: 1, is_required: false });
 	let modifierForm = $state<Partial<Modifier>>({ 
@@ -121,25 +135,41 @@
 		}
 	}
 
-	async function loadAllData() {
+	async function loadIngredients() {
 		try {
 			isLoading = true;
 			error = '';
 			
-			// Cargamos en paralelo para máxima velocidad
-			const [ings, groups] = await Promise.all([
-				IngredientService.getAll(),
-				ProductService.getModifierGroups()
-			]);
+			const res = await IngredientService.getIngredients({
+				search: searchQuery,
+				category: selectedCategory || undefined,
+				limit: pageSize,
+				offset: (currentPage - 1) * pageSize
+			});
 			
-			ingredients = ings;
-			modifierGroups = groups;
+			ingredients = res.items;
+			totalIngredients = res.total;
+			totalPages = res.pages;
 		} catch (e: any) {
-			console.error('Error cargando datos maestros:', e);
-			error = 'Error al cargar datos maestros: ' + (e.message || 'Error desconocido');
+			console.error('Error cargando ingredientes:', e);
+			error = 'Error al cargar ingredientes: ' + (e.message || 'Error desconocido');
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	async function loadGroups() {
+		try {
+			modifierGroups = await ProductService.getModifierGroups();
+		} catch (e: any) {
+			console.error('Error cargando grupos:', e);
+		}
+	}
+
+	async function loadAllData() {
+		isLoading = true;
+		await Promise.all([loadIngredients(), loadGroups()]);
+		isLoading = false;
 	}
 
 	async function handleDeleteIngredient(id: number) {
@@ -158,8 +188,30 @@
 	});
 
 	$effect(() => {
-		if (posSocket.ingredients.length > 0) {
-			ingredients = posSocket.ingredients;
+		if (activeTab === 'ingredients') {
+			const timer = setTimeout(() => {
+				loadIngredients();
+			}, 300); // Debounce
+			return () => clearTimeout(timer);
+		}
+	});
+
+	$effect(() => {
+		// Observamos cambios en filtros que no necesitan debounce
+		if (activeTab === 'ingredients') {
+			selectedCategory;
+			currentPage;
+			pageSize;
+			// El searchQuery se maneja arriba con debounce
+		}
+	});
+
+	// Sincronización socket simplificada para mantener reactividad en la lista actual
+	$effect(() => {
+		if (posSocket.ingredients.length > 0 && !searchQuery && !selectedCategory && currentPage === 1) {
+			// Solo actualizamos directamente si no hay filtros activos (para evitar saltos)
+			// En un futuro, el socket debería enviar el total o el item actualizado
+			// ingredients = posSocket.ingredients; 
 		}
 	});
 
@@ -297,32 +349,99 @@
 
 	{#if activeTab === 'ingredients'}
 		<!-- VISTA DE INGREDIENTES -->
+		<!-- HERRAMIENTAS DE NAVEGACIÓN Y BÚSQUEDA -->
+		<div class="flex flex-col gap-6 mb-8">
+			<div class="flex flex-col md:flex-row justify-between items-center gap-4">
+				<div class="relative w-full md:w-96 group">
+					<span class="absolute left-4 top-1/2 -translate-y-1/2 opacity-30 group-focus-within:opacity-100 transition-opacity">🔍</span>
+					<input 
+						type="text" 
+						placeholder="Buscar insumo..." 
+						bind:value={searchQuery}
+						class="input input-bordered w-full pl-12 rounded-2xl bg-base-100 border-base-200 focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all font-medium"
+					/>
+					{#if searchQuery}
+						<button 
+							onclick={() => searchQuery = ''}
+							class="absolute right-4 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle"
+						>✕</button>
+					{/if}
+				</div>
+
+				<div class="flex items-center gap-2 bg-base-200 p-1.5 rounded-2xl self-end md:self-auto">
+					<button 
+						class="btn btn-sm rounded-xl {viewMode === 'grid' ? 'bg-base-100 shadow-sm border-none text-primary' : 'btn-ghost opacity-50'}"
+						onclick={() => viewMode = 'grid'}
+						title="Vista Cuadrícula"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+					</button>
+					<button 
+						class="btn btn-sm rounded-xl {viewMode === 'list' ? 'bg-base-100 shadow-sm border-none text-primary' : 'btn-ghost opacity-50'}"
+						onclick={() => viewMode = 'list'}
+						title="Vista Lista"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
+					</button>
+				</div>
+			</div>
+
+			<!-- Filtros de Categoría -->
+			<div class="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+				<button 
+					class="btn btn-sm rounded-full px-5 font-black transition-all {!selectedCategory ? 'btn-primary' : 'btn-ghost bg-base-200/50 opacity-60'}"
+					onclick={() => selectedCategory = null}
+				>
+					Todos
+				</button>
+				{#each categories as cat}
+					<button 
+						class="btn btn-sm rounded-full px-5 font-black transition-all {selectedCategory === cat ? 'btn-primary' : 'btn-ghost bg-base-200/50 opacity-60'}"
+						onclick={() => selectedCategory = cat}
+					>
+						{cat}
+					</button>
+				{/each}
+			</div>
+		</div>
+
 		<div class="flex justify-between items-center mb-6">
 			<h2 class="text-xl font-bold opacity-80 flex items-center gap-2">
 				<div class="w-2 h-8 bg-primary rounded-full"></div>
-				Insumos Base
+				{selectedCategory ? `${selectedCategory}` : 'Insumos Base'}
+				<span class="text-xs opacity-40 font-black ml-2 uppercase tracking-widest">({totalIngredients} total)</span>
 			</h2>
 			<Button variant="primary" onclick={() => openIngredientModal()}>
 				+ Insumo
 			</Button>
 		</div>
 
-		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-			{#if isLoading}
+		{#if isLoading}
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each Array(6) as _}
 					<div class="h-32 bg-base-300 animate-pulse rounded-2xl"></div>
 				{/each}
-			{:else}
+			</div>
+		{:else if ingredients.length === 0}
+			<div class="flex flex-col items-center justify-center py-20 bg-base-100 rounded-[2rem] border border-dashed border-base-300">
+				<span class="text-6xl mb-4">📦</span>
+				<h3 class="text-xl font-black opacity-40 uppercase tracking-widest">Sin materiales encontrados</h3>
+				<p class="text-sm opacity-30 mt-2">Prueba ajustando los filtros o el buscador.</p>
+				<Button variant="ghost" class="mt-6" onclick={() => { searchQuery = ''; selectedCategory = null; }}>Limpiar Filtros</Button>
+			</div>
+		{:else if viewMode === 'grid'}
+			<!-- Vista Cuadrícula (Grid) -->
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each ingredients as ing}
 					<div class="bg-base-100 p-6 rounded-2xl border border-base-200 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
 						<div class="flex justify-between items-start mb-4">
 							<div>
 								<h3 class="font-black text-lg truncate w-40">{ing.name}</h3>
 								<div class="flex items-center gap-1">
-									<span class="text-[10px] uppercase font-bold opacity-40">{ing.unit}</span>
+									<span class="badge badge-ghost badge-xs font-black text-[8px] uppercase tracking-tighter">{ing.category}</span>
 									<span class="text-[10px] opacity-40">•</span>
 									<span class="text-[10px] uppercase font-bold opacity-40">
-										{MEASURE_TYPES.find(t => t.id === ing.measure_type)?.icon} {ing.measure_type}
+										{MEASURE_TYPES.find(t => t.id === ing.measure_type)?.icon} {ing.unit}
 									</span>
 								</div>
 							</div>
@@ -340,22 +459,103 @@
 								<span class="text-2xl font-black {ing.current_stock <= ing.minimum_stock ? 'text-error' : 'text-primary'}">
 									{ing.current_stock.toFixed(1)} <small class="text-[10px] font-bold opacity-50">{ing.unit}</small>
 								</span>
-								<span class="text-[9px] uppercase font-black opacity-30 tracking-widest leading-none">Disponible</span>
+								<div class="w-24 h-1.5 bg-base-200 rounded-full mt-1 overflow-hidden">
+									<div 
+										class="h-full {ing.current_stock <= ing.minimum_stock ? 'bg-error' : 'bg-primary'} transition-all" 
+										style="width: {Math.min(100, (ing.current_stock / (ing.minimum_stock || 1)) * 50)}%"
+									></div>
+								</div>
 							</div>
 							<div class="flex flex-col items-end gap-1">
 								{#if ing.current_stock <= ing.minimum_stock}
 									<div class="badge badge-error badge-xs font-bold animate-bounce text-[8px] p-2">STOCK BAJO</div>
 								{/if}
-								
-								{#if ing.batches && ing.batches.some(b => b.expiration_date && new Date(b.expiration_date).getTime() < (new Date().getTime() + 3*24*60*60*1000))}
-									<div class="badge badge-warning badge-xs font-black text-[8px] p-2">CADUCIDAD CERCANA</div>
-								{/if}
 							</div>
 						</div>
 					</div>
 				{/each}
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<!-- Vista Lista (Table) -->
+			<div class="bg-base-100 rounded-2xl border border-base-200 overflow-hidden shadow-sm">
+				<table class="table table-md w-full">
+					<thead class="bg-base-200/50">
+						<tr class="border-b border-base-200 text-[10px] font-black uppercase tracking-widest opacity-40">
+							<th class="pl-6">Material</th>
+							<th>Categoría</th>
+							<th>Stock Actual</th>
+							<th>Estado</th>
+							<th class="text-right pr-6">Acciones</th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each ingredients as ing}
+							<tr class="hover:bg-base-200/30 transition-colors border-b border-base-100">
+								<td class="pl-6 py-4">
+									<div class="flex flex-col">
+										<span class="font-black text-sm">{ing.name}</span>
+										<span class="text-[10px] opacity-40 uppercase font-bold">{ing.measure_type} • {ing.unit}</span>
+									</div>
+								</td>
+								<td>
+									<span class="badge badge-ghost badge-sm font-black text-[9px] uppercase">{ing.category}</span>
+								</td>
+								<td>
+									<span class="font-black {ing.current_stock <= ing.minimum_stock ? 'text-error' : 'text-primary'}">
+										{ing.current_stock.toFixed(1)} <small class="text-[10px] opacity-50">{ing.unit}</small>
+									</span>
+								</td>
+								<td>
+									{#if ing.current_stock <= ing.minimum_stock}
+										<div class="badge badge-error badge-outline badge-xs font-bold text-[8px] p-2">CRÍTICO</div>
+									{:else}
+										<div class="badge badge-success badge-outline badge-xs font-bold text-[8px] p-2">OK</div>
+									{/if}
+								</td>
+								<td class="text-right pr-6">
+									<div class="flex justify-end gap-1">
+										<Button variant="ghost" square size="xs" onclick={() => openAdjustmentModal(ing)} title="Movimientos">📊</Button>
+										<Button variant="ghost" square size="xs" onclick={() => openIngredientModal(ing)} title="Editar">✎</Button>
+										<Button variant="ghost" square size="xs" danger onclick={() => ing.id && handleDeleteIngredient(ing.id)} title="Eliminar">×</Button>
+									</div>
+								</td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		{/if}
+
+		<!-- Paginación -->
+		{#if totalPages > 1}
+			<div class="flex flex-col md:flex-row justify-between items-center mt-8 gap-4 pb-10">
+				<p class="text-xs font-bold opacity-40 uppercase tracking-widest">
+					Mostrando {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalIngredients)} de {totalIngredients} materiales
+				</p>
+				<div class="join bg-base-100 shadow-sm border border-base-200 rounded-2xl overflow-hidden">
+					<button 
+						class="join-item btn btn-sm btn-ghost px-4 font-black transition-all" 
+						disabled={currentPage === 1}
+						onclick={() => currentPage--}
+					>Anterior</button>
+					<button class="join-item btn btn-sm btn-disabled px-4 font-black bg-primary/10 text-primary">{currentPage} / {totalPages}</button>
+					<button 
+						class="join-item btn btn-sm btn-ghost px-4 font-black transition-all" 
+						disabled={currentPage === totalPages}
+						onclick={() => currentPage++}
+					>Siguiente</button>
+				</div>
+				<select 
+					bind:value={pageSize} 
+					class="select select-bordered select-sm rounded-xl font-bold bg-base-100"
+					onchange={() => currentPage = 1}
+				>
+					<option value={10}>10 por pág.</option>
+					<option value={20}>20 por pág.</option>
+					<option value={50}>50 por pág.</option>
+				</select>
+			</div>
+		{/if}
 
 	{:else}
 		<!-- VISTA DE GRUPOS DE MODIFICADORES -->
@@ -425,9 +625,28 @@
 	<div class="modal-box rounded-3xl p-8">
 		<h3 class="font-black text-2xl mb-6 tracking-tighter">Materia Prima</h3>
 		<form onsubmit={handleIngredientSubmit} class="space-y-4">
-			<div class="form-control">
-				<label class="label p-0 mb-1" for="ing_name"><span class="label-text text-[10px] uppercase font-black opacity-40">Nombre</span></label>
-				<input type="text" id="ing_name" bind:value={ingredientForm.name} class="input input-bordered focus:input-primary rounded-xl font-bold" required />
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="ing_name"><span class="label-text text-[10px] uppercase font-black opacity-40">Nombre</span></label>
+					<input type="text" id="ing_name" bind:value={ingredientForm.name} class="input input-bordered focus:input-primary rounded-xl font-bold" required />
+				</div>
+				<div class="form-control">
+					<label class="label p-0 mb-1" for="ing_cat"><span class="label-text text-[10px] uppercase font-black opacity-40">Categoría</span></label>
+					<input 
+						type="text" 
+						id="ing_cat" 
+						bind:value={ingredientForm.category} 
+						list="cat_list"
+						class="input input-bordered focus:input-primary rounded-xl font-bold" 
+						placeholder="Ej. Lácteos, Insumos..."
+						required 
+					/>
+					<datalist id="cat_list">
+						{#each categories as cat}
+							<option value={cat}>{cat}</option>
+						{/each}
+					</datalist>
+				</div>
 			</div>
 			<div class="form-control">
 				<label class="label p-0 mb-1"><span class="label-text text-[10px] uppercase font-black opacity-40">Naturaleza del Insumo</span></label>

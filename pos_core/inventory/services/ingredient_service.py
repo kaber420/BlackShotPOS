@@ -1,6 +1,6 @@
-from sqlmodel import select
+from sqlmodel import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from ..models import Ingredient, IngredientCreate, IngredientUpdate
 from .. import unit_converter
@@ -18,10 +18,37 @@ async def create_ingredient(session: AsyncSession, ingredient: IngredientCreate)
     await trigger_broadcast("inventory")
     return db_ingredient
 
-async def get_ingredients(session: AsyncSession) -> List[Ingredient]:
+async def get_ingredients(
+    session: AsyncSession, 
+    search: Optional[str] = None, 
+    category: Optional[str] = None,
+    limit: int = 20,
+    offset: int = 0
+) -> dict:
     statement = select(Ingredient)
+    
+    if search:
+        statement = statement.where(Ingredient.name.ilike(f"%{search}%"))
+    
+    if category:
+        statement = statement.where(Ingredient.category == category)
+    
+    # Clonar para el conteo total
+    count_statement = select(func.count()).select_from(statement.subquery())
+    total_result = await session.execute(count_statement)
+    total = total_result.scalar() or 0
+    
+    # Aplicar paginación
+    statement = statement.limit(limit).offset(offset)
     result = await session.execute(statement)
-    return result.scalars().all()
+    items = result.scalars().all()
+    
+    return {
+        "items": items,
+        "total": total,
+        "page": (offset // limit) + 1 if limit > 0 else 1,
+        "pages": (total + limit - 1) // limit if limit > 0 else 1
+    }
 
 async def update_ingredient(session: AsyncSession, ingredient_id: int, ingredient_data: IngredientUpdate) -> Optional[Ingredient]:
     db_ingredient = await session.get(Ingredient, ingredient_id)

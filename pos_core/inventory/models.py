@@ -13,6 +13,7 @@ class IngredientBase(SQLModel):
     unit: str = Field(description="Unidad base de almacenamiento (g, ml, pz)")
     current_stock: float = Field(default=0.0)
     minimum_stock: float = Field(default=0.0)
+    category: str = Field(default="Insumo", index=True)
     
     # Información Nutricional
     protein_per_unit: float = Field(default=0.0, description="Proteína por unidad de medida")
@@ -36,6 +37,7 @@ class IngredientUpdate(SQLModel):
     unit: Optional[str] = None
     current_stock: Optional[float] = None
     minimum_stock: Optional[float] = None
+    category: Optional[str] = None
     protein_per_unit: Optional[float] = None
     calories_per_unit: Optional[float] = None
     carbs_per_unit: Optional[float] = None
@@ -99,5 +101,11 @@ class IngredientBatchRead(SQLModel):
 class IngredientRead(IngredientBase):
     id: int
     batches: List[IngredientBatchRead] = []
+
+class IngredientPaginated(SQLModel):
+    items: List[Ingredient]
+    total: int
+    page: int
+    pages: int
 
 IngredientRead.model_rebuild()
