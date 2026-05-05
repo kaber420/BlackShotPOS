@@ -4,6 +4,9 @@ export interface ProductionArea {
     id: number;
     name: string;
     description?: string;
+    printer_ip?: string;
+    printer_port?: number;
+    printer_type?: 'network' | 'bluetooth' | 'usb';
     is_active: boolean;
 }
 
