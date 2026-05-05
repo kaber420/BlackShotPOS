@@ -57,6 +57,9 @@ export const appState = $state({
     cartVisible: false,
     suggestedPaymentAmount: 0,
     suggestedPeopleCount: 1,
+    // Intercom
+    intercomEnabled: (typeof localStorage !== 'undefined') ? (localStorage.getItem('bs_intercom_enabled') !== 'false') : true,
+    intercomOpen: false,
 });
 
 /**
@@ -185,6 +188,17 @@ export const can = {
 
 export function setShowOpenShiftModal(show: boolean) {
     appState.showOpenShiftModal = show;
+}
+
+export function setIntercomEnabled(enabled: boolean) {
+    appState.intercomEnabled = enabled;
+    if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bs_intercom_enabled', enabled.toString());
+    }
+}
+
+export function setIntercomOpen(open: boolean) {
+    appState.intercomOpen = open;
 }
 
 export function setActiveShift(shift: any | null) {

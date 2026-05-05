@@ -5,9 +5,8 @@
     import { audioService } from '$lib/audio_service';
     import { IntercomService } from '$lib/api/intercom';
     import { ProductionAreaService, type ProductionArea } from '$lib/api/production_areas';
-    import { appState } from '$lib/app_state.svelte';
+    import { appState, setIntercomOpen } from '$lib/app_state.svelte';
 
-    let isOpen = $state(false);
     let isRecording = $state(false);
     let selectedAreaIds = $state<number[]>([]);
     let isGlobal = $state(false);
@@ -89,7 +88,6 @@
         const absoluteUrl = url.startsWith('http') ? url : window.location.origin + url;
         audioService.playAudio(absoluteUrl).catch(err => {
             console.error("Playback failed:", err);
-            // Si falla por autoplay, marcamos como bloqueado
             if (err.name === 'NotAllowedError' || err.name === 'NotSupportedError') {
                 audioBlocked = true;
             }
@@ -111,69 +109,127 @@
     }
 </script>
 
-<div class="intercom-container" class:open={isOpen}>
-    {#if isOpen}
-        <div class="intercom-panel" transition:fly={{ y: 20, duration: 300 }}>
-            <div class="panel-header">
-                <div class="header-info">
-                    <span class="icon">📻</span>
-                    <h3>Radio Intercom</h3>
+{#if appState.intercomOpen}
+    <div class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div 
+            class="absolute inset-0 bg-base-300/60 backdrop-blur-sm" 
+            onclick={() => setIntercomOpen(false)}
+            transition:fade
+        ></div>
+
+        <!-- Panel -->
+        <div 
+            class="intercom-panel w-full max-w-md bg-base-100 rounded-3xl shadow-2xl border border-base-300 overflow-hidden relative"
+            transition:fly={{ y: 20, duration: 300 }}
+        >
+            <div class="panel-header px-6 py-4 bg-primary text-primary-content flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 2v4" />
+                            <rect x="7" y="6" width="10" height="14" rx="2" />
+                            <path d="M10 10h4" />
+                            <path d="M10 12h4" />
+                            <path d="M10 14h4" />
+                            <path d="M7 9H5v4h2" />
+                            <path d="M9 2v4" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-black text-lg tracking-tight">Blackshot Intercom</h3>
+                        <p class="text-[10px] uppercase tracking-widest opacity-70 font-bold">Comunicación en Tiempo Real</p>
+                    </div>
                 </div>
-                <button class="btn-close" onclick={() => isOpen = false}>×</button>
+                <button class="btn btn-circle btn-ghost btn-sm text-primary-content hover:bg-white/10" onclick={() => setIntercomOpen(false)}>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
             </div>
 
-            <div class="panel-body">
+            <div class="panel-body p-6 flex flex-col gap-4 max-h-[70vh] overflow-hidden">
                 <!-- Settings: My Area & Mode -->
-                <div class="settings-row">
-                    <div class="setting-group">
-                        <label for="my-area">Mi Área:</label>
-                        <select id="my-area" value={posSocket.intercomSettings.currentAreaId} onchange={(e) => setMyArea(e.currentTarget.value ? parseInt(e.currentTarget.value) : null)}>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-50 ml-1" for="my-area">Mi Estación</label>
+                        <select 
+                            id="my-area" 
+                            class="select select-bordered select-sm w-full font-bold bg-base-200 border-none rounded-xl"
+                            value={posSocket.intercomSettings.currentAreaId} 
+                            onchange={(e) => setMyArea(e.currentTarget.value ? parseInt(e.currentTarget.value) : null)}
+                        >
                             <option value={null}>General / Ventas</option>
                             {#each areas as area}
                                 <option value={area.id}>{area.name}</option>
                             {/each}
                         </select>
                     </div>
-                    <div class="setting-group">
-                        <label for="mode">Modo:</label>
-                        <select id="mode" value={posSocket.intercomSettings.mode} onchange={(e) => setMode(e.currentTarget.value as any)}>
-                            <option value="Live">🔈 Vivo</option>
-                            <option value="Inbox">📥 Buzón</option>
-                            <option value="Muted">🔕 Mudo</option>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black uppercase opacity-50 ml-1" for="mode">Recepción</label>
+                        <select 
+                            id="mode" 
+                            class="select select-bordered select-sm w-full font-bold bg-base-200 border-none rounded-xl"
+                            value={posSocket.intercomSettings.mode} 
+                            onchange={(e) => setMode(e.currentTarget.value as any)}
+                        >
+                            <option value="Live">🔈 En Vivo</option>
+                            <option value="Inbox">📥 Solo Buzón</option>
+                            <option value="Muted">🔕 Silenciado</option>
                         </select>
                     </div>
                 </div>
 
                 {#if audioBlocked}
-                    <div class="alert-audio" onclick={unlockAudio}>
-                        ⚠️ El navegador bloqueó el audio automático. Haz clic aquí para activar.
+                    <div class="alert alert-warning text-xs py-2 px-3 rounded-xl cursor-pointer hover:bg-warning/80 transition-colors" onclick={unlockAudio}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        <span>El navegador bloqueó el audio. <b>Toca aquí para activar.</b></span>
+                    </div>
+                {/if}
+
+                {#if !appState.intercomEnabled}
+                    <div class="alert alert-error text-xs py-2 px-3 rounded-xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        <span>El intercom está <b>desactivado</b> en tu perfil.</span>
                     </div>
                 {/if}
 
                 <!-- Message History -->
-                <div class="message-list">
+                <div class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 min-h-[200px]">
                     {#if posSocket.intercomMessages.length === 0}
-                        <p class="empty-state">No hay mensajes recientes.</p>
+                        <div class="flex flex-col items-center justify-center h-full opacity-30 gap-2">
+                            <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                            <p class="text-sm font-medium italic text-center">Sin actividad en el canal</p>
+                        </div>
                     {:else}
                         {#each posSocket.intercomMessages as msg}
-                            <div class="message-item" class:is-mine={msg.sender_name.toLowerCase() === appState.userName?.toLowerCase()}>
-                                <div class="msg-header">
-                                    <span class="sender">{msg.sender_name}</span>
-                                    <span class="time">{formatDate(msg.timestamp)}</span>
+                            <div class="message-item flex flex-col gap-1" class:is-mine={msg.sender_name.toLowerCase() === appState.userName?.toLowerCase()}>
+                                <div class="flex items-center gap-2" class:justify-end={msg.sender_name.toLowerCase() === appState.userName?.toLowerCase()}>
+                                    <span class="text-[10px] font-black opacity-50 uppercase tracking-widest">{msg.sender_name}</span>
+                                    <span class="text-[9px] opacity-30">{formatDate(msg.timestamp)}</span>
                                 </div>
-                                <div class="msg-content">
-                                    <button class="btn-play" onclick={() => playMessage(msg.audio_url)}>
-                                        ▶️ Escuchar
+                                <div 
+                                    class="p-3 rounded-2xl flex items-center gap-3 shadow-sm {msg.sender_name.toLowerCase() === appState.userName?.toLowerCase() ? 'bg-primary text-primary-content rounded-tr-none self-end' : 'bg-base-200 rounded-tl-none self-start'}"
+                                >
+                                    <button 
+                                        class="btn btn-circle btn-sm {msg.sender_name.toLowerCase() === appState.userName?.toLowerCase() ? 'btn-ghost bg-white/20' : 'btn-primary'}" 
+                                        onclick={() => playMessage(msg.audio_url)}
+                                    >
+                                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
                                     </button>
-                                    {#if msg.is_global}
-                                        <span class="badge global">Global</span>
-                                    {:else}
-                                        <div class="target-areas">
-                                            {#each msg.target_areas as aid}
-                                                <span class="badge">{areas.find(a => a.id === aid)?.name || aid}</span>
-                                            {/each}
+                                    
+                                    <div class="flex flex-col">
+                                        <span class="text-[10px] font-bold opacity-60">Mensaje de Voz</span>
+                                        <div class="flex gap-1 mt-0.5">
+                                            {#if msg.is_global}
+                                                <span class="px-1.5 py-0.5 rounded bg-success/20 text-success text-[8px] font-black uppercase">Global</span>
+                                            {:else}
+                                                {#each msg.target_areas as aid}
+                                                    <span class="px-1.5 py-0.5 rounded bg-base-300 text-base-content/50 text-[8px] font-black uppercase">
+                                                        {areas.find(a => a.id === aid)?.name || aid}
+                                                    </span>
+                                                {/each}
+                                            {/if}
                                         </div>
-                                    {/if}
+                                    </div>
                                 </div>
                             </div>
                         {/each}
@@ -181,363 +237,72 @@
                 </div>
 
                 <!-- PTT Controls -->
-                <div class="ptt-controls">
-                    <div class="channel-selector">
-                        <button class="chip" class:active={isGlobal} onclick={toggleGlobal}>🌍 Todos</button>
+                <div class="mt-2 pt-4 border-t border-base-200 flex flex-col gap-4">
+                    <div class="flex flex-wrap gap-1.5 justify-center">
+                        <button 
+                            class="btn btn-xs rounded-full font-black uppercase tracking-widest {isGlobal ? 'btn-primary' : 'btn-ghost bg-base-200'}" 
+                            onclick={toggleGlobal}
+                        >
+                            🌍 Todos
+                        </button>
                         {#each areas as area}
-                            <button class="chip" class:active={selectedAreaIds.includes(area.id)} onclick={() => toggleArea(area.id)}>
+                            <button 
+                                class="btn btn-xs rounded-full font-black uppercase tracking-widest {selectedAreaIds.includes(area.id) ? 'btn-primary' : 'btn-ghost bg-base-200'}" 
+                                onclick={() => toggleArea(area.id)}
+                            >
                                 {area.name}
                             </button>
                         {/each}
                     </div>
 
-                    <div class="ptt-button-wrapper">
+                    <div class="flex flex-col items-center gap-2">
                         <button 
-                            class="ptt-button" 
-                            class:recording={isRecording}
+                            class="w-20 h-20 rounded-full flex items-center justify-center transition-all duration-75 relative group"
+                            class:bg-error={isRecording}
+                            class:text-error-content={isRecording}
+                            class:bg-primary={!isRecording}
+                            class:text-primary-content={!isRecording}
+                            class:scale-95={isRecording}
+                            class:shadow-2xl={isRecording}
                             onmousedown={toggleRecording}
                             onmouseup={toggleRecording}
                             ontouchstart={(e) => { e.preventDefault(); toggleRecording(); }}
                             ontouchend={(e) => { e.preventDefault(); toggleRecording(); }}
                         >
-                            <div class="inner-circle">
-                                {#if isRecording}
-                                    <div class="waves"></div>
-                                    🎤
-                                {:else}
-                                    🔘
-                                {/if}
-                            </div>
+                            {#if isRecording}
+                                <div class="absolute inset-0 rounded-full animate-ping bg-error/40"></div>
+                                <svg class="w-8 h-8 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+                                </svg>
+                            {:else}
+                                <svg class="w-8 h-8 group-hover:scale-110 transition-transform" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            {/if}
                         </button>
-                        <p class="ptt-hint">{isRecording ? 'Hablando...' : 'Presiona para hablar'}</p>
+                        <p class="text-[10px] font-black uppercase tracking-[0.2em] opacity-40">
+                            {isRecording ? 'Transmitiendo...' : 'Mantener para hablar'}
+                        </p>
                     </div>
                 </div>
             </div>
         </div>
-    {/if}
-
-    <button class="intercom-toggle" class:active={isOpen} onclick={() => isOpen = !isOpen}>
-        <span class="toggle-icon">📻</span>
-        {#if !isOpen && posSocket.intercomMessages.length > 0}
-             <span class="badge-count" transition:scale>{posSocket.intercomMessages.length > 9 ? '9+' : posSocket.intercomMessages.length}</span>
-        {/if}
-    </button>
-</div>
+    </div>
+{/if}
 
 <style>
-    .intercom-container {
-        position: fixed;
-        bottom: 1.5rem;
-        right: 1.5rem;
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 1rem;
-    }
-
-    /* Toggle Button */
-    .intercom-toggle {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        background: var(--primary, #6366f1);
-        color: white;
-        border: none;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-        transition: transform 0.2s, background 0.2s;
-        position: relative;
-    }
-
-    .intercom-toggle:hover {
-        transform: scale(1.05);
-        background: var(--primary-focus, #4f46e5);
-    }
-
-    .intercom-toggle.active {
-        background: #ef4444;
-    }
-
-    .badge-count {
-        position: absolute;
-        top: -5px;
-        right: -5px;
-        background: #ef4444;
-        color: white;
-        font-size: 0.75rem;
-        padding: 2px 6px;
-        border-radius: 10px;
-        font-weight: bold;
-        border: 2px solid white;
-    }
-
-    /* Panel */
     .intercom-panel {
-        width: 350px;
-        height: 500px;
-        background: var(--base-100, #ffffff);
-        border-radius: 20px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        border: 1px solid rgba(0,0,0,0.1);
+        max-height: 90vh;
+    }
+    
+    .message-item.is-mine .message-bubble {
+        background-color: var(--p);
+        color: var(--pc);
     }
 
-    .panel-header {
-        padding: 1rem;
-        background: var(--primary, #6366f1);
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .header-info {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .header-info h3 {
-        margin: 0;
-        font-size: 1rem;
-        font-weight: 600;
-    }
-
-    .btn-close {
-        background: rgba(255,255,255,0.2);
-        border: none;
-        color: white;
-        width: 24px;
-        height: 24px;
-        border-radius: 50%;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .panel-body {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        padding: 1rem;
-        gap: 1rem;
-        overflow: hidden;
-    }
-
-    /* Settings */
-    .settings-row {
-        display: flex;
-        gap: 0.5rem;
-        font-size: 0.8rem;
-    }
-
-    .setting-group {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        gap: 0.2rem;
-    }
-
-    .setting-group select {
-        padding: 0.2rem;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-    }
-
-    .alert-audio {
-        background: #fef3c7;
-        color: #92400e;
-        padding: 0.5rem;
-        border-radius: 8px;
-        font-size: 0.8rem;
-        cursor: pointer;
-        text-align: center;
-    }
-
-    /* Message List */
-    .message-list {
-        flex: 1;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-        padding-right: 0.5rem;
-    }
-
-    .empty-state {
-        text-align: center;
-        color: #888;
-        margin-top: 2rem;
-        font-style: italic;
-    }
-
-    .message-item {
-        background: #f3f4f6;
-        padding: 0.5rem 0.75rem;
-        border-radius: 12px;
-        max-width: 90%;
-        align-self: flex-start;
-    }
-
-    .message-item.is-mine {
-        background: #e0e7ff;
-        align-self: flex-end;
-    }
-
-    .msg-header {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 0.25rem;
-    }
-
-    .sender {
-        font-weight: bold;
-        font-size: 0.8rem;
-    }
-
-    .time {
-        font-size: 0.7rem;
-        color: #666;
-    }
-
-    .msg-content {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-play {
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 20px;
-        padding: 0.2rem 0.6rem;
-        font-size: 0.8rem;
-        cursor: pointer;
-    }
-
-    .btn-play:hover {
-        background: #f9fafb;
-    }
-
-    .target-areas {
-        display: flex;
-        gap: 0.2rem;
-        flex-wrap: wrap;
-    }
-
-    .badge {
-        font-size: 0.65rem;
-        background: #e5e7eb;
-        padding: 1px 4px;
-        border-radius: 4px;
-        color: #4b5563;
-    }
-
-    .badge.global {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    /* PTT Controls */
-    .ptt-controls {
-        padding-top: 1rem;
-        border-top: 1px solid #eee;
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-    }
-
-    .channel-selector {
-        display: flex;
-        gap: 0.4rem;
-        flex-wrap: wrap;
-        max-height: 80px;
-        overflow-y: auto;
-    }
-
-    .chip {
-        padding: 0.25rem 0.6rem;
-        border-radius: 20px;
-        background: #f3f4f6;
-        border: 1px solid #ddd;
-        font-size: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .chip:hover {
-        background: #e5e7eb;
-    }
-
-    .chip.active {
-        background: var(--primary, #6366f1);
-        color: white;
-        border-color: var(--primary, #6366f1);
-    }
-
-    .ptt-button-wrapper {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .ptt-button {
-        width: 70px;
-        height: 70px;
-        border-radius: 50%;
-        background: #eee;
-        border: 4px solid #ddd;
-        cursor: pointer;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.1s;
-    }
-
-    .ptt-button:active, .ptt-button.recording {
-        transform: scale(0.95);
-        background: #fee2e2;
-        border-color: #ef4444;
-    }
-
-    .inner-circle {
-        font-size: 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-    }
-
-    .ptt-hint {
-        font-size: 0.75rem;
-        color: #666;
-        margin: 0;
-    }
-
-    /* Recording animation */
-    .waves {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        background: rgba(239, 68, 68, 0.2);
-        border-radius: 50%;
-        animation: pulse 1.5s infinite;
-        z-index: -1;
-    }
-
-    @keyframes pulse {
-        0% { transform: scale(1); opacity: 0.8; }
-        100% { transform: scale(1.5); opacity: 0; }
+    /* Hide scrollbar for cleaner look but allow scrolling */
+    .overflow-y-auto {
+        scrollbar-width: thin;
+        scrollbar-color: var(--fallback-p,oklch(var(--p)/0.2)) transparent;
     }
 </style>

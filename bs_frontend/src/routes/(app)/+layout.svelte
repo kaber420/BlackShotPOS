@@ -11,7 +11,8 @@
 	import { posSocket } from '$lib/pos_socket.svelte';
 	import OpenShiftModal from '$lib/components/accounting/OpenShiftModal.svelte';
 	import CloseShiftModal from '$lib/components/accounting/CloseShiftModal.svelte';
-	import { setShowOpenShiftModal } from '$lib/app_state.svelte';
+	import { setShowOpenShiftModal, setIntercomEnabled, setIntercomOpen } from '$lib/app_state.svelte';
+	import IntercomWidget from '$lib/components/intercom/IntercomWidget.svelte';
 
 	let { children } = $props();
 
@@ -49,7 +50,6 @@
 	const ALL_NAV = [
 		{ name: 'POS',        href: '/',                                  perm: 'takeOrders' },
 		{ name: 'Mesas',      href: '/tables',                            perm: 'manageTables' },
-		{ name: 'Caja',       href: '/accounting',                        perm: 'manageShifts' },
 		{ name: 'Órdenes',    href: '/orders',                            perm: 'viewOrders' },
 		{ name: 'Cocina',     href: '/kitchen',                           perm: 'viewKitchen' },
 		{ name: 'Menú',       href: '/menu',                              perm: 'manageMenu' },
@@ -154,6 +154,29 @@
 				</select>
 			</div>
 
+			<!-- Intercom Navbar Trigger -->
+			<button 
+				class="btn btn-ghost btn-circle relative {appState.intercomEnabled ? 'text-primary' : 'text-base-content/30'}"
+				onclick={() => setIntercomOpen(true)}
+				title="Intercom (Radio)"
+			>
+				<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M16 2v4" />
+					<rect x="7" y="6" width="10" height="14" rx="2" />
+					<path d="M10 10h4" />
+					<path d="M10 12h4" />
+					<path d="M10 14h4" />
+					<path d="M7 9H5v4h2" />
+					<path d="M9 2v4" />
+				</svg>
+				{#if appState.intercomEnabled && posSocket.intercomMessages.length > 0}
+					<span class="absolute top-1 right-1 flex h-3 w-3">
+						<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
+						<span class="relative inline-flex rounded-full h-3 w-3 bg-primary border-2 border-base-100"></span>
+					</span>
+				{/if}
+			</button>
+
 			{#if appState.isLoggedIn}
 				<div class="dropdown dropdown-end">
 					<label tabindex="0" class="btn btn-ghost btn-circle avatar border-2 border-primary/20">
@@ -182,9 +205,6 @@
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
 								{/if}
 								
-								{#if can.manageInventory()}
-									<li><a href="/admin/inventory/ingredients">📦 Gestión de Inventario</a></li>
-								{/if}
 								
 								{#if can.viewAudits()}
 									<li><a href="/admin/audits">🛡️ Auditoría</a></li>
@@ -212,11 +232,22 @@
 										<span class="text-xs font-black uppercase tracking-widest">Abrir Turno</span>
 									</button>
 								{/if}
-								<a href="/accounting" class="w-full text-left px-4 py-2 hover:bg-base-200 flex items-center gap-2 transition-colors rounded-lg">
-									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-									<span class="text-xs font-black uppercase tracking-widest">Mi Contabilidad</span>
-								</a>
 							</div>
+
+							<!-- Intercom Toggle -->
+							<div class="px-4 py-2 flex items-center justify-between bg-base-200/50 rounded-xl mx-2 mb-2">
+								<div class="flex items-center gap-2">
+									<div class="w-2 h-2 rounded-full {appState.intercomEnabled ? 'bg-success animate-pulse' : 'bg-base-300'}"></div>
+									<span class="text-[10px] font-black uppercase tracking-widest">Intercom</span>
+								</div>
+								<input 
+									type="checkbox" 
+									class="toggle toggle-primary toggle-sm" 
+									checked={appState.intercomEnabled} 
+									onchange={(e) => setIntercomEnabled(e.currentTarget.checked)}
+								/>
+							</div>
+
 							<div class="card-actions pt-2 border-t border-base-200">
 								<Button variant="danger" size="sm" class="btn-block" onclick={handleLogout}>Cerrar Sesión</Button>
 							</div>
@@ -259,6 +290,7 @@
 	{#if appState.isLoggedIn && can.takeOrders?.()}
 		<FloatingCart />
 	{/if}
+	<IntercomWidget />
 	<Toast />
 </div>
 

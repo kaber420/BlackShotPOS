@@ -127,7 +127,7 @@ class PosSocketManager {
                                     
                                     console.log("📻 SOCKET: ¿Coincide área?", matchesArea, "Modo:", this.intercomSettings.mode);
     
-                                    if (matchesArea && this.intercomSettings.mode === 'Live') {
+                                    if (matchesArea && this.intercomSettings.mode === 'Live' && appState.intercomEnabled) {
                                         const absoluteUrl = window.location.origin + intercomMsg.audio_url;
                                         audioService.playAudio(absoluteUrl).catch(err => {
                                             console.warn("Auto-play blocked or failed:", err);
