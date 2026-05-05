@@ -110,21 +110,29 @@ class PosSocketManager {
                                 this.ingredients = data.data;
                                 break;
                             case 'intercom':
-                                const intercomMsg = data.data as IntercomMessage;
-                                console.log("📻 SOCKET: Mensaje intercom recibido", intercomMsg);
-                                this.intercomMessages = [intercomMsg, ...this.intercomMessages];
-                                
-                                // Auto-play logic
-                                const matchesArea = intercomMsg.is_global || 
-                                    (this.intercomSettings.currentAreaId && intercomMsg.target_areas.includes(this.intercomSettings.currentAreaId));
-                                
-                                console.log("📻 SOCKET: ¿Coincide área?", matchesArea, "Modo:", this.intercomSettings.mode);
-
-                                if (matchesArea && this.intercomSettings.mode === 'Live') {
-                                    const absoluteUrl = window.location.origin + intercomMsg.audio_url;
-                                    audioService.playAudio(absoluteUrl).catch(err => {
-                                        console.warn("Auto-play blocked or failed:", err);
-                                    });
+                                const incoming = data.data;
+                                if (Array.isArray(incoming)) {
+                                    // Si es una lista, es el historial inicial
+                                    this.intercomMessages = incoming;
+                                    console.log("📻 SOCKET: Historial intercom cargado", incoming.length);
+                                } else {
+                                    // Si es un objeto, es un mensaje nuevo
+                                    const intercomMsg = incoming as IntercomMessage;
+                                    console.log("📻 SOCKET: Mensaje intercom recibido", intercomMsg);
+                                    this.intercomMessages = [intercomMsg, ...this.intercomMessages];
+                                    
+                                    // Auto-play logic
+                                    const matchesArea = intercomMsg.is_global || 
+                                        (this.intercomSettings.currentAreaId && intercomMsg.target_areas.includes(this.intercomSettings.currentAreaId));
+                                    
+                                    console.log("📻 SOCKET: ¿Coincide área?", matchesArea, "Modo:", this.intercomSettings.mode);
+    
+                                    if (matchesArea && this.intercomSettings.mode === 'Live') {
+                                        const absoluteUrl = window.location.origin + intercomMsg.audio_url;
+                                        audioService.playAudio(absoluteUrl).catch(err => {
+                                            console.warn("Auto-play blocked or failed:", err);
+                                        });
+                                    }
                                 }
                                 break;
                         }

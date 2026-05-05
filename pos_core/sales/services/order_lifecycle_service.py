@@ -7,7 +7,6 @@ from ..models import Order, OrderItem, OrderStatus, OrderType
 from ..repository import order_repo, item_repo
 from pos_core.inventory.services.stock_service import process_inventory_depletion
 from pos_core.accounting.service import get_active_shift
-from pos_core.events.service import trigger_iot_broadcast
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
 
 
@@ -98,10 +97,7 @@ async def update_order_status(
             order.cook_uuid = cook_uuid
             order.cook_name = cook_name
         if order.table_id:
-            await trigger_iot_broadcast(
-                order.table_id, "order_update", "",
-                data={"order_id": order.id, "status": "LISTO", "progress": 100},
-            )
+            pass # El evento es manejado automáticamente por el Bus de Eventos Unificado
 
     elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
         order.delivered_at = now
