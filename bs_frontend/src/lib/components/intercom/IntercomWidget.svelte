@@ -16,6 +16,16 @@
     // Audio status
     let audioBlocked = $state(false);
 
+    // Filter messages based on selected area
+    let filteredMessages = $derived(
+        posSocket.intercomMessages.filter(msg => {
+            // Si estamos en "General / Ventas" (null), mostramos todo el tráfico
+            if (!posSocket.intercomSettings.currentAreaId) return true;
+            // Si hay un área seleccionada, mostramos solo lo Global y lo dirigido a esa área específica
+            return msg.is_global || msg.target_areas.includes(posSocket.intercomSettings.currentAreaId);
+        })
+    );
+
     onMount(async () => {
         // Initialize Intercom history and settings
         await posSocket.initIntercom();
@@ -171,8 +181,11 @@
                         <select 
                             id="my-area" 
                             class="select select-bordered select-sm w-full font-bold bg-base-200 border-none rounded-xl"
-                            value={posSocket.intercomSettings.currentAreaId} 
-                            onchange={(e) => setMyArea(e.currentTarget.value ? parseInt(e.currentTarget.value) : null)}
+                            bind:value={posSocket.intercomSettings.currentAreaId} 
+                            onchange={() => {
+                                if (posSocket.intercomSettings.currentAreaId) localStorage.setItem('bs_intercom_area', posSocket.intercomSettings.currentAreaId.toString());
+                                else localStorage.removeItem('bs_intercom_area');
+                            }}
                         >
                             <option value={null}>General / Ventas</option>
                             {#each areas as area}
@@ -185,8 +198,10 @@
                         <select 
                             id="mode" 
                             class="select select-bordered select-sm w-full font-bold bg-base-200 border-none rounded-xl"
-                            value={posSocket.intercomSettings.mode} 
-                            onchange={(e) => setMode(e.currentTarget.value as any)}
+                            bind:value={posSocket.intercomSettings.mode} 
+                            onchange={() => {
+                                localStorage.setItem('bs_intercom_mode', posSocket.intercomSettings.mode);
+                            }}
                         >
                             <option value="Live">🔈 En Vivo</option>
                             <option value="Inbox">📥 Solo Buzón</option>
@@ -205,13 +220,13 @@
 
                 <!-- Message History -->
                 <div class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 min-h-[200px]">
-                    {#if posSocket.intercomMessages.length === 0}
+                    {#if filteredMessages.length === 0}
                         <div class="flex flex-col items-center justify-center h-full opacity-30 gap-2">
                             <svg class="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                             <p class="text-sm font-medium italic text-center">Sin actividad en el canal</p>
                         </div>
                     {:else}
-                        {#each posSocket.intercomMessages as msg}
+                        {#each filteredMessages as msg}
                             <div class="message-item flex flex-col gap-1" class:is-mine={msg.sender_name.toLowerCase() === appState.userName?.toLowerCase()}>
                                 <div class="flex items-center gap-2" class:justify-end={msg.sender_name.toLowerCase() === appState.userName?.toLowerCase()}>
                                     <span class="text-[10px] font-black opacity-50 uppercase tracking-widest">{msg.sender_name}</span>
