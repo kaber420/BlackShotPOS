@@ -41,6 +41,7 @@ export const appState = $state({
     activeOrder: savedSession.activeOrder,
     activeShift: null as any | null,
     showOpenShiftModal: false,
+    showCloseShiftModal: false,
     // Usuario autenticado
     userRole: null as string | null,
     userName: null as string | null,
@@ -188,6 +189,10 @@ export const can = {
 
 export function setShowOpenShiftModal(show: boolean) {
     appState.showOpenShiftModal = show;
+}
+
+export function setShowCloseShiftModal(show: boolean) {
+    appState.showCloseShiftModal = show;
 }
 
 export function setIntercomEnabled(enabled: boolean) {

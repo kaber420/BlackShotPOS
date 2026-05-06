@@ -9,7 +9,8 @@ from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
 from .service import (
     open_shift, close_shift, get_active_shift, get_shift_report, list_shifts,
-    get_cash_registers, create_cash_register, add_cash_movement, get_all_active_shifts
+    get_cash_registers, create_cash_register, add_cash_movement, get_all_active_shifts,
+    enrich_shift_data
 )
 from .models import CashMovementType
 
@@ -110,7 +111,10 @@ async def api_get_active_shift(
     shift = await get_active_shift(session, user_id=user.id)
     if not shift:
         return {"active": False, "shift": None}
-    return {"active": True, "shift": shift}
+    
+    # Enriquecemos el turno con datos en tiempo real para el POS
+    enriched_shift = await enrich_shift_data(session, shift)
+    return {"active": True, "shift": enriched_shift}
 
 @router.get("/active-sessions")
 async def api_get_all_active_sessions(

@@ -15,8 +15,9 @@ class CashRegister(SQLModel, table=True):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class CashMovementType(str, Enum):
-    INCOME = "INCOME"   # Fondo extra, corrección
-    EXPENSE = "EXPENSE" # Pago a proveedor, retiro parcial
+    INCOME = "INCOME"         # Fondo extra, corrección
+    EXPENSE = "EXPENSE"       # Pago a proveedor, gasto operativo
+    WITHDRAWAL = "WITHDRAWAL" # Retiro parcial de seguridad (Corte Parcial)
 
 class CashMovement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

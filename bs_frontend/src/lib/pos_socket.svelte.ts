@@ -23,7 +23,7 @@ class PosSocketManager {
     intercomMessages = $state<IntercomMessage[]>([]);
     intercomSettings = $state({
         mode: 'Live' as 'Live' | 'Inbox' | 'Muted',
-        currentAreaId: null as number | null,
+        currentAreaId: null as number | string | null,
     });
 
     private subscribedTopics = new Set<string>();
@@ -122,8 +122,10 @@ class PosSocketManager {
                                     this.intercomMessages = [intercomMsg, ...this.intercomMessages];
                                     
                                     // Auto-play logic
-                                    const matchesArea = intercomMsg.is_global || 
-                                        (this.intercomSettings.currentAreaId && intercomMsg.target_areas.includes(this.intercomSettings.currentAreaId));
+                                    const matchesArea = this.intercomSettings.currentAreaId === 'MONITOR' || 
+                                        intercomMsg.is_global || 
+                                        (this.intercomSettings.currentAreaId === null && intercomMsg.target_areas.length === 0) ||
+                                        (typeof this.intercomSettings.currentAreaId === 'number' && intercomMsg.target_areas.includes(this.intercomSettings.currentAreaId));
                                     
                                     console.log("📻 SOCKET: ¿Coincide área?", matchesArea, "Modo:", this.intercomSettings.mode);
     

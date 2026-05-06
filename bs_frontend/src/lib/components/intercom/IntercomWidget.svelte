@@ -5,7 +5,7 @@
     import { audioService } from '$lib/audio_service';
     import { IntercomService } from '$lib/api/intercom';
     import { ProductionAreaService, type ProductionArea } from '$lib/api/production_areas';
-    import { appState, setIntercomOpen, setIntercomEnabled } from '$lib/app_state.svelte';
+    import { appState, setIntercomOpen, setIntercomEnabled, can } from '$lib/app_state.svelte';
 
     let isRecording = $state(false);
     let selectedAreaIds = $state<number[]>([]);
@@ -19,10 +19,16 @@
     // Filter messages based on selected area
     let filteredMessages = $derived(
         posSocket.intercomMessages.filter(msg => {
-            // Si estamos en "General / Ventas" (null), mostramos todo el tráfico
-            if (!posSocket.intercomSettings.currentAreaId) return true;
-            // Si hay un área seleccionada, mostramos solo lo Global y lo dirigido a esa área específica
-            return msg.is_global || msg.target_areas.includes(posSocket.intercomSettings.currentAreaId);
+            // Modo Monitor (Solo Admins): ve absolutamente todo
+            if (posSocket.intercomSettings.currentAreaId === 'MONITOR') return true;
+            
+            // Canal "General" (null): solo lo que no tiene área destino y lo Global
+            if (posSocket.intercomSettings.currentAreaId === null) {
+                return msg.target_areas.length === 0 || msg.is_global;
+            }
+            
+            // Canales específicos: solo lo Global y lo dirigido a esa área
+            return msg.is_global || (typeof posSocket.intercomSettings.currentAreaId === 'number' && msg.target_areas.includes(posSocket.intercomSettings.currentAreaId));
         })
     );
 
@@ -183,11 +189,19 @@
                             class="select select-bordered select-sm w-full font-bold bg-base-200 border-none rounded-xl"
                             bind:value={posSocket.intercomSettings.currentAreaId} 
                             onchange={() => {
-                                if (posSocket.intercomSettings.currentAreaId) localStorage.setItem('bs_intercom_area', posSocket.intercomSettings.currentAreaId.toString());
-                                else localStorage.removeItem('bs_intercom_area');
+                                if (posSocket.intercomSettings.currentAreaId === 'MONITOR') {
+                                    localStorage.setItem('bs_intercom_area', 'MONITOR');
+                                } else if (posSocket.intercomSettings.currentAreaId !== null) {
+                                    localStorage.setItem('bs_intercom_area', posSocket.intercomSettings.currentAreaId.toString());
+                                } else {
+                                    localStorage.removeItem('bs_intercom_area');
+                                }
                             }}
                         >
-                            <option value={null}>General / Ventas</option>
+                            <option value={null}>🏠 General</option>
+                            {#if can.manageSettings?.()}
+                                <option value="MONITOR">🔍 Monitor de Tráfico</option>
+                            {/if}
                             {#each areas as area}
                                 <option value={area.id}>{area.name}</option>
                             {/each}
@@ -265,12 +279,14 @@
                 <!-- PTT Controls -->
                 <div class="mt-2 pt-4 border-t border-base-200 flex flex-col gap-4">
                     <div class="flex flex-wrap gap-1.5 justify-center">
-                        <button 
-                            class="btn btn-xs rounded-full font-black uppercase tracking-widest {isGlobal ? 'btn-primary' : 'btn-ghost bg-base-200'}" 
-                            onclick={toggleGlobal}
-                        >
-                            🌍 Todos
-                        </button>
+                        {#if can.manageSettings?.()}
+                            <button 
+                                class="btn btn-xs rounded-full font-black uppercase tracking-widest {isGlobal ? 'btn-primary' : 'btn-ghost bg-base-200'}" 
+                                onclick={toggleGlobal}
+                            >
+                                🌍 Todos
+                            </button>
+                        {/if}
                         {#each areas as area}
                             <button 
                                 class="btn btn-xs rounded-full font-black uppercase tracking-widest {selectedAreaIds.includes(area.id) ? 'btn-primary' : 'btn-ghost bg-base-200'}" 

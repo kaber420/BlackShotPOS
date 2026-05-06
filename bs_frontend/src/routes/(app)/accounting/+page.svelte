@@ -10,6 +10,7 @@
     let historicalShifts = $state<ShiftInfo[]>([]);
     let isLoading = $state(true);
     let showMovementModal = $state(false);
+    let movementType = $state<'INCOME' | 'EXPENSE' | 'WITHDRAWAL'>('EXPENSE');
 
     async function loadData() {
         isLoading = true;
@@ -24,6 +25,11 @@
         }
     }
 
+    function openMovement(type: 'INCOME' | 'EXPENSE' | 'WITHDRAWAL') {
+        movementType = type;
+        showMovementModal = true;
+    }
+
     onMount(loadData);
 
     function formatCurrency(amount: number) {
@@ -33,7 +39,7 @@
 
 <div class="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto pb-24">
     <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div>
             <h1 class="text-4xl font-black tracking-tighter text-base-content">Control de <span class="text-primary">Caja</span></h1>
             {#if activeShift}
@@ -44,11 +50,7 @@
                     </div>
                     <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-base-200 px-2.5 py-1 rounded-lg">
                         <span class="opacity-40">Cajero:</span> 
-                        <span>{appState.user?.email || 'N/A'}</span>
-                    </div>
-                    <div class="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider bg-base-200 px-2.5 py-1 rounded-lg">
-                        <span class="opacity-40">Apertura:</span> 
-                        <span>{new Date(activeShift.start_time).toLocaleString()}</span>
+                        <span>{appState.userName || 'N/A'}</span>
                     </div>
                 </div>
             {:else}
@@ -57,17 +59,16 @@
         </div>
         
         {#if activeShift}
-            <div class="flex gap-2">
-                {#if can.manageShifts()}
-                    <Button variant="ghost" class="font-bold border border-base-200" onclick={() => window.location.href = '/admin/registers'}>
-                        🖥️ Monitor Global
-                    </Button>
-                {/if}
-                <Button variant="outline" class="font-bold" onclick={() => showMovementModal = true}>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 mr-2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Movimiento Manual
+            <div class="flex flex-wrap gap-2">
+                <Button variant="danger" outline class="font-black text-[10px] uppercase tracking-widest px-6" onclick={() => openMovement('EXPENSE')}>
+                    💸 Registrar Gasto
+                </Button>
+                <Button variant="info" outline class="font-black text-[10px] uppercase tracking-widest px-6" onclick={() => openMovement('WITHDRAWAL')}>
+                    🛡️ Retiro de Seguridad
+                </Button>
+                <div class="w-px h-10 bg-base-300 mx-2 hidden md:block"></div>
+                <Button variant="primary" class="font-black text-[10px] uppercase tracking-widest px-8 shadow-lg shadow-primary/20" onclick={() => setShowCloseShiftModal(true)}>
+                    🏁 Cerrar Turno (Corte Z)
                 </Button>
             </div>
         {/if}
@@ -208,5 +209,10 @@
 </div>
 
 {#if showMovementModal && activeShift}
-    <CashMovementModal shiftId={activeShift.id} onClose={() => showMovementModal = false} onSuccess={loadData} />
+    <CashMovementModal 
+        shiftId={activeShift.id} 
+        initialType={movementType}
+        onClose={() => showMovementModal = false} 
+        onSuccess={loadData} 
+    />
 {/if}

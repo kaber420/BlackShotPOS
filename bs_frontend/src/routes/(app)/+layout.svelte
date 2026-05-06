@@ -11,13 +11,12 @@
 	import { posSocket } from '$lib/pos_socket.svelte';
 	import OpenShiftModal from '$lib/components/accounting/OpenShiftModal.svelte';
 	import CloseShiftModal from '$lib/components/accounting/CloseShiftModal.svelte';
-	import { setShowOpenShiftModal, setIntercomEnabled, setIntercomOpen } from '$lib/app_state.svelte';
+	import { setShowOpenShiftModal, setShowCloseShiftModal, setIntercomEnabled, setIntercomOpen } from '$lib/app_state.svelte';
 	import IntercomWidget from '$lib/components/intercom/IntercomWidget.svelte';
 
 	let { children } = $props();
 
 	let isCheckingShift = $state(true);
-	let showCloseModal = $state(false);
 	
 	onMount(async () => {
 		try {
@@ -199,7 +198,7 @@
 								{#if appState.activeShift}
 									<button 
 										class="w-full text-left px-4 py-2 hover:bg-error/10 text-error flex items-center gap-2 transition-colors rounded-lg"
-										onclick={() => { showCloseModal = true; }}
+										onclick={() => { setShowCloseShiftModal(true); }}
 									>
 										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
 										<span class="text-xs font-black uppercase tracking-widest">Realizar Corte (Z)</span>
@@ -246,7 +245,7 @@
 	</header>
 
 	<!-- Main Content Area -->
-	<main class="flex-1 flex flex-col min-h-0 relative">
+	<main class="flex-1 flex flex-col min-h-0 relative overflow-y-auto elegant-scroll">
 		{#if !appState.permissionsLoaded}
 			<div class="absolute inset-0 flex items-center justify-center bg-base-100/50 backdrop-blur-sm z-50">
 				<span class="loading loading-spinner loading-lg text-primary"></span>
@@ -265,10 +264,10 @@
 	{/if}
 
 	<!-- Close Shift Modal (Global) -->
-	{#if showCloseModal && appState.activeShift}
+	{#if appState.showCloseShiftModal && appState.activeShift}
 		<CloseShiftModal 
 			shift={appState.activeShift} 
-			onClose={() => { showCloseModal = false; reloadShift(); }} 
+			onClose={() => { setShowCloseShiftModal(false); reloadShift(); }} 
 		/>
 	{/if}
 	
