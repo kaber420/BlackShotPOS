@@ -215,19 +215,6 @@
 								{/if}
 							</div>
 
-							<!-- Intercom Toggle -->
-							<div class="px-4 py-2 flex items-center justify-between bg-base-200/50 rounded-xl mx-2 mb-2">
-								<div class="flex items-center gap-2">
-									<div class="w-2 h-2 rounded-full {appState.intercomEnabled ? 'bg-success animate-pulse' : 'bg-base-300'}"></div>
-									<span class="text-[10px] font-black uppercase tracking-widest">Intercom</span>
-								</div>
-								<input 
-									type="checkbox" 
-									class="toggle toggle-primary toggle-sm" 
-									checked={appState.intercomEnabled} 
-									onchange={(e) => setIntercomEnabled(e.currentTarget.checked)}
-								/>
-							</div>
 
 							<!-- Theme Selection (Quick Access) -->
 							<div class="px-4 py-2 flex items-center justify-between bg-base-200/50 rounded-xl mx-2 mb-2">

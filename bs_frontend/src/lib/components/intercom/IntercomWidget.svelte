@@ -5,7 +5,7 @@
     import { audioService } from '$lib/audio_service';
     import { IntercomService } from '$lib/api/intercom';
     import { ProductionAreaService, type ProductionArea } from '$lib/api/production_areas';
-    import { appState, setIntercomOpen } from '$lib/app_state.svelte';
+    import { appState, setIntercomOpen, setIntercomEnabled } from '$lib/app_state.svelte';
 
     let isRecording = $state(false);
     let selectedAreaIds = $state<number[]>([]);
@@ -147,6 +147,23 @@
             </div>
 
             <div class="panel-body p-6 flex flex-col gap-4 max-h-[70vh] overflow-hidden">
+                <!-- Master Toggle -->
+                <div class="flex items-center justify-between bg-base-200/50 p-4 rounded-2xl border border-base-300/50">
+                    <div class="flex items-center gap-3">
+                        <div class="w-3 h-3 rounded-full {appState.intercomEnabled ? 'bg-success animate-pulse' : 'bg-base-300 shadow-inner'}"></div>
+                        <div class="flex flex-col">
+                            <span class="text-xs font-black uppercase tracking-widest">Servicio de Intercom</span>
+                            <span class="text-[9px] opacity-50 font-bold uppercase">{appState.intercomEnabled ? 'Activo y escuchando' : 'Desactivado'}</span>
+                        </div>
+                    </div>
+                    <input 
+                        type="checkbox" 
+                        class="toggle toggle-primary" 
+                        checked={appState.intercomEnabled} 
+                        onchange={(e) => setIntercomEnabled(e.currentTarget.checked)}
+                    />
+                </div>
+
                 <!-- Settings: My Area & Mode -->
                 <div class="grid grid-cols-2 gap-3">
                     <div class="flex flex-col gap-1">
@@ -185,12 +202,6 @@
                     </div>
                 {/if}
 
-                {#if !appState.intercomEnabled}
-                    <div class="alert alert-error text-xs py-2 px-3 rounded-xl">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-4 w-4" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        <span>El intercom está <b>desactivado</b> en tu perfil.</span>
-                    </div>
-                {/if}
 
                 <!-- Message History -->
                 <div class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3 min-h-[200px]">
