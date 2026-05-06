@@ -76,7 +76,7 @@ async def create_adjustment(
     if user_role not in ["admin", "manager"]:
          raise HTTPException(
              status_code=403, 
-             detail="Permisos insuficientes para registrar merma. Se requiere rol admin o manager."
+             detail="Permisos insuficientes para registrar movimiento. Se requiere rol admin o manager."
          )
 
     return await adjustment_service.create_adjustment(

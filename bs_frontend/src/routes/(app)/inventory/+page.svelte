@@ -125,10 +125,20 @@
 		e.preventDefault();
 		try {
 			isSubmitting = true;
-			await IngredientService.registerAdjustment(adjustmentForm);
+			
+			// Sanitizar datos: si la fecha está vacía, enviarla como null para evitar error 422
+			const payload = { ...adjustmentForm };
+			if (!payload.expiration_date) {
+				delete payload.expiration_date;
+			}
+			
+			await IngredientService.registerAdjustment(payload);
 			(document.getElementById('modal_merma') as HTMLDialogElement)?.close();
+			
+			// Refrescar localmente de inmediato
+			await loadIngredients();
 		} catch (e: any) {
-			alert('Error al registrar merma: ' + e.message);
+			alert('Error al registrar movimiento: ' + e.message);
 		} finally {
 			isSubmitting = false;
 		}
@@ -198,14 +208,9 @@
 			selectedCategoryIds.length;
 			currentPage;
 			pageSize;
+			posSocket.ingredients; // Suscribirse a cambios en tiempo real del socket
 
 			loadIngredients();
-		}
-	});
-
-	$effect(() => {
-		if (posSocket.ingredients.length > 0 && !searchQuery && selectedCategoryIds.length === 0 && currentPage === 1) {
-			// ingredients = posSocket.ingredients; 
 		}
 	});
 

@@ -39,7 +39,16 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 				}
 			}
 			const errorData = await response.json().catch(() => null);
-			throw new Error(errorData?.detail || `Error HTTP: ${response.status}`);
+			let errorMessage = errorData?.detail || `Error HTTP: ${response.status}`;
+			
+			// Si el detalle es un array (errores de validación de FastAPI), lo aplanamos a string
+			if (Array.isArray(errorMessage)) {
+				errorMessage = errorMessage
+					.map((err: any) => typeof err === 'string' ? err : (err.msg || JSON.stringify(err)))
+					.join(', ');
+			}
+			
+			throw new Error(errorMessage);
 		}
 
 		// Para endpoints que devuelven vacío (ej. 204 No Content)
