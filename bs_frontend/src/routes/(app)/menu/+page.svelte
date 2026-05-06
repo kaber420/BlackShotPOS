@@ -4,16 +4,22 @@
     import type { Product } from '$lib/api/products';
     import { CategoryService } from '$lib/api/categories';
     import type { Category } from '$lib/api/categories';
+    
+    // Components
     import ProductModal from '$lib/components/ProductModal.svelte';
     import CategoryModal from '$lib/components/CategoryModal.svelte';
     import MeasureModal from '$lib/components/MeasureModal.svelte';
     import ComboBuilderModal from '$lib/components/product/ComboBuilderModal.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import ProductGrid from '$lib/components/menu/ProductGrid.svelte';
+    import ProductList from '$lib/components/menu/ProductList.svelte';
 
     let products = $state<Product[]>([]);
     let categories = $state<Category[]>([]);
     let isLoading = $state(true);
     let searchQuery = $state('');
+    let selectedCategoryIds = $state<number[]>([]);
+    let viewMode = $state<'grid' | 'list'>('list');
     let errorMessage = $state('');
 
     // Modal states
@@ -24,10 +30,13 @@
     let editingProduct = $state<Partial<Product> | null>(null);
 
     const filteredProducts = $derived(
-        products.filter(p => 
-            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.description?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
+        products.filter(p => {
+            const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                 p.description?.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = selectedCategoryIds.length === 0 || 
+                                   (p.category_id && selectedCategoryIds.includes(p.category_id));
+            return matchesSearch && matchesCategory;
+        })
     );
 
     async function loadData() {
@@ -48,9 +57,12 @@
         }
     }
 
-    function getCategoryName(id?: number) {
-        if (!id) return 'Sin categoría';
-        return categories.find(c => c.id === id)?.name || 'Categoría desconocida';
+    function toggleCategoryFilter(id: number) {
+        if (selectedCategoryIds.includes(id)) {
+            selectedCategoryIds = selectedCategoryIds.filter(cid => cid !== id);
+        } else {
+            selectedCategoryIds = [...selectedCategoryIds, id];
+        }
     }
 
     function openCreateModal() {
@@ -61,14 +73,6 @@
     function openEditModal(product: Product) {
         editingProduct = { ...product };
         isProductModalOpen = true;
-    }
-
-    function openCategoryModal() {
-        isCategoryModalOpen = true;
-    }
-
-    function openMeasureModal() {
-        isMeasureModalOpen = true;
     }
 
     async function deleteProduct(id: number) {
@@ -86,196 +90,162 @@
     onMount(loadData);
 </script>
 
-<div class="p-6 md:p-8 lg:p-12 max-w-7xl mx-auto flex flex-col gap-8">
-    <header class="flex flex-col gap-2">
-        <h1 class="text-4xl font-extrabold tracking-tight">Menú de Productos</h1>
-        <p class="text-lg opacity-70">Administra los platillos y bebidas del establecimiento.</p>
-    </header>
-
-    <div class="flex flex-wrap gap-4 items-center justify-between">
-        <div class="flex gap-2">
-            <Button variant="primary" size="md" onclick={openCreateModal}>
-                <svelte:fragment slot="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                </svelte:fragment>
-                Nuevo Producto
-            </Button>
-            <Button variant="outline" size="md" class="border-primary text-primary hover:bg-primary/10" onclick={() => isComboModalOpen = true}>
-                <svelte:fragment slot="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                    </svg>
-                </svelte:fragment>
-                Armar Combo
-            </Button>
-            <Button variant="outline" size="md" onclick={openCategoryModal}>Categorías</Button>
-            <Button variant="outline" size="md" onclick={openMeasureModal}>Tallas/Medidas</Button>
+<div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+        <div>
+            <h1 class="text-4xl font-black text-base-content tracking-tighter">Menú de Productos</h1>
+            <p class="text-sm opacity-50 font-bold uppercase tracking-widest mt-1">Administra los platillos y bebidas del establecimiento.</p>
         </div>
-
-        <div class="join">
-            <input 
-                class="input input-bordered join-item w-64 uppercase" 
-                placeholder="Buscar producto..." 
-                bind:value={searchQuery}
-            />
-            <Button variant="ghost" class="join-item bg-base-200" square>🔍</Button>
+        
+        <div class="flex gap-2">
+            <Button variant="outline" size="sm" class="rounded-xl font-bold" onclick={() => isComboModalOpen = true}>
+                📦 Armar Combo
+            </Button>
+            <Button variant="outline" size="sm" class="rounded-xl font-bold" onclick={() => isMeasureModalOpen = true}>
+                📏 Tallas/Medidas
+            </Button>
         </div>
     </div>
 
     {#if errorMessage}
-        <div class="alert alert-error shadow-lg">
-            <div>
-                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current flex-shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                <span>{errorMessage}</span>
-            </div>
-            <div class="flex-none">
-                <Button variant="ghost" size="sm" onclick={loadData}>Reintentar</Button>
-            </div>
+        <div class="alert alert-error mb-6 rounded-2xl shadow-lg border-none bg-error/20 text-error-content font-bold">
+            <span class="text-xl">⚠️</span>
+            <span>{errorMessage}</span>
+            <button class="btn btn-sm btn-ghost" onclick={loadData}>Reintentar</button>
         </div>
     {/if}
 
-    <div class="hidden md:block overflow-x-auto bg-base-100 rounded-2xl shadow-sm border border-base-200">
-        <table class="table table-lg">
-            <thead class="bg-base-200/50">
-                <tr>
-                    <th class="font-bold">Producto</th>
-                    <th class="font-bold">Categoría</th>
-                    <th class="font-bold">Precio Base</th>
-                    <th class="font-bold">Estado</th>
-                    <th class="font-bold text-right">Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {#if isLoading}
-                    {#each Array(3) as _}
-                        <tr class="animate-pulse">
-                            <td>
-                                <div class="flex items-center gap-3">
-                                    <div class="bg-base-300 rounded-full w-12 h-12"></div>
-                                    <div class="h-4 bg-base-300 rounded w-32"></div>
-                                </div>
-                            </td>
-                            <td><div class="h-4 bg-base-300 rounded w-16"></div></td>
-                            <td><div class="h-4 bg-base-300 rounded w-12"></div></td>
-                            <td><div class="h-4 bg-base-300 rounded w-20"></div></td>
-                            <td class="text-right"><div class="h-8 bg-base-300 rounded w-16 ml-auto"></div></td>
-                        </tr>
-                    {/each}
-                {:else if filteredProducts.length === 0}
-                    <tr>
-                        <td colspan="5" class="text-center py-12 opacity-50 italic">
-                            {searchQuery ? 'No se encontraron productos que coincidan con la búsqueda.' : 'No hay productos registrados en el menú.'}
-                        </td>
-                    </tr>
-                {:else}
-                    {#each filteredProducts as product (product.id)}
-                        <tr class="hover:bg-base-200/20 transition-colors">
-                            <td>
-                                <div class="flex items-center gap-3">
-                                    <div class="avatar placeholder">
-                                        <div class="bg-primary/10 text-primary rounded-full w-12 border border-primary/20">
-                                            {#if product.image_url}
-                                                <img src={product.image_url} alt={product.name} />
-                                            {:else}
-                                                <span class="text-xs font-bold">{product.name.substring(0, 2).toUpperCase()}</span>
-                                            {/if}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div class="font-bold text-lg">{product.name}</div>
-                                        {#if product.description}
-                                            <div class="text-sm opacity-50 max-w-xs truncate">{product.description}</div>
-                                        {/if}
-                                    </div>
-                                </div>
-                            </td>
-                            <td><span class="badge badge-ghost border-base-300">{getCategoryName(product.category_id)}</span></td>
-                            <td class="font-mono text-lg font-bold">${product.price.toFixed(2)}</td>
-                            <td>
-                                <span class="badge {product.is_active ? 'badge-success' : 'badge-ghost'} text-white font-bold p-3">
-                                    {product.is_active ? 'Activo' : 'Inactivo'}
-                                </span>
-                            </td>
-                            <td class="text-right">
-                                <div class="flex justify-end gap-1">
-                                    <Button variant="ghost" size="sm" class="text-primary" onclick={() => openEditModal(product)}>
-                                        Editar
-                                    </Button>
-                                    <Button variant="ghost" size="sm" danger onclick={() => deleteProduct(product.id!)}>
-                                        Eliminar
-                                    </Button>
-                                </div>
-                            </td>
-                        </tr>
-                    {/each}
-                {/if}
-            </tbody>
-        </table>
+    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
+            <!-- Search -->
+            <div class="relative w-full md:w-80 group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-20 group-focus-within:opacity-100 group-focus-within:text-primary transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    bind:value={searchQuery}
+                    placeholder="Buscar producto..." 
+                    class="input input-lg w-full pl-14 bg-base-100 border-2 border-base-200 rounded-[1.5rem] font-bold focus:border-primary/50 transition-all shadow-sm"
+                />
+            </div>
+
+            <!-- Category Filter -->
+            <div class="dropdown dropdown-bottom">
+                <div tabindex="0" role="button" class="btn btn-lg bg-base-100 border-2 border-base-200 px-6 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-[1.5rem] shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                    Filtrar
+                    <span class="text-xs opacity-40 ml-1 font-black">({products.length})</span>
+                    {#if selectedCategoryIds.length > 0}
+                        <span class="badge badge-primary badge-sm font-black ml-1">{selectedCategoryIds.length}</span>
+                    {/if}
+                </div>
+                <div tabindex="0" class="dropdown-content z-[50] card card-compact w-64 p-2 shadow-2xl bg-base-100 border border-base-200 mt-3 rounded-2xl">
+                    <div class="p-3 border-b border-base-200 mb-2 flex justify-between items-center">
+                        <span class="text-[10px] uppercase font-black opacity-40 tracking-widest">Categorías</span>
+                        <button class="text-[10px] font-black text-primary hover:underline" onclick={() => selectedCategoryIds = []}>Limpiar</button>
+                    </div>
+                    <div class="max-h-60 overflow-y-auto space-y-1 p-1">
+                        {#each categories as cat}
+                            <div class="flex items-center gap-3 p-2 rounded-xl hover:bg-base-200 transition-colors cursor-pointer" onclick={() => toggleCategoryFilter(cat.id!)}>
+                                <input 
+                                    type="checkbox" 
+                                    checked={selectedCategoryIds.includes(cat.id!)} 
+                                    class="checkbox checkbox-primary checkbox-sm rounded-lg"
+                                    onchange={() => {}} 
+                                />
+                                <span class="font-bold text-sm">{cat.name}</span>
+                            </div>
+                        {:else}
+                            <div class="p-4 text-center opacity-40 text-xs italic">No hay categorías</div>
+                        {/each}
+                    </div>
+                    <div class="p-2 mt-2 border-t border-base-200">
+                        <button 
+                            class="btn btn-sm btn-ghost w-full justify-center gap-2 font-black text-primary text-[10px] uppercase tracking-widest"
+                            onclick={() => isCategoryModalOpen = true}
+                        >
+                            ⚙️ Gestionar Categorías
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-2 bg-base-200/50 p-1 rounded-[1.5rem]">
+            <div class="flex items-center gap-1 mr-2 border-r border-base-300 pr-2">
+                <button 
+                    class="btn btn-sm btn-circle {viewMode === 'grid' ? 'btn-primary shadow-sm' : 'btn-ghost opacity-40'}"
+                    onclick={() => viewMode = 'grid'}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+                </button>
+                <button 
+                    class="btn btn-sm btn-circle {viewMode === 'list' ? 'btn-primary shadow-sm' : 'btn-ghost opacity-40'}"
+                    onclick={() => viewMode = 'list'}
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+            </div>
+            <Button variant="primary" size="sm" class="rounded-full px-6 font-black" onclick={openCreateModal}>
+                + Producto
+            </Button>
+        </div>
     </div>
 
-    <!-- Mobile Card View -->
-    <div class="grid grid-cols-1 gap-4 md:hidden">
+    <!-- Active Filter Chips -->
+    {#if selectedCategoryIds.length > 0 || searchQuery}
+        <div class="flex flex-wrap items-center gap-2 mt-[-1rem] animate-in slide-in-from-top-2 duration-300">
+            <span class="text-[10px] font-black opacity-30 uppercase tracking-widest mr-2">Filtros activos:</span>
+            {#each selectedCategoryIds as sid}
+                {@const cat = categories.find(c => c.id === sid)}
+                {#if cat}
+                    <div class="badge badge-primary badge-outline rounded-full px-4 py-3 font-black flex items-center gap-2 shadow-sm border-2">
+                        {cat.name}
+                        <button class="hover:text-error transition-colors" onclick={() => toggleCategoryFilter(sid)}>✕</button>
+                    </div>
+                {/if}
+            {/each}
+            {#if searchQuery}
+                <div class="badge badge-ghost rounded-full px-4 py-3 font-black flex items-center gap-2 border-2 border-base-300">
+                    Buscando: "{searchQuery}"
+                    <button class="hover:text-error transition-colors" onclick={() => searchQuery = ''}>✕</button>
+                </div>
+            {/if}
+            <button class="btn btn-link btn-xs font-black opacity-40 hover:opacity-100" onclick={() => { selectedCategoryIds = []; searchQuery = ''; }}>Limpiar todo</button>
+        </div>
+    {/if}
+
+    <div class="flex-1 min-h-0">
         {#if isLoading}
-            {#each Array(3) as _}
-                <div class="bg-base-100 p-4 rounded-2xl border border-base-200 shadow-sm animate-pulse flex flex-col gap-4">
-                    <div class="flex items-center gap-4">
-                        <div class="bg-base-300 rounded-full w-14 h-14 shrink-0"></div>
-                        <div class="flex-1 space-y-2">
-                            <div class="h-4 bg-base-300 rounded w-3/4"></div>
-                            <div class="h-3 bg-base-300 rounded w-1/2"></div>
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <div class="h-6 bg-base-300 rounded w-1/4"></div>
-                        <div class="h-8 bg-base-300 rounded w-1/3"></div>
-                    </div>
-                </div>
-            {/each}
-        {:else if filteredProducts.length === 0}
-            <div class="text-center py-8 opacity-50 italic bg-base-100 rounded-2xl border border-base-200 shadow-sm">
-                {searchQuery ? 'No se encontraron productos que coincidan con la búsqueda.' : 'No hay productos registrados en el menú.'}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {#each Array(8) as _}
+                    <div class="h-48 bg-base-200 animate-pulse rounded-2xl"></div>
+                {/each}
             </div>
+        {:else if filteredProducts.length === 0}
+            <div class="flex flex-col items-center justify-center py-20 bg-base-100 rounded-[2rem] border border-dashed border-base-300">
+                <span class="text-6xl mb-4">🍽️</span>
+                <h3 class="text-xl font-black opacity-40 uppercase tracking-widest">Sin productos encontrados</h3>
+                <p class="text-sm opacity-30 mt-2">Prueba ajustando los filtros o el buscador.</p>
+                <Button variant="ghost" class="mt-6" onclick={() => { searchQuery = ''; selectedCategoryIds = []; }}>Limpiar Filtros</Button>
+            </div>
+        {:else if viewMode === 'grid'}
+            <ProductGrid 
+                products={filteredProducts} 
+                {categories}
+                onEdit={openEditModal}
+                onDelete={deleteProduct}
+            />
         {:else}
-            {#each filteredProducts as product (product.id)}
-                <div class="bg-base-100 p-4 rounded-2xl border border-base-200 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow">
-                    <div class="flex justify-between items-start gap-4">
-                        <div class="flex items-center gap-3">
-                            <div class="avatar placeholder shrink-0">
-                                <div class="bg-primary/10 text-primary rounded-full w-14 border border-primary/20">
-                                    {#if product.image_url}
-                                        <img src={product.image_url} alt={product.name} class="object-cover" />
-                                    {:else}
-                                        <span class="text-sm font-bold">{product.name.substring(0, 2).toUpperCase()}</span>
-                                    {/if}
-                                </div>
-                            </div>
-                            <div>
-                                <div class="font-bold text-lg leading-tight">{product.name}</div>
-                                <div class="text-sm opacity-60 mt-0.5">{getCategoryName(product.category_id)}</div>
-                            </div>
-                        </div>
-                        <span class="badge {product.is_active ? 'badge-success' : 'badge-ghost'} text-white font-bold p-2.5 text-xs">
-                            {product.is_active ? 'Activo' : 'Inactivo'}
-                        </span>
-                    </div>
-                    
-                    {#if product.description}
-                        <p class="text-sm opacity-70 line-clamp-2">{product.description}</p>
-                    {/if}
-                    
-                    <div class="flex justify-between items-center mt-2 pt-3 border-t border-base-200">
-                        <div class="font-mono text-xl font-bold">${product.price.toFixed(2)}</div>
-                        <div class="flex gap-2">
-                            <Button variant="ghost" size="sm" class="text-primary" onclick={() => openEditModal(product)}>
-                                Editar
-                            </Button>
-                            <Button variant="ghost" size="sm" danger onclick={() => deleteProduct(product.id!)}>
-                                Eliminar
-                            </Button>
-                        </div>
-                    </div>
-                </div>
-            {/each}
+            <ProductList 
+                products={filteredProducts} 
+                {categories}
+                onEdit={openEditModal}
+                onDelete={deleteProduct}
+            />
         {/if}
     </div>
 </div>

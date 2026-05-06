@@ -1,54 +1,70 @@
 <script lang="ts">
-	import { type Ingredient, type InventoryCategory } from '$lib/api/ingredients';
+	import type { Product } from '$lib/api/products';
+	import type { Category } from '$lib/api/categories';
 	import Button from '$lib/components/ui/Button.svelte';
 
 	interface Props {
-		ingredients: Ingredient[];
-		categories: InventoryCategory[];
-		onAdjust: (ing: Ingredient) => void;
-		onEdit: (ing: Ingredient) => void;
+		products: Product[];
+		categories: Category[];
+		onEdit: (product: Product) => void;
 		onDelete: (id: number) => void;
 	}
 
-	let { ingredients, categories, onAdjust, onEdit, onDelete } = $props<Props>();
+	let { products, categories, onEdit, onDelete } = $props<Props>();
+
+	function getCategoryName(id?: number) {
+		if (!id) return 'Sin categoría';
+		return categories.find(c => c.id === id)?.name || 'Categoría desconocida';
+	}
 </script>
 
 <div class="bg-base-100 rounded-3xl border border-base-200 overflow-hidden shadow-sm">
 	<table class="table table-md w-full">
 		<thead class="bg-base-200/50">
 			<tr class="border-b border-base-200 text-[10px] font-black uppercase tracking-widest opacity-40">
-				<th class="pl-8 py-4">Material</th>
+				<th class="pl-8 py-4">Producto</th>
 				<th>Categoría</th>
-				<th>Stock Actual</th>
+				<th>Precio</th>
 				<th>Estado</th>
 				<th class="text-right pr-8">Acciones</th>
 			</tr>
 		</thead>
 		<tbody>
-			{#each ingredients as ing}
+			{#each products as product (product.id)}
 				<tr class="hover:bg-base-200/30 transition-colors border-b border-base-100/50 last:border-none">
 					<td class="pl-8 py-5">
-						<div class="flex flex-col">
-							<span class="font-black text-base tracking-tight">{ing.name}</span>
-							<span class="text-[10px] opacity-40 uppercase font-black tracking-widest mt-0.5">{ing.measure_type} • {ing.unit}</span>
+						<div class="flex items-center gap-4">
+							<div class="avatar placeholder shrink-0">
+								<div class="bg-primary/10 text-primary rounded-2xl w-12 h-12 border border-primary/20">
+									{#if product.image_url}
+										<img src={product.image_url} alt={product.name} class="object-cover" />
+									{:else}
+										<span class="text-xs font-black">{product.name.substring(0, 2).toUpperCase()}</span>
+									{/if}
+								</div>
+							</div>
+							<div class="flex flex-col">
+								<span class="font-black text-base tracking-tight">{product.name}</span>
+								{#if product.description}
+									<span class="text-[11px] opacity-40 truncate max-w-xs">{product.description}</span>
+								{/if}
+							</div>
 						</div>
 					</td>
 					<td>
 						<span class="badge badge-ghost border-none bg-base-200 font-black text-[10px] uppercase px-3 py-2 rounded-lg">
-							{categories.find(c => c.id === ing.category_id)?.name || ing.category}
+							{getCategoryName(product.category_id)}
 						</span>
 					</td>
 					<td>
-						<span class="font-black text-base {ing.current_stock <= ing.minimum_stock ? 'text-error' : 'text-primary'}">
-							{ing.current_stock.toFixed(1)} <small class="text-[10px] font-black opacity-40 uppercase ml-0.5">{ing.unit}</small>
+						<span class="font-black text-primary text-base">
+							${product.price.toFixed(2)}
 						</span>
 					</td>
 					<td>
-						{#if ing.current_stock <= ing.minimum_stock}
-							<div class="badge badge-error bg-error/15 text-error border-none font-black text-[9px] px-3 py-2 rounded-lg uppercase tracking-wider">CRÍTICO</div>
-						{:else}
-							<div class="badge badge-success bg-success/15 text-success border-none font-black text-[9px] px-3 py-2 rounded-lg uppercase tracking-wider">OK</div>
-						{/if}
+						<div class="badge {product.is_active ? 'badge-success bg-success/15 text-success' : 'badge-ghost bg-base-200'} border-none font-bold text-[9px] px-3 py-2 rounded-lg uppercase tracking-wider">
+							{product.is_active ? 'ACTIVO' : 'INACTIVO'}
+						</div>
 					</td>
 					<td class="text-right pr-8">
 						<div class="flex justify-end gap-2">
@@ -56,20 +72,8 @@
 								variant="ghost" 
 								square 
 								size="sm" 
-								class="bg-base-200 hover:bg-base-300 transition-all rounded-xl"
-								onclick={() => onAdjust(ing)} 
-								title="Movimientos (Entradas/Salidas)"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
-									<path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-								</svg>
-							</Button>
-							<Button 
-								variant="ghost" 
-								square 
-								size="sm" 
 								class="bg-base-200 hover:bg-base-300 transition-colors rounded-xl"
-								onclick={() => onEdit(ing)} 
+								onclick={() => onEdit(product)} 
 								title="Editar"
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">
@@ -81,7 +85,7 @@
 								square 
 								size="sm" 
 								class="bg-base-200 hover:bg-error hover:text-white transition-all rounded-xl"
-								onclick={() => ing.id && onDelete(ing.id)} 
+								onclick={() => product.id && onDelete(product.id)} 
 								title="Eliminar"
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4">

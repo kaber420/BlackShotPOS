@@ -23,9 +23,14 @@
 		note: ''
 	});
 
+	let lastIngredientId = $state<number | null>(null);
+
 	$effect(() => {
 		if (isOpen && ingredient) {
-			movementType = initialType;
+			if (ingredient.id !== lastIngredientId) {
+				movementType = initialType;
+				lastIngredientId = ingredient.id || null;
+			}
 			let defaultReason = AdjustmentReason.WASTE;
 			if (movementType === 'IN') defaultReason = AdjustmentReason.PURCHASE;
 			if (movementType === 'SET') defaultReason = AdjustmentReason.PHYSICAL_COUNT;

@@ -143,7 +143,7 @@
 
 </script>
 
-<div class="px-4 py-8 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full">
+<div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
 	<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
 		<div>
 			<h1 class="text-4xl font-black text-base-content tracking-tighter">Inventario Maestros</h1>
@@ -287,7 +287,7 @@
 			<InventoryGrid 
 				{ingredients} 
 				categories={inventoryCategories} 
-				onAdjust={(ing) => { selectedIngredientForAdjustment = ing; adjustmentType = 'OUT'; isAdjustmentModalOpen = true; }}
+				onAdjust={(ing) => { selectedIngredientForAdjustment = ing; adjustmentType = 'IN'; isAdjustmentModalOpen = true; }}
 				onEdit={(ing) => { editingIngredient = ing; isIngredientModalOpen = true; }}
 				onDelete={handleDeleteIngredient}
 			/>
@@ -295,7 +295,7 @@
 			<InventoryList 
 				{ingredients} 
 				categories={inventoryCategories} 
-				onAdjust={(ing) => { selectedIngredientForAdjustment = ing; adjustmentType = 'OUT'; isAdjustmentModalOpen = true; }}
+				onAdjust={(ing) => { selectedIngredientForAdjustment = ing; adjustmentType = 'IN'; isAdjustmentModalOpen = true; }}
 				onEdit={(ing) => { editingIngredient = ing; isIngredientModalOpen = true; }}
 				onDelete={handleDeleteIngredient}
 			/>
