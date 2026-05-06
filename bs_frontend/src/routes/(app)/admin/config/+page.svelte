@@ -5,7 +5,7 @@
      * Centralized control center for business settings, infrastructure, and technology.
      */
     import { onMount } from 'svelte';
-    import { appState } from '$lib/app_state.svelte';
+    import { appState, setTheme } from '$lib/app_state.svelte';
     import { SettingsService, type BusinessSettings } from '$lib/api/settings';
     import { toastConfig, saveToastConfig, addToast } from '$lib/toast.svelte.js';
     import Button from '$lib/components/ui/Button.svelte';
@@ -60,6 +60,14 @@
             action: () => isProductionModalOpen = true
         },
         {
+            id: 'inventory',
+            title: 'Gestión de Inventario',
+            desc: 'Control de insumos, stock y proveedores.',
+            icon: '📦',
+            color: 'bg-indigo-500/10 text-indigo-600',
+            action: () => goto('/inventory')
+        },
+        {
             id: 'tables',
             title: 'Mesas y Salones',
             desc: 'Diseño del mapa y gestión de espacios.',
@@ -74,6 +82,14 @@
             icon: '🔌',
             color: 'bg-purple-500/10 text-purple-600',
             action: () => goto('/admin/devices')
+        },
+        {
+            id: 'audits',
+            title: 'Bitácora de Auditoría',
+            desc: 'Registro global de eventos y seguridad.',
+            icon: '🛡️',
+            color: 'bg-slate-500/10 text-slate-600',
+            action: () => goto('/admin/audits')
         },
         {
             id: 'bridge',
@@ -253,6 +269,29 @@
                                 </select>
                             </div>
                         </div>
+
+                        <div class="space-y-4">
+                            <h3 class="text-lg font-black uppercase flex items-center gap-2 opacity-70">
+                                <span class="w-1.5 h-5 bg-pink-500 rounded-full"></span>
+                                Tema del Sistema
+                            </h3>
+                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                {#each ['corporate', 'coffee', 'bumblebee', 'light', 'dark', 'dim'] as theme}
+                                    <button 
+                                        class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all {appState.currentTheme === theme ? 'border-primary bg-primary/5' : 'border-base-200 bg-base-100 hover:border-base-300'}"
+                                        onclick={() => setTheme(theme)}
+                                    >
+                                        <div data-theme={theme} class="w-full aspect-video rounded-lg shadow-inner flex flex-col p-1 gap-1 bg-base-100 overflow-hidden border border-base-content/10">
+                                            <div class="h-2 w-full bg-primary rounded-full"></div>
+                                            <div class="h-2 w-3/4 bg-secondary rounded-full"></div>
+                                            <div class="h-2 w-1/2 bg-accent rounded-full"></div>
+                                        </div>
+                                        <span class="text-[10px] font-black uppercase tracking-widest">{theme}</span>
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-base-200/50 p-8 rounded-[2rem]">
                             <div class="flex items-center gap-4">
                                 <div class="flex-1">

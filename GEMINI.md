@@ -1,5 +1,8 @@
 # Gemini - Project Overview: Blackshot Ecosystem
 
+> [!IMPORTANT]
+> **REGLA DE ORO:** El asistente de IA tiene **estrictamente prohibido** realizar cambios o ediciones en el código fuente sin la autorización explícita del usuario. Siempre se debe presentar un plan y esperar aprobación.
+
 Este documento proporciona un resumen de alto nivel del ecosistema Blackshot para que los asistentes de IA puedan comprender su propósito, arquitectura y tecnologías.
 
 ## 1. Resumen del Proyecto
@@ -9,6 +12,7 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 ## 2. Pila Tecnológica (Tech Stack)
 
 *   **Backend (POS & Central):**
+    *   **Entorno:** Python 3 (uso obligatorio de `.venv`)
     *   **Framework:** FastAPI (Python)
     *   **Base de Datos:** SQLite (Local para POS, Central para Central Core)
     *   **ORM:** SQLModel (sobre SQLAlchemy)
@@ -53,9 +57,10 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 ## 4. Cómo Ejecutar el Ecosistema
 
 ### Blackshot POS (Local)
-1. Instalar dependencias en el root: `pip install -e .`
+1. Activar entorno virtual: `source .venv/bin/activate`
+2. Instalar dependencias en el root: `pip install -e .`
 2. Poblar datos: `python scripts/seeds/seed_data.py`
-3. Iniciar API: `blackshot`
+3. Iniciar API: `blackshot run` o `blackshot run sync`
 4. Iniciar Frontend: `cd bs_frontend && npm run dev`
 
 ### Blackshot Central (Gestión)

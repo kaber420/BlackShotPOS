@@ -7,13 +7,33 @@ if TYPE_CHECKING:
     # Para tipado, aunque intentamos no depender fuertemente
     pass
 
+class InventoryCategoryBase(SQLModel):
+    name: str = Field(index=True, unique=True)
+    description: Optional[str] = None
+
+class InventoryCategory(InventoryCategoryBase, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    
+    ingredients: List["Ingredient"] = Relationship(back_populates="inventory_category")
+
+class InventoryCategoryCreate(InventoryCategoryBase):
+    pass
+
+class InventoryCategoryUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
 class IngredientBase(SQLModel):
     name: str = Field(index=True, unique=True)
     measure_type: str = Field(default="unit", description="Tipo de medida: weight, volume, unit")
     unit: str = Field(description="Unidad base de almacenamiento (g, ml, pz)")
     current_stock: float = Field(default=0.0)
     minimum_stock: float = Field(default=0.0)
-    category: str = Field(default="Insumo", index=True)
+    
+    # Mantenemos category string para compatibilidad y simplicidad por ahora si se desea, 
+    # pero el nuevo sistema usará category_id
+    category: str = Field(default="Insumo", index=True) 
+    category_id: Optional[int] = Field(default=None, foreign_key="inventorycategory.id", index=True)
     
     # Información Nutricional
     protein_per_unit: float = Field(default=0.0, description="Proteína por unidad de medida")
@@ -23,6 +43,8 @@ class IngredientBase(SQLModel):
 
 class Ingredient(IngredientBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    
+    inventory_category: Optional[InventoryCategory] = Relationship(back_populates="ingredients")
     
     # No back_populates a Catalog para evitar acoplamiento. 
     # El Catálogo conoce al Inventario, pero no al revés.
@@ -38,6 +60,7 @@ class IngredientUpdate(SQLModel):
     current_stock: Optional[float] = None
     minimum_stock: Optional[float] = None
     category: Optional[str] = None
+    category_id: Optional[int] = None
     protein_per_unit: Optional[float] = None
     calories_per_unit: Optional[float] = None
     carbs_per_unit: Optional[float] = None
@@ -109,3 +132,4 @@ class IngredientPaginated(SQLModel):
     pages: int
 
 IngredientRead.model_rebuild()
+

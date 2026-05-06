@@ -6,5 +6,7 @@ from pos_core.events import topic_provider
 @topic_provider("inventory")
 async def provide_inventory(db: AsyncSession):
     """Proveedor para el tópico 'inventory'."""
-    ingredients = await get_ingredients(db)
+    # get_ingredients ahora devuelve un dict con paginación
+    res = await get_ingredients(db, limit=100) # Devolvemos top 100 para tiempo real
+    ingredients = res.get("items", [])
     return [i.model_dump(mode="json") for i in ingredients]

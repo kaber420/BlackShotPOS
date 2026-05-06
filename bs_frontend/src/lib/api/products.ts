@@ -26,6 +26,8 @@ export interface Modifier {
     extra_price: number;
     ingredient_id?: number;
     quantity: number;
+    input_quantity?: number;
+    input_unit?: string;
 }
 
 export interface ModifierGroup {

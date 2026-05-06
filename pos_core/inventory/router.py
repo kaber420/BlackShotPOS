@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
@@ -6,9 +6,9 @@ from pos_core.database import get_session
 from .models import (
     Ingredient, IngredientCreate, IngredientUpdate,
     InventoryAdjustment, InventoryAdjustmentCreate, AdjustmentReason,
-    IngredientPaginated
+    IngredientPaginated, InventoryCategory, InventoryCategoryCreate, InventoryCategoryUpdate
 )
-from .services import ingredient_service, adjustment_service
+from .services import ingredient_service, adjustment_service, category_service
 from pos_core.auth.dependencies import require_role, get_current_active_user
 from pos_core.auth.models import User
 
@@ -20,13 +20,14 @@ router = APIRouter()
 async def list_ingredients(
     search: Optional[str] = None,
     category: Optional[str] = None,
+    category_id: Optional[List[int]] = Query(None),
     limit: int = 20,
     offset: int = 0,
     db: AsyncSession = Depends(get_session)
 ):
     """Listado de materia prima en el almacén con filtros y paginación."""
     return await ingredient_service.get_ingredients(
-        db, search=search, category=category, limit=limit, offset=offset
+        db, search=search, category=category, category_ids=category_id, limit=limit, offset=offset
     )
 
 @router.post("/ingredients", response_model=Ingredient, dependencies=[Depends(require_role("admin"))])
@@ -84,3 +85,31 @@ async def create_adjustment(
         actor_uuid=str(user.id), 
         actor_name=getattr(user, "email", "unknown")
     )
+
+# --- Endpoints de Categorías de Inventario ---
+
+@router.get("/categories", response_model=List[InventoryCategory])
+async def list_categories(db: AsyncSession = Depends(get_session)):
+    """Lista todas las categorías de inventario."""
+    return await category_service.get_categories(db)
+
+@router.post("/categories", response_model=InventoryCategory, dependencies=[Depends(require_role("admin"))])
+async def create_category(category: InventoryCategoryCreate, db: AsyncSession = Depends(get_session)):
+    """Crea una nueva categoría de inventario."""
+    return await category_service.create_category(db, category)
+
+@router.put("/categories/{category_id}", response_model=InventoryCategory, dependencies=[Depends(require_role("admin"))])
+async def update_category(category_id: int, category: InventoryCategoryUpdate, db: AsyncSession = Depends(get_session)):
+    """Actualiza una categoría de inventario."""
+    updated = await category_service.update_category(db, category_id, category)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    return updated
+
+@router.delete("/categories/{category_id}", dependencies=[Depends(require_role("admin"))])
+async def delete_category(category_id: int, db: AsyncSession = Depends(get_session)):
+    """Elimina una categoría de inventario."""
+    success = await category_service.delete_category(db, category_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Categoría no encontrada")
+    return {"detail": "Categoría eliminada"}

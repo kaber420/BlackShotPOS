@@ -41,19 +41,16 @@
 		await logout();
 	}
 
-	function changeTheme(event: Event) {
-		const select = event.target as HTMLSelectElement;
-		setTheme(select.value);
-	}
+
 
 	// NavLinks — muestra todos mientras cargan los permisos, filtra una vez listos
 	const ALL_NAV = [
 		{ name: 'POS',        href: '/',                                  perm: 'takeOrders' },
 		{ name: 'Mesas',      href: '/tables',                            perm: 'manageTables' },
 		{ name: 'Órdenes',    href: '/orders',                            perm: 'viewOrders' },
+		{ name: 'Inventario',  href: '/inventory',                         perm: 'manageInventory' },
 		{ name: 'Cocina',     href: '/kitchen',                           perm: 'viewKitchen' },
 		{ name: 'Menú',       href: '/menu',                              perm: 'manageMenu' },
-		{ name: 'Inventario', href: '/admin/inventory/ingredients',       perm: 'manageInventory' },
 	] as const;
 
 	type PermKey = keyof typeof can;
@@ -145,14 +142,7 @@
 				{/if}
 			{/if}
 
-			<div class="hidden lg:flex items-center gap-2 mr-4 text-xs font-bold opacity-50 uppercase tracking-widest bg-base-200 px-3 py-1 rounded-lg">
-				Tema: 
-				<select class="select select-ghost select-xs font-bold p-0 min-h-0 h-auto focus:outline-none" onchange={changeTheme} value={appState.currentTheme}>
-					{#each ['corporate', 'coffee', 'bumblebee', 'light', 'dark', 'dim'] as theme}
-						<option value={theme}>{theme}</option>
-					{/each}
-				</select>
-			</div>
+
 
 			<!-- Intercom Navbar Trigger -->
 			<button 
@@ -204,15 +194,6 @@
 								{#if can.manageSettings()}
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
 								{/if}
-								
-								
-								{#if can.viewAudits()}
-									<li><a href="/admin/audits">🛡️ Auditoría</a></li>
-								{/if}
-
-								{#if can.manageIoT()}
-									<li><a href="/admin/devices">🔌 Gestionar Dispositivos</a></li>
-								{/if}
 							</ul>
 							<div class="py-2 border-t border-base-200">
 								{#if appState.activeShift}
@@ -246,6 +227,23 @@
 									checked={appState.intercomEnabled} 
 									onchange={(e) => setIntercomEnabled(e.currentTarget.checked)}
 								/>
+							</div>
+
+							<!-- Theme Selection (Quick Access) -->
+							<div class="px-4 py-2 flex items-center justify-between bg-base-200/50 rounded-xl mx-2 mb-2">
+								<div class="flex items-center gap-2">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 015.656 0l1.172 1.172a4 4 0 010 5.656l-1.172 1.172a4 4 0 01-5.656 0l-1.172-1.172a4 4 0 010-5.656z" /></svg>
+									<span class="text-[10px] font-black uppercase tracking-widest">Tema</span>
+								</div>
+								<select 
+									class="select select-ghost select-xs font-bold p-0 min-h-0 h-auto focus:outline-none bg-transparent" 
+									onchange={(e) => setTheme(e.currentTarget.value)} 
+									value={appState.currentTheme}
+								>
+									{#each ['corporate', 'coffee', 'bumblebee', 'light', 'dark', 'dim'] as theme}
+										<option value={theme}>{theme}</option>
+									{/each}
+								</select>
 							</div>
 
 							<div class="card-actions pt-2 border-t border-base-200">

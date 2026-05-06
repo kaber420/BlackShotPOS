@@ -22,16 +22,21 @@ async def get_ingredients(
     session: AsyncSession, 
     search: Optional[str] = None, 
     category: Optional[str] = None,
+    category_ids: Optional[List[int]] = None,
     limit: int = 20,
     offset: int = 0
 ) -> dict:
     statement = select(Ingredient)
     
     if search:
+        # Búsqueda robusta por nombre
         statement = statement.where(Ingredient.name.ilike(f"%{search}%"))
     
-    if category:
-        statement = statement.where(Ingredient.category == category)
+    if category_ids:
+        statement = statement.where(Ingredient.category_id.in_(category_ids))
+    elif category:
+        # Soporte para filtro por nombre de categoría (case-insensitive)
+        statement = statement.where(Ingredient.category.ilike(category))
     
     # Clonar para el conteo total
     count_statement = select(func.count()).select_from(statement.subquery())

@@ -19,6 +19,7 @@ export interface Ingredient {
 	carbs_per_unit?: number;
 	fats_per_unit?: number;
 	category: string;
+	category_id?: number;
 	batches?: IngredientBatch[];
 }
 
@@ -63,11 +64,21 @@ export interface InventoryAdjustmentCreate {
 	expiration_date?: string;
 }
 
+export interface InventoryCategory {
+	id?: number;
+	name: string;
+	description?: string;
+}
+
 export const IngredientService = {
-	getIngredients: (params?: { search?: string; category?: string; limit?: number; offset?: number }) => {
+	getIngredients: (params?: { search?: string; category?: string; category_ids?: number[]; limit?: number; offset?: number }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.search) searchParams.append('search', params.search);
 		if (params?.category) searchParams.append('category', params.category);
+		
+		if (params?.category_ids && params.category_ids.length > 0) {
+			params.category_ids.forEach(id => searchParams.append('category_id', id.toString()));
+		}
 		if (params?.limit) searchParams.append('limit', params.limit.toString());
 		if (params?.offset) searchParams.append('offset', params.offset.toString());
 		
@@ -89,6 +100,20 @@ export const IngredientService = {
 
 	delete: (id: number) =>
 		fetchApi<{detail: string}>(`/api/v1/pos/inventory/ingredients/${id}`, {
+			method: 'DELETE'
+		}),
+
+	// --- Categorías ---
+	getCategories: () => fetchApi<InventoryCategory[]>('/api/v1/pos/inventory/categories'),
+	
+	createCategory: (category: InventoryCategory) =>
+		fetchApi<InventoryCategory>('/api/v1/pos/inventory/categories', {
+			method: 'POST',
+			body: JSON.stringify(category)
+		}),
+
+	deleteCategory: (id: number) =>
+		fetchApi<{detail: string}>(`/api/v1/pos/inventory/categories/${id}`, {
 			method: 'DELETE'
 		}),
 
