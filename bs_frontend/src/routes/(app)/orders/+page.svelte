@@ -25,9 +25,6 @@
     let isTransferring = $state(false);
 
     // ── Filtros ──────────────────────────────────────────────────────────────────
-    // 'active' = órdenes que requieren atención (por defecto)
-    // Un string de OrderStatus = filtrar por ese estado específico
-    // 'all' = todas (para consultas/reclamaciones)
     type FilterKey = 'active' | 'all' | 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'PAID' | 'CANCELLED';
     let activeFilter = $state<FilterKey>('active');
 
@@ -204,6 +201,17 @@
     function calculateTotal(order: Order) {
         return order.items?.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0) || 0;
     }
+
+    let searchQuery = $state('');
+    let filteredBySearch = $derived(
+        searchQuery.trim() === '' 
+            ? filteredOrders 
+            : filteredOrders.filter(o => 
+                o.id.toString().includes(searchQuery) || 
+                o.table_number?.toString().includes(searchQuery) ||
+                o.customer_name?.toLowerCase().includes(searchQuery.toLowerCase())
+            )
+    );
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
@@ -214,124 +222,74 @@
             <p class="text-lg opacity-70">Seguimiento en tiempo real del estado de cada platillo.</p>
         </div>
 
-        <Button variant="neutral" size="md" class="gap-2 border-none bg-[#2c3e50] hover:bg-[#1a252f] text-white shadow-lg">
-            <svelte:fragment slot="icon">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c1.097 0 2.16.192 3.142.546m0-12.5a8.967 8.967 0 016 0m0 12.5a11.515 11.515 0 01-3.142-.546M12 6.042V18" /></svg>
-            </svelte:fragment>
-            Ver Reporte de Ventas
-        </Button>
+
     </header>
 
-    <!-- ── Filtros ─────────────────────────────────────────────────────────── -->
-    <div class="flex flex-col gap-3">
-
-        <!-- Vista principal: Activas / Historial / Todas -->
-        <div class="flex flex-wrap gap-2 items-center">
-            <!-- Activas (por defecto) -->
-            <Button
-                id="filter-active"
-                variant={activeFilter === 'active' ? 'primary' : 'ghost'}
-                size="sm"
-                class="gap-2 {activeFilter !== 'active' ? 'border border-base-300' : 'shadow-md shadow-primary/20'}"
-                onclick={() => activeFilter = 'active'}
-            >
-                <span class="relative flex h-2 w-2">
-                    {#if activeOrders.length > 0}
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-60"></span>
-                    {/if}
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
-                </span>
-                Activas
-                <span class="badge badge-sm {activeFilter === 'active' ? 'badge-primary-content bg-white/20 text-white border-none' : 'badge-ghost'}">
-                    {activeOrders.length}
-                </span>
-            </Button>
-
-            <!-- Historial (entregadas + pagadas) -->
-            <Button
-                id="filter-history"
-                variant={activeFilter === 'DELIVERED' ? 'neutral' : 'ghost'}
-                size="sm"
-                class="gap-2 {activeFilter !== 'DELIVERED' ? 'border border-base-300' : 'shadow-md'}"
-                onclick={() => activeFilter = 'DELIVERED'}
-            >
-                📋 Historial
-                <span class="badge badge-sm badge-ghost">{deliveredOrders.length}</span>
-            </Button>
-
-            <!-- Canceladas -->
-            <Button
-                id="filter-cancelled"
-                variant={activeFilter === 'CANCELLED' ? 'danger' : 'ghost'}
-                size="sm"
-                class="gap-2 {activeFilter !== 'CANCELLED' ? 'border border-base-300' : 'shadow-md'}"
-                onclick={() => activeFilter = 'CANCELLED'}
-            >
-                🚫 Canceladas
-                <span class="badge badge-sm badge-ghost">{cancelledOrders.length}</span>
-            </Button>
-
-            <!-- Separador -->
-            <div class="h-6 w-px bg-base-300 mx-1 hidden md:block"></div>
-
-            <!-- Todas (para búsqueda / reclamaciones) -->
-            <Button
-                id="filter-all"
-                variant="ghost"
-                size="sm"
-                class="gap-2 {activeFilter === 'all' ? 'border-primary' : 'border-base-300'} border opacity-70"
-                onclick={() => activeFilter = 'all'}
-            >
-                🗂 Todas ({orders.length})
-            </Button>
-        </div>
-
-        <!-- Chips de sub-filtro: solo en vista Activas para afinar -->
-        {#if activeFilter === 'active' || activeFilter === 'PENDING' || activeFilter === 'PREPARING' || activeFilter === 'READY'}
-            <div class="flex flex-wrap gap-2 items-center pl-1">
-                <span class="text-[10px] uppercase tracking-widest font-black opacity-40 mr-1">Filtrar por:</span>
-
-                <!-- Todas las activas -->
-                <Button
-                    variant={activeFilter === 'active' ? 'primary' : 'outline'}
-                    size="sm"
-                    class="rounded-full"
-                    onclick={() => activeFilter = 'active'}
-                >
-                    Todas las activas ({activeOrders.length})
-                </Button>
-
-                <!-- Pendientes -->
-                <Button
-                    variant={activeFilter === 'PENDING' ? 'warning' : 'outline'}
-                    size="sm"
-                    class="rounded-full"
-                    onclick={() => activeFilter = 'PENDING'}
-                >
-                    ⏳ Pendiente ({pendingOrders.length})
-                </Button>
-
-                <!-- Preparando -->
-                <Button
-                    variant={activeFilter === 'PREPARING' ? 'primary' : 'outline'}
-                    size="sm"
-                    class="rounded-full"
-                    onclick={() => activeFilter = 'PREPARING'}
-                >
-                    🍳 Preparando ({preparingOrders.length})
-                </Button>
-
-                <!-- Listos -->
-                <Button
-                    variant={activeFilter === 'READY' ? 'success' : 'outline'}
-                    size="sm"
-                    class="rounded-full"
-                    onclick={() => activeFilter = 'READY'}
-                >
-                    ✅ Listos ({readyOrders.length})
-                </Button>
+    <!-- ── Filtros y Búsqueda ────────────────────────────────────────────────── -->
+    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
+            <!-- Barra de Búsqueda -->
+            <div class="relative w-full md:w-80 group">
+                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-20 group-focus-within:opacity-100 group-focus-within:text-primary transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    bind:value={searchQuery}
+                    placeholder="Buscar por # o mesa..." 
+                    class="input input-lg w-full pl-14 bg-base-100 border-2 border-base-200 rounded-[1.5rem] font-bold focus:border-primary/50 transition-all shadow-sm"
+                />
             </div>
-        {/if}
+
+            <!-- Dropdown de Filtro (ESTILO INVENTARIO) -->
+            <div class="dropdown dropdown-bottom">
+                <div tabindex="0" role="button" class="btn btn-lg bg-base-100 border-2 border-base-200 px-6 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-[1.5rem] shadow-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                    </svg>
+                    Filtrar: 
+                    <span class="text-primary">
+                        {activeFilter === 'active' ? 'Activas' :
+                        activeFilter === 'PENDING' ? 'Pendientes' :
+                        activeFilter === 'PREPARING' ? 'En Cocina' :
+                        activeFilter === 'READY' ? 'Listos' :
+                        activeFilter === 'DELIVERED' ? 'Historial' :
+                        activeFilter === 'CANCELLED' ? 'Canceladas' : 'Todas'}
+                    </span>
+                </div>
+                <div tabindex="0" class="dropdown-content z-[50] card card-compact w-64 p-2 shadow-2xl bg-base-100 border border-base-200 mt-3 rounded-2xl">
+                    <div class="p-3 border-b border-base-200 mb-2 flex justify-between items-center">
+                        <span class="text-[10px] uppercase font-black opacity-40 tracking-widest">Estado de Orden</span>
+                    </div>
+                    <div class="max-h-60 overflow-y-auto space-y-1 p-1">
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'active' ? 'bg-primary/10 text-primary' : ''}" onclick={() => activeFilter = 'active'}>
+                            Activas
+                        </button>
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'PENDING' ? 'bg-warning/10 text-warning' : ''}" onclick={() => activeFilter = 'PENDING'}>
+                            Pendientes
+                        </button>
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'PREPARING' ? 'bg-primary/10 text-primary' : ''}" onclick={() => activeFilter = 'PREPARING'}>
+                            En Cocina (Preparando)
+                        </button>
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'READY' ? 'bg-success/10 text-success' : ''}" onclick={() => activeFilter = 'READY'}>
+                            Listos
+                        </button>
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'DELIVERED' ? 'bg-neutral/10 text-neutral' : ''}" onclick={() => activeFilter = 'DELIVERED'}>
+                            Historial (Entregadas/Pagadas)
+                        </button>
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'CANCELLED' ? 'bg-error/10 text-error' : ''}" onclick={() => activeFilter = 'CANCELLED'}>
+                            Canceladas
+                        </button>
+                        <div class="border-t border-base-200 my-1"></div>
+                        <button class="w-full text-left p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm {activeFilter === 'all' ? 'bg-base-300' : ''}" onclick={() => activeFilter = 'all'}>
+                            Todas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- ── Contenido ───────────────────────────────────────────────────────── -->
@@ -356,7 +314,7 @@
         </div>
     {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {#each filteredOrders as order (order.id)}
+            {#each filteredBySearch as order (order.id)}
                 <OrderCard
                     {order}
                     view="orders"
