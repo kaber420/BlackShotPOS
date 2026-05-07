@@ -6,33 +6,47 @@ from ..models import Ingredient, IngredientBatch
 from pos_core.catalog.models import ProductVariant, ModifierQuantity
 from pos_core.events.service import trigger_broadcast
 from pos_core.catalog.services.recipe_service import get_variant_recipe, get_product_recipe
+from pos_core.exceptions import InsufficientStockError
+
+# Configuración global de comportamiento de inventario
+ALLOW_NEGATIVE_STOCK = False
+MAX_RECURSION_DEPTH = 5
 
 async def process_inventory_depletion(session: AsyncSession, order_items) -> None:
     """
     Resta los ingredientes del inventario basándose en las recetas de los productos o variantes en la orden.
     Soporta combos recursivos (productos que contienen otros productos).
+    Utiliza una transacción atómica única.
     """
-    for item in order_items:
-        # Llamar a la función recursiva para el ítem principal
-        await _deplete_recursive(
-            session=session,
-            product_id=getattr(item, 'product_id', None),
-            variant_id=getattr(item, 'product_variant_id', None),
-            quantity=item.quantity,
-            selected_modifiers=getattr(item, 'modifiers', [])
-        )
-                
-    await session.commit()
-    await trigger_broadcast("inventory")
+    try:
+        for item in order_items:
+            # Llamar a la función recursiva para el ítem principal
+            await _deplete_recursive(
+                session=session,
+                product_id=getattr(item, 'product_id', None),
+                variant_id=getattr(item, 'product_variant_id', None),
+                quantity=item.quantity,
+                selected_modifiers=getattr(item, 'modifiers', []),
+                depth=0
+            )
+                    
+        await session.commit()
+        await trigger_broadcast("inventory")
+    except Exception as e:
+        await session.rollback()
+        raise e
 
 async def _deplete_recursive(
     session: AsyncSession, 
     product_id: Optional[int], 
     variant_id: Optional[int], 
     quantity: float,
-    selected_modifiers: list = []
+    selected_modifiers: list = [],
+    depth: int = 0
 ) -> None:
     """Función interna recursiva para descontar inventario."""
+    if depth > MAX_RECURSION_DEPTH:
+        return
     recipe = []
     # 1. Priorizar receta por variante si existe
     if variant_id:
@@ -50,9 +64,15 @@ async def _deplete_recursive(
         current_item_qty = ri.quantity * quantity
 
         if ri.ingredient_id:
-            # Ingrediente fijo
-            ingredient = await session.get(Ingredient, ri.ingredient_id)
+            # Ingrediente fijo - Usar Pessimistic Locking
+            stmt = select(Ingredient).where(Ingredient.id == ri.ingredient_id).with_for_update()
+            res = await session.execute(stmt)
+            ingredient = res.scalar_one_or_none()
+            
             if ingredient:
+                if not ALLOW_NEGATIVE_STOCK and ingredient.current_stock < current_item_qty:
+                    raise InsufficientStockError(ingredient.name, ingredient.current_stock, current_item_qty)
+                
                 ingredient.current_stock -= current_item_qty
                 session.add(ingredient)
                 # También descontar de los lotes (FEFO)
@@ -64,7 +84,8 @@ async def _deplete_recursive(
                 session=session,
                 product_id=ri.child_product_id,
                 variant_id=ri.child_variant_id,
-                quantity=current_item_qty
+                quantity=current_item_qty,
+                depth=depth + 1
             )
 
         elif ri.modifier_group_id:
@@ -78,14 +99,21 @@ async def _deplete_recursive(
                     mod_var_id = getattr(mod, 'variant_id', None) if not isinstance(mod, dict) else mod.get('variant_id')
 
                     if mod_ing_id:
-                        ingredient = await session.get(Ingredient, mod_ing_id)
+                        # Usar Pessimistic Locking
+                        stmt = select(Ingredient).where(Ingredient.id == mod_ing_id).with_for_update()
+                        res = await session.execute(stmt)
+                        ingredient = res.scalar_one_or_none()
+                        
                         if ingredient:
+                            if not ALLOW_NEGATIVE_STOCK and ingredient.current_stock < current_item_qty:
+                                raise InsufficientStockError(ingredient.name, ingredient.current_stock, current_item_qty)
+                                
                             ingredient.current_stock -= current_item_qty
                             session.add(ingredient)
                             # También descontar de los lotes (FEFO)
                             await _subtract_from_batches(session, mod_ing_id, current_item_qty)
                     elif mod_prod_id:
-                        await _deplete_recursive(session, mod_prod_id, mod_var_id, current_item_qty)
+                        await _deplete_recursive(session, mod_prod_id, mod_var_id, current_item_qty, depth=depth + 1)
                     
                     # Registrar este modificador para evitar descuento doble
                     mod_id = getattr(mod, 'id', None) if not isinstance(mod, dict) else mod.get('id')
@@ -128,16 +156,24 @@ async def _deplete_recursive(
                 mod_qty = getattr(modifier, 'quantity', 0.0) if not isinstance(modifier, dict) else modifier.get('quantity', 0.0)
 
             if mod_qty > 0:
-                ingredient = await session.get(Ingredient, mod_ing_id)
+                # Usar Pessimistic Locking
+                stmt = select(Ingredient).where(Ingredient.id == mod_ing_id).with_for_update()
+                res = await session.execute(stmt)
+                ingredient = res.scalar_one_or_none()
+                
                 if ingredient:
-                    ingredient.current_stock -= (mod_qty * quantity)
+                    required_qty = mod_qty * quantity
+                    if not ALLOW_NEGATIVE_STOCK and ingredient.current_stock < required_qty:
+                        raise InsufficientStockError(ingredient.name, ingredient.current_stock, required_qty)
+                    
+                    ingredient.current_stock -= required_qty
                     session.add(ingredient)
                     # También descontar de los lotes (FEFO)
-                    await _subtract_from_batches(session, mod_ing_id, mod_qty * quantity)
+                    await _subtract_from_batches(session, mod_ing_id, required_qty)
         
         elif mod_prod_id:
             # El modificador es un producto (ej: "Agrandar a papas grandes" donde papas grandes es un producto)
-            await _deplete_recursive(session, mod_prod_id, mod_var_id, quantity)
+            await _deplete_recursive(session, mod_prod_id, mod_var_id, quantity, depth=depth + 1)
 
 async def _subtract_from_batches(session: AsyncSession, ingredient_id: int, quantity: float):
     """
@@ -162,6 +198,3 @@ async def _subtract_from_batches(session: AsyncSession, ingredient_id: int, quan
         batch.current_quantity -= take
         remaining -= take
         session.add(batch)
-                
-    await session.commit()
-    await trigger_broadcast("inventory")

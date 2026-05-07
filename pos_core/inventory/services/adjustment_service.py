@@ -1,4 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import select
+from datetime import datetime
 from pos_core.inventory.models import InventoryAdjustment, InventoryAdjustmentCreate, Ingredient, AdjustmentReason, IngredientBatch
 from pos_core.audit.models import AuditLog, AuditCategory
 from pos_core.events.service import trigger_broadcast
@@ -18,31 +20,50 @@ async def create_adjustment(
     Registra un movimiento de inventario (Entrada, Salida o Conteo Físico).
     Actualiza el stock, guarda el log de auditoría y encola sincronización.
     """
-    # 1. Buscar ingrediente
-    ingredient = await session.get(Ingredient, adjustment_data.ingredient_id)
+    # 1. Buscar ingrediente con Pessimistic Locking
+    stmt = select(Ingredient).where(Ingredient.id == adjustment_data.ingredient_id).with_for_update()
+    res = await session.execute(stmt)
+    ingredient = res.scalar_one_or_none()
+
     if not ingredient:
         logger.error(f"❌ Error: Ingrediente {adjustment_data.ingredient_id} no encontrado")
         raise ValueError(f"Ingrediente con id {adjustment_data.ingredient_id} no encontrado")
 
     old_stock = ingredient.current_stock
     reason = adjustment_data.reason
-    
-    # 2. Determinar el impacto en el stock según la razón
     delta = 0.0
     
+    # 2. Determinar el impacto en el stock y reconciliar lotes
     if reason in [AdjustmentReason.PURCHASE, AdjustmentReason.RESTOCK]:
         # ENTRADA: Sumamos la cantidad al stock actual
         delta = adjustment_data.quantity
         ingredient.current_stock += delta
     elif reason in [AdjustmentReason.PHYSICAL_COUNT, AdjustmentReason.CORRECTION]:
-        # CONTEO FÍSICO: La cantidad recibida ES el nuevo stock total.
-        # Calculamos el delta para el registro de auditoría.
+        # CONTEO FÍSICO / CORRECCIÓN: La cantidad recibida ES el nuevo stock total.
         delta = adjustment_data.quantity - old_stock
         ingredient.current_stock = adjustment_data.quantity
+        
+        if delta < 0:
+            # Merma detectada: Descontar de lotes existentes (FEFO)
+            from .stock_service import _subtract_from_batches
+            await _subtract_from_batches(session, ingredient.id, abs(delta))
+        elif delta > 0:
+            # Sobrante detectado: Crear un lote de ajuste técnico
+            new_batch = IngredientBatch(
+                ingredient_id=ingredient.id,
+                original_quantity=delta,
+                current_quantity=delta,
+                expiration_date=adjustment_data.expiration_date,
+                arrival_date=datetime.utcnow()
+            )
+            session.add(new_batch)
     else:
-        # SALIDA / MERMA: Restamos la cantidad (por defecto)
+        # SALIDA / MERMA: Restamos la cantidad
         delta = -adjustment_data.quantity
         ingredient.current_stock += delta
+        # Importante: descontar de lotes para mantener paridad
+        from .stock_service import _subtract_from_batches
+        await _subtract_from_batches(session, ingredient.id, abs(delta))
 
     session.add(ingredient)
 

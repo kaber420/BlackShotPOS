@@ -24,3 +24,11 @@ class InvalidOrderStateError(BusinessLogicError):
             error_code="INVALID_ORDER_STATE",
             status_code=400
         )
+
+class InsufficientStockError(BusinessLogicError):
+    def __init__(self, ingredient_name: str, available: float, required: float):
+        super().__init__(
+            detail=f"Stock insuficiente para '{ingredient_name}'. Disponible: {available}, Requerido: {required}",
+            error_code="INSUFFICIENT_STOCK",
+            status_code=400
+        )

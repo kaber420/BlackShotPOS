@@ -23,6 +23,7 @@ async def get_ingredients(
     search: Optional[str] = None, 
     category: Optional[str] = None,
     category_ids: Optional[List[int]] = None,
+    stock_status: Optional[str] = None,
     limit: int = 20,
     offset: int = 0
 ) -> dict:
@@ -37,6 +38,23 @@ async def get_ingredients(
     elif category:
         # Soporte para filtro por nombre de categoría (case-insensitive)
         statement = statement.where(Ingredient.category.ilike(category))
+
+    # Filtros de Estado de Stock
+    if stock_status == "low":
+        statement = statement.where(Ingredient.current_stock <= Ingredient.minimum_stock)
+        statement = statement.where(Ingredient.current_stock > 0)
+    elif stock_status == "none":
+        statement = statement.where(Ingredient.current_stock <= 0)
+    elif stock_status == "expiring":
+        from ..models import IngredientBatch
+        from datetime import datetime, timedelta
+        # Próximos 7 días
+        deadline = datetime.utcnow() + timedelta(days=7)
+        subq = select(IngredientBatch.ingredient_id).where(
+            IngredientBatch.expiration_date <= deadline,
+            IngredientBatch.current_quantity > 0
+        )
+        statement = statement.where(Ingredient.id.in_(subq))
     
     # Clonar para el conteo total
     count_statement = select(func.count()).select_from(statement.subquery())

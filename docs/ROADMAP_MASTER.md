@@ -69,6 +69,9 @@ Este documento unifica la visión estratégica y operativa para transformar Blac
 - **Gestión Avanzada de Inventario:**
     - **Control por Lotes (Batches):** Seguimiento de caducidades y lotes de entrada (FIFO/FEFO).
     - **Edición Masiva (Bulk Update):** Herramienta para actualizar múltiples items (precios, stock, categorías) de manera simultánea.
+- **Arquitectura Dirigida por Eventos (P1):** Ver [Especificación EDA](file:///home/kaberromero/Documentos/proyectos/BlackShotPOS/docs/ARCHITECTURE_EVENT_DRIVEN.md)
+    - **Inventory Worker:** Implementación de la primera fase de EDA para garantizar integridad total en stock y lotes.
+    - **Desacoplamiento de Módulos:** Migración de Ventas, Mesas y Contabilidad al Bus de Eventos Interno para eliminar importaciones circulares.
 
 ## 5. Ecosistema IoT y Experiencia de Cliente (P2)
 *Objetivo: Empoderar al cliente y digitalizar la mesa.*

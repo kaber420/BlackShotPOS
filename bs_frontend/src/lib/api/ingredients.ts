@@ -71,10 +71,11 @@ export interface InventoryCategory {
 }
 
 export const IngredientService = {
-	getIngredients: (params?: { search?: string; category?: string; category_ids?: number[]; limit?: number; offset?: number }) => {
+	getIngredients: (params?: { search?: string; category?: string; category_ids?: number[]; stock_status?: string; limit?: number; offset?: number }) => {
 		const searchParams = new URLSearchParams();
 		if (params?.search) searchParams.append('search', params.search);
 		if (params?.category) searchParams.append('category', params.category);
+		if (params?.stock_status) searchParams.append('stock_status', params.stock_status);
 		
 		if (params?.category_ids && params.category_ids.length > 0) {
 			params.category_ids.forEach(id => searchParams.append('category_id', id.toString()));

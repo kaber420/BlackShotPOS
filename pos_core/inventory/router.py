@@ -21,13 +21,20 @@ async def list_ingredients(
     search: Optional[str] = None,
     category: Optional[str] = None,
     category_id: Optional[List[int]] = Query(None),
+    stock_status: Optional[str] = None,
     limit: int = 20,
     offset: int = 0,
     db: AsyncSession = Depends(get_session)
 ):
     """Listado de materia prima en el almacén con filtros y paginación."""
     return await ingredient_service.get_ingredients(
-        db, search=search, category=category, category_ids=category_id, limit=limit, offset=offset
+        db, 
+        search=search, 
+        category=category, 
+        category_ids=category_id, 
+        stock_status=stock_status,
+        limit=limit, 
+        offset=offset
     )
 
 @router.post("/ingredients", response_model=Ingredient, dependencies=[Depends(require_role("admin"))])

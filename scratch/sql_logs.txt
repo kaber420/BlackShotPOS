@@ -1,0 +1,1703 @@
+
+--- STRESS TEST: Concurrent Sales Locking ---
+2026-05-06 22:02:51,952 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:51,953 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("inventorycategory")
+2026-05-06 22:02:51,953 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,953 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("inventorycategory")
+2026-05-06 22:02:51,953 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("ingredient")
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("ingredient")
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("inventoryadjustment")
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("inventoryadjustment")
+2026-05-06 22:02:51,954 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("ingredientbatch")
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("ingredientbatch")
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("user")
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("user")
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("productionarea")
+2026-05-06 22:02:51,955 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("productionarea")
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("category")
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("category")
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("measure")
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("measure")
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("productvariant")
+2026-05-06 22:02:51,956 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("productvariant")
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("recipeitem")
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("recipeitem")
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("productmodifierlink")
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("productmodifierlink")
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("modifiergroup")
+2026-05-06 22:02:51,957 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("modifiergroup")
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("modifier")
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("modifier")
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("modifierquantity")
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("modifierquantity")
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("tax")
+2026-05-06 22:02:51,958 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("tax")
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("product")
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("product")
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("pospreset")
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("pospreset")
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("table")
+2026-05-06 22:02:51,959 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("table")
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("cashregister")
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("cashregister")
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("cashmovement")
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("cashmovement")
+2026-05-06 22:02:51,960 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("shift")
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("shift")
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("auditlog")
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("auditlog")
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("businesssettings")
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,961 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("businesssettings")
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("iotdevice")
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("iotdevice")
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("customer")
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("customer")
+2026-05-06 22:02:51,962 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("syncevent")
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("syncevent")
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("orderitemmodifier")
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("orderitemmodifier")
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("orderitem")
+2026-05-06 22:02:51,963 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("orderitem")
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("payment")
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("payment")
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine PRAGMA main.table_info("order")
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine PRAGMA temp.table_info("order")
+2026-05-06 22:02:51,964 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-05-06 22:02:51,965 INFO sqlalchemy.engine.Engine 
+CREATE TABLE inventorycategory (
+	name VARCHAR NOT NULL, 
+	description VARCHAR, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,966 INFO sqlalchemy.engine.Engine [no key 0.00008s] ()
+2026-05-06 22:02:51,966 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_inventorycategory_name ON inventorycategory (name)
+2026-05-06 22:02:51,966 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,967 INFO sqlalchemy.engine.Engine 
+CREATE TABLE user (
+	id CHAR(32) NOT NULL, 
+	email VARCHAR NOT NULL, 
+	hashed_password VARCHAR NOT NULL, 
+	is_active BOOLEAN NOT NULL, 
+	is_superuser BOOLEAN NOT NULL, 
+	is_verified BOOLEAN NOT NULL, 
+	organization_id VARCHAR NOT NULL, 
+	is_remote BOOLEAN NOT NULL, 
+	external_id VARCHAR, 
+	metadata JSON, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,967 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,967 INFO sqlalchemy.engine.Engine CREATE INDEX ix_user_organization_id ON user (organization_id)
+2026-05-06 22:02:51,967 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,968 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_user_email ON user (email)
+2026-05-06 22:02:51,968 INFO sqlalchemy.engine.Engine [no key 0.00008s] ()
+2026-05-06 22:02:51,968 INFO sqlalchemy.engine.Engine 
+CREATE TABLE productionarea (
+	name VARCHAR NOT NULL, 
+	description VARCHAR, 
+	printer_ip VARCHAR, 
+	printer_port INTEGER NOT NULL, 
+	printer_type VARCHAR NOT NULL, 
+	is_active BOOLEAN NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,968 INFO sqlalchemy.engine.Engine [no key 0.00007s] ()
+2026-05-06 22:02:51,968 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_productionarea_name ON productionarea (name)
+2026-05-06 22:02:51,968 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,969 INFO sqlalchemy.engine.Engine 
+CREATE TABLE measure (
+	name VARCHAR NOT NULL, 
+	value FLOAT NOT NULL, 
+	unit VARCHAR NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,969 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,969 INFO sqlalchemy.engine.Engine CREATE INDEX ix_measure_name ON measure (name)
+2026-05-06 22:02:51,969 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,970 INFO sqlalchemy.engine.Engine 
+CREATE TABLE modifiergroup (
+	name VARCHAR NOT NULL, 
+	description VARCHAR, 
+	min_selection INTEGER NOT NULL, 
+	max_selection INTEGER NOT NULL, 
+	is_required BOOLEAN NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,970 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,970 INFO sqlalchemy.engine.Engine CREATE INDEX ix_modifiergroup_name ON modifiergroup (name)
+2026-05-06 22:02:51,970 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,971 INFO sqlalchemy.engine.Engine 
+CREATE TABLE tax (
+	name VARCHAR NOT NULL, 
+	rate FLOAT NOT NULL, 
+	description VARCHAR, 
+	is_active BOOLEAN NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,971 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,971 INFO sqlalchemy.engine.Engine CREATE INDEX ix_tax_name ON tax (name)
+2026-05-06 22:02:51,971 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,971 INFO sqlalchemy.engine.Engine 
+CREATE TABLE "table" (
+	id INTEGER NOT NULL, 
+	number INTEGER NOT NULL, 
+	capacity INTEGER NOT NULL, 
+	status VARCHAR NOT NULL, 
+	location VARCHAR, 
+	occupied_at DATETIME, 
+	is_active BOOLEAN NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,971 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,972 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_table_number ON "table" (number)
+2026-05-06 22:02:51,972 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,972 INFO sqlalchemy.engine.Engine 
+CREATE TABLE cashregister (
+	id INTEGER NOT NULL, 
+	name VARCHAR NOT NULL, 
+	is_active BOOLEAN NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,972 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,972 INFO sqlalchemy.engine.Engine CREATE INDEX ix_cashregister_name ON cashregister (name)
+2026-05-06 22:02:51,972 INFO sqlalchemy.engine.Engine [no key 0.00007s] ()
+2026-05-06 22:02:51,973 INFO sqlalchemy.engine.Engine 
+CREATE TABLE auditlog (
+	id INTEGER NOT NULL, 
+	category VARCHAR(9) NOT NULL, 
+	action VARCHAR NOT NULL, 
+	reason VARCHAR, 
+	actor_uuid VARCHAR NOT NULL, 
+	actor_name VARCHAR NOT NULL, 
+	target_id VARCHAR, 
+	target_type VARCHAR, 
+	changes_json VARCHAR, 
+	timestamp DATETIME NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,973 INFO sqlalchemy.engine.Engine [no key 0.00012s] ()
+2026-05-06 22:02:51,978 INFO sqlalchemy.engine.Engine 
+CREATE TABLE businesssettings (
+	id INTEGER NOT NULL, 
+	name VARCHAR NOT NULL, 
+	address VARCHAR, 
+	phone VARCHAR, 
+	tax_rate FLOAT NOT NULL, 
+	currency_symbol VARCHAR NOT NULL, 
+	currency_code VARCHAR NOT NULL, 
+	locale VARCHAR NOT NULL, 
+	ticket_footer VARCHAR, 
+	bridge_enabled BOOLEAN NOT NULL, 
+	bridge_public_key VARCHAR, 
+	nats_url VARCHAR NOT NULL, 
+	branch_id VARCHAR NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,978 INFO sqlalchemy.engine.Engine [no key 0.00015s] ()
+2026-05-06 22:02:51,978 INFO sqlalchemy.engine.Engine 
+CREATE TABLE customer (
+	id CHAR(32) NOT NULL, 
+	phone VARCHAR, 
+	name VARCHAR NOT NULL, 
+	email VARCHAR, 
+	points INTEGER NOT NULL, 
+	organization_id VARCHAR NOT NULL, 
+	is_synced BOOLEAN NOT NULL, 
+	last_visit_at DATETIME NOT NULL, 
+	created_at DATETIME NOT NULL, 
+	custom_metadata JSON NOT NULL, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,978 INFO sqlalchemy.engine.Engine [no key 0.00007s] ()
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine CREATE INDEX ix_customer_email ON customer (email)
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine CREATE INDEX ix_customer_organization_id ON customer (organization_id)
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine CREATE INDEX ix_customer_name ON customer (name)
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_customer_phone ON customer (phone)
+2026-05-06 22:02:51,979 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,980 INFO sqlalchemy.engine.Engine CREATE INDEX ix_customer_is_synced ON customer (is_synced)
+2026-05-06 22:02:51,980 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,980 INFO sqlalchemy.engine.Engine 
+CREATE TABLE syncevent (
+	id CHAR(32) NOT NULL, 
+	topic VARCHAR NOT NULL, 
+	payload VARCHAR NOT NULL, 
+	status VARCHAR(10) NOT NULL, 
+	attempts INTEGER NOT NULL, 
+	error_message VARCHAR, 
+	created_at DATETIME NOT NULL, 
+	synced_at DATETIME, 
+	PRIMARY KEY (id)
+)
+
+
+2026-05-06 22:02:51,980 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,980 INFO sqlalchemy.engine.Engine CREATE INDEX ix_syncevent_status ON syncevent (status)
+2026-05-06 22:02:51,980 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,981 INFO sqlalchemy.engine.Engine CREATE INDEX ix_syncevent_topic ON syncevent (topic)
+2026-05-06 22:02:51,981 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,981 INFO sqlalchemy.engine.Engine 
+CREATE TABLE ingredient (
+	name VARCHAR NOT NULL, 
+	measure_type VARCHAR NOT NULL, 
+	unit VARCHAR NOT NULL, 
+	current_stock FLOAT NOT NULL, 
+	minimum_stock FLOAT NOT NULL, 
+	category VARCHAR NOT NULL, 
+	category_id INTEGER, 
+	protein_per_unit FLOAT NOT NULL, 
+	calories_per_unit FLOAT NOT NULL, 
+	carbs_per_unit FLOAT NOT NULL, 
+	fats_per_unit FLOAT NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(category_id) REFERENCES inventorycategory (id)
+)
+
+
+2026-05-06 22:02:51,981 INFO sqlalchemy.engine.Engine [no key 0.00006s] ()
+2026-05-06 22:02:51,981 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_ingredient_name ON ingredient (name)
+2026-05-06 22:02:51,981 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,982 INFO sqlalchemy.engine.Engine CREATE INDEX ix_ingredient_category ON ingredient (category)
+2026-05-06 22:02:51,982 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,982 INFO sqlalchemy.engine.Engine CREATE INDEX ix_ingredient_category_id ON ingredient (category_id)
+2026-05-06 22:02:51,982 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,982 INFO sqlalchemy.engine.Engine 
+CREATE TABLE category (
+	name VARCHAR NOT NULL, 
+	description VARCHAR, 
+	is_modifier_category BOOLEAN NOT NULL, 
+	production_area_id INTEGER, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(production_area_id) REFERENCES productionarea (id)
+)
+
+
+2026-05-06 22:02:51,982 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,983 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_category_name ON category (name)
+2026-05-06 22:02:51,983 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,983 INFO sqlalchemy.engine.Engine CREATE INDEX ix_category_production_area_id ON category (production_area_id)
+2026-05-06 22:02:51,983 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,983 INFO sqlalchemy.engine.Engine 
+CREATE TABLE shift (
+	id INTEGER NOT NULL, 
+	register_id INTEGER, 
+	user_id CHAR(32), 
+	start_time DATETIME NOT NULL, 
+	end_time DATETIME, 
+	status VARCHAR(6) NOT NULL, 
+	initial_cash FLOAT NOT NULL, 
+	expected_cash FLOAT NOT NULL, 
+	expected_card FLOAT NOT NULL, 
+	expected_transfer FLOAT NOT NULL, 
+	actual_cash FLOAT, 
+	actual_card FLOAT, 
+	actual_transfer FLOAT, 
+	difference_cash FLOAT, 
+	notes VARCHAR, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(register_id) REFERENCES cashregister (id), 
+	FOREIGN KEY(user_id) REFERENCES user (id)
+)
+
+
+2026-05-06 22:02:51,983 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine 
+CREATE TABLE iotdevice (
+	id INTEGER NOT NULL, 
+	device_id VARCHAR NOT NULL, 
+	token VARCHAR NOT NULL, 
+	name VARCHAR, 
+	type VARCHAR NOT NULL, 
+	table_id INTEGER, 
+	is_active BOOLEAN NOT NULL, 
+	battery_level INTEGER, 
+	rssi INTEGER, 
+	firmware_version VARCHAR, 
+	last_seen DATETIME, 
+	created_at DATETIME NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(table_id) REFERENCES "table" (id)
+)
+
+
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_iotdevice_device_id ON iotdevice (device_id)
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine CREATE UNIQUE INDEX ix_iotdevice_token ON iotdevice (token)
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,984 INFO sqlalchemy.engine.Engine 
+CREATE TABLE inventoryadjustment (
+	ingredient_id INTEGER NOT NULL, 
+	quantity FLOAT NOT NULL, 
+	reason VARCHAR(20) NOT NULL, 
+	note VARCHAR, 
+	actor_uuid VARCHAR, 
+	actor_name VARCHAR, 
+	timestamp DATETIME NOT NULL, 
+	expiration_date DATETIME, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(ingredient_id) REFERENCES ingredient (id)
+)
+
+
+2026-05-06 22:02:51,985 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,985 INFO sqlalchemy.engine.Engine 
+CREATE TABLE ingredientbatch (
+	id INTEGER NOT NULL, 
+	ingredient_id INTEGER NOT NULL, 
+	original_quantity FLOAT NOT NULL, 
+	current_quantity FLOAT NOT NULL, 
+	expiration_date DATETIME, 
+	arrival_date DATETIME NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(ingredient_id) REFERENCES ingredient (id)
+)
+
+
+2026-05-06 22:02:51,985 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,985 INFO sqlalchemy.engine.Engine 
+CREATE TABLE product (
+	name VARCHAR NOT NULL, 
+	sku VARCHAR, 
+	description VARCHAR, 
+	recipe_markdown VARCHAR, 
+	price FLOAT NOT NULL, 
+	image_url VARCHAR, 
+	stock INTEGER, 
+	is_active BOOLEAN NOT NULL, 
+	category_id INTEGER, 
+	protein FLOAT NOT NULL, 
+	calories FLOAT NOT NULL, 
+	carbs FLOAT NOT NULL, 
+	fats FLOAT NOT NULL, 
+	tax_id INTEGER, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(category_id) REFERENCES category (id), 
+	FOREIGN KEY(tax_id) REFERENCES tax (id)
+)
+
+
+2026-05-06 22:02:51,985 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine CREATE INDEX ix_product_is_active ON product (is_active)
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine CREATE INDEX ix_product_sku ON product (sku)
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine CREATE INDEX ix_product_name ON product (name)
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine CREATE INDEX ix_product_category_id ON product (category_id)
+2026-05-06 22:02:51,986 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,987 INFO sqlalchemy.engine.Engine 
+CREATE TABLE cashmovement (
+	id INTEGER NOT NULL, 
+	shift_id INTEGER NOT NULL, 
+	amount FLOAT NOT NULL, 
+	type VARCHAR(10) NOT NULL, 
+	reason VARCHAR NOT NULL, 
+	user_id CHAR(32) NOT NULL, 
+	timestamp DATETIME NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(shift_id) REFERENCES shift (id), 
+	FOREIGN KEY(user_id) REFERENCES user (id)
+)
+
+
+2026-05-06 22:02:51,987 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,987 INFO sqlalchemy.engine.Engine 
+CREATE TABLE "order" (
+	id INTEGER NOT NULL, 
+	type VARCHAR(8) NOT NULL, 
+	status VARCHAR(9) NOT NULL, 
+	subtotal FLOAT NOT NULL, 
+	tax_amount FLOAT NOT NULL, 
+	total_amount FLOAT NOT NULL, 
+	table_id INTEGER, 
+	shift_id INTEGER, 
+	customer_id CHAR(32), 
+	external_reference VARCHAR, 
+	created_at DATETIME NOT NULL, 
+	updated_at DATETIME NOT NULL, 
+	waiter_uuid VARCHAR, 
+	waiter_name VARCHAR, 
+	cook_uuid VARCHAR, 
+	cook_name VARCHAR, 
+	preparing_at DATETIME, 
+	ready_at DATETIME, 
+	delivered_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(table_id) REFERENCES "table" (id), 
+	FOREIGN KEY(shift_id) REFERENCES shift (id), 
+	FOREIGN KEY(customer_id) REFERENCES customer (id)
+)
+
+
+2026-05-06 22:02:51,987 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,987 INFO sqlalchemy.engine.Engine CREATE INDEX ix_order_table_id ON "order" (table_id)
+2026-05-06 22:02:51,987 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,988 INFO sqlalchemy.engine.Engine CREATE INDEX ix_order_status ON "order" (status)
+2026-05-06 22:02:51,988 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,988 INFO sqlalchemy.engine.Engine CREATE INDEX ix_order_created_at ON "order" (created_at)
+2026-05-06 22:02:51,988 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,988 INFO sqlalchemy.engine.Engine 
+CREATE TABLE productvariant (
+	product_id INTEGER NOT NULL, 
+	measure_id INTEGER NOT NULL, 
+	price FLOAT NOT NULL, 
+	protein FLOAT NOT NULL, 
+	calories FLOAT NOT NULL, 
+	carbs FLOAT NOT NULL, 
+	fats FLOAT NOT NULL, 
+	image_url VARCHAR, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(product_id) REFERENCES product (id), 
+	FOREIGN KEY(measure_id) REFERENCES measure (id)
+)
+
+
+2026-05-06 22:02:51,988 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,989 INFO sqlalchemy.engine.Engine 
+CREATE TABLE productmodifierlink (
+	product_id INTEGER NOT NULL, 
+	modifier_group_id INTEGER NOT NULL, 
+	PRIMARY KEY (product_id, modifier_group_id), 
+	FOREIGN KEY(product_id) REFERENCES product (id) ON DELETE CASCADE, 
+	FOREIGN KEY(modifier_group_id) REFERENCES modifiergroup (id) ON DELETE CASCADE
+)
+
+
+2026-05-06 22:02:51,989 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,989 INFO sqlalchemy.engine.Engine 
+CREATE TABLE pospreset (
+	product_id INTEGER NOT NULL, 
+	name VARCHAR NOT NULL, 
+	modifier_ids_json VARCHAR NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(product_id) REFERENCES product (id)
+)
+
+
+2026-05-06 22:02:51,989 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,989 INFO sqlalchemy.engine.Engine 
+CREATE TABLE payment (
+	id INTEGER NOT NULL, 
+	order_id INTEGER NOT NULL, 
+	method VARCHAR(8) NOT NULL, 
+	amount FLOAT NOT NULL, 
+	received_amount FLOAT NOT NULL, 
+	change_amount FLOAT NOT NULL, 
+	tip_amount FLOAT NOT NULL, 
+	timestamp DATETIME NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(order_id) REFERENCES "order" (id)
+)
+
+
+2026-05-06 22:02:51,989 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,990 INFO sqlalchemy.engine.Engine CREATE INDEX ix_payment_order_id ON payment (order_id)
+2026-05-06 22:02:51,990 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,990 INFO sqlalchemy.engine.Engine CREATE INDEX ix_payment_timestamp ON payment (timestamp)
+2026-05-06 22:02:51,990 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,991 INFO sqlalchemy.engine.Engine 
+CREATE TABLE recipeitem (
+	product_id INTEGER, 
+	variant_id INTEGER, 
+	ingredient_id INTEGER, 
+	child_product_id INTEGER, 
+	child_variant_id INTEGER, 
+	modifier_group_id INTEGER, 
+	quantity FLOAT NOT NULL, 
+	input_quantity FLOAT NOT NULL, 
+	input_unit VARCHAR NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(product_id) REFERENCES product (id), 
+	FOREIGN KEY(variant_id) REFERENCES productvariant (id), 
+	FOREIGN KEY(ingredient_id) REFERENCES ingredient (id), 
+	FOREIGN KEY(child_product_id) REFERENCES product (id), 
+	FOREIGN KEY(child_variant_id) REFERENCES productvariant (id), 
+	FOREIGN KEY(modifier_group_id) REFERENCES modifiergroup (id) ON DELETE CASCADE
+)
+
+
+2026-05-06 22:02:51,991 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,991 INFO sqlalchemy.engine.Engine 
+CREATE TABLE modifier (
+	name VARCHAR NOT NULL, 
+	extra_price FLOAT NOT NULL, 
+	modifier_group_id INTEGER NOT NULL, 
+	ingredient_id INTEGER, 
+	product_id INTEGER, 
+	variant_id INTEGER, 
+	quantity FLOAT NOT NULL, 
+	input_quantity FLOAT NOT NULL, 
+	input_unit VARCHAR NOT NULL, 
+	id INTEGER NOT NULL, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(modifier_group_id) REFERENCES modifiergroup (id) ON DELETE CASCADE, 
+	FOREIGN KEY(ingredient_id) REFERENCES ingredient (id), 
+	FOREIGN KEY(product_id) REFERENCES product (id), 
+	FOREIGN KEY(variant_id) REFERENCES productvariant (id)
+)
+
+
+2026-05-06 22:02:51,991 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,991 INFO sqlalchemy.engine.Engine CREATE INDEX ix_modifier_name ON modifier (name)
+2026-05-06 22:02:51,991 INFO sqlalchemy.engine.Engine [no key 0.00003s] ()
+2026-05-06 22:02:51,992 INFO sqlalchemy.engine.Engine 
+CREATE TABLE orderitem (
+	id INTEGER NOT NULL, 
+	order_id INTEGER NOT NULL, 
+	product_id INTEGER NOT NULL, 
+	product_variant_id INTEGER, 
+	quantity INTEGER NOT NULL, 
+	unit_price FLOAT NOT NULL, 
+	tax_rate FLOAT NOT NULL, 
+	tax_amount FLOAT NOT NULL, 
+	status VARCHAR(9) NOT NULL, 
+	delivered_by_uuid VARCHAR, 
+	delivered_by_name VARCHAR, 
+	cook_uuid VARCHAR, 
+	cook_name VARCHAR, 
+	preparing_at DATETIME, 
+	ready_at DATETIME, 
+	delivered_at DATETIME, 
+	PRIMARY KEY (id), 
+	FOREIGN KEY(order_id) REFERENCES "order" (id), 
+	FOREIGN KEY(product_id) REFERENCES product (id), 
+	FOREIGN KEY(product_variant_id) REFERENCES productvariant (id)
+)
+
+
+2026-05-06 22:02:51,992 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,992 INFO sqlalchemy.engine.Engine CREATE INDEX ix_orderitem_order_id ON orderitem (order_id)
+2026-05-06 22:02:51,992 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,992 INFO sqlalchemy.engine.Engine 
+CREATE TABLE modifierquantity (
+	modifier_id INTEGER NOT NULL, 
+	measure_id INTEGER NOT NULL, 
+	quantity FLOAT NOT NULL, 
+	PRIMARY KEY (modifier_id, measure_id), 
+	FOREIGN KEY(modifier_id) REFERENCES modifier (id) ON DELETE CASCADE, 
+	FOREIGN KEY(measure_id) REFERENCES measure (id) ON DELETE CASCADE
+)
+
+
+2026-05-06 22:02:51,993 INFO sqlalchemy.engine.Engine [no key 0.00004s] ()
+2026-05-06 22:02:51,993 INFO sqlalchemy.engine.Engine 
+CREATE TABLE orderitemmodifier (
+	order_item_id INTEGER NOT NULL, 
+	modifier_id INTEGER NOT NULL, 
+	PRIMARY KEY (order_item_id, modifier_id), 
+	FOREIGN KEY(order_item_id) REFERENCES orderitem (id), 
+	FOREIGN KEY(modifier_id) REFERENCES modifier (id)
+)
+
+
+2026-05-06 22:02:51,993 INFO sqlalchemy.engine.Engine [no key 0.00005s] ()
+2026-05-06 22:02:51,993 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,027 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,028 INFO sqlalchemy.engine.Engine INSERT INTO ingredient (name, measure_type, unit, current_stock, minimum_stock, category, category_id, protein_per_unit, calories_per_unit, carbs_per_unit, fats_per_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+2026-05-06 22:02:52,028 INFO sqlalchemy.engine.Engine [generated in 0.00016s] ('Leche', 'unit', 'ml', 1000.0, 10.0, 'Insumo', None, 0.0, 0.0, 0.0, 0.0)
+2026-05-06 22:02:52,029 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,029 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,031 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,031 INFO sqlalchemy.engine.Engine [generated in 0.00011s] (1,)
+2026-05-06 22:02:52,032 INFO sqlalchemy.engine.Engine INSERT INTO measure (name, value, unit) VALUES (?, ?, ?)
+2026-05-06 22:02:52,032 INFO sqlalchemy.engine.Engine [generated in 0.00009s] ('Unico', 1.0, 'pz')
+2026-05-06 22:02:52,033 INFO sqlalchemy.engine.Engine INSERT INTO ingredientbatch (ingredient_id, original_quantity, current_quantity, expiration_date, arrival_date) VALUES (?, ?, ?, ?, ?)
+2026-05-06 22:02:52,033 INFO sqlalchemy.engine.Engine [generated in 0.00009s] (1, 1000.0, 1000.0, None, '2026-05-07 05:02:52.031976')
+2026-05-06 22:02:52,033 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,034 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,034 INFO sqlalchemy.engine.Engine SELECT measure.name, measure.value, measure.unit, measure.id 
+FROM measure 
+WHERE measure.id = ?
+2026-05-06 22:02:52,034 INFO sqlalchemy.engine.Engine [generated in 0.00008s] (1,)
+2026-05-06 22:02:52,036 INFO sqlalchemy.engine.Engine INSERT INTO product (name, sku, description, recipe_markdown, price, image_url, stock, is_active, category_id, protein, calories, carbs, fats, tax_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+2026-05-06 22:02:52,036 INFO sqlalchemy.engine.Engine [generated in 0.00011s] ('Cafe', None, None, None, 10.0, None, 0, 1, None, 0.0, 0.0, 0.0, 0.0, None)
+2026-05-06 22:02:52,036 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,037 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,037 INFO sqlalchemy.engine.Engine SELECT product.name, product.sku, product.description, product.recipe_markdown, product.price, product.image_url, product.stock, product.is_active, product.category_id, product.protein, product.calories, product.carbs, product.fats, product.tax_id, product.id 
+FROM product 
+WHERE product.id = ?
+2026-05-06 22:02:52,037 INFO sqlalchemy.engine.Engine [generated in 0.00008s] (1,)
+2026-05-06 22:02:52,039 INFO sqlalchemy.engine.Engine SELECT productvariant.product_id AS productvariant_product_id, productvariant.measure_id AS productvariant_measure_id, productvariant.price AS productvariant_price, productvariant.protein AS productvariant_protein, productvariant.calories AS productvariant_calories, productvariant.carbs AS productvariant_carbs, productvariant.fats AS productvariant_fats, productvariant.image_url AS productvariant_image_url, productvariant.id AS productvariant_id 
+FROM productvariant 
+WHERE ? = productvariant.product_id
+2026-05-06 22:02:52,039 INFO sqlalchemy.engine.Engine [generated in 0.00013s] (1,)
+2026-05-06 22:02:52,043 INFO sqlalchemy.engine.Engine SELECT modifiergroup.name AS modifiergroup_name, modifiergroup.description AS modifiergroup_description, modifiergroup.min_selection AS modifiergroup_min_selection, modifiergroup.max_selection AS modifiergroup_max_selection, modifiergroup.is_required AS modifiergroup_is_required, modifiergroup.id AS modifiergroup_id 
+FROM modifiergroup, productmodifierlink 
+WHERE ? = productmodifierlink.product_id AND modifiergroup.id = productmodifierlink.modifier_group_id
+2026-05-06 22:02:52,043 INFO sqlalchemy.engine.Engine [generated in 0.00022s] (1,)
+2026-05-06 22:02:52,044 INFO sqlalchemy.engine.Engine INSERT INTO productvariant (product_id, measure_id, price, protein, calories, carbs, fats, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+2026-05-06 22:02:52,044 INFO sqlalchemy.engine.Engine [generated in 0.00014s] (1, 1, 15.0, 0.0, 0.0, 0.0, 0.0, None)
+2026-05-06 22:02:52,045 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,045 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,046 INFO sqlalchemy.engine.Engine SELECT productvariant.product_id, productvariant.measure_id, productvariant.price, productvariant.protein, productvariant.calories, productvariant.carbs, productvariant.fats, productvariant.image_url, productvariant.id 
+FROM productvariant 
+WHERE productvariant.id = ?
+2026-05-06 22:02:52,046 INFO sqlalchemy.engine.Engine [generated in 0.00012s] (1,)
+2026-05-06 22:02:52,048 INFO sqlalchemy.engine.Engine INSERT INTO recipeitem (product_id, variant_id, ingredient_id, child_product_id, child_variant_id, modifier_group_id, quantity, input_quantity, input_unit) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+2026-05-06 22:02:52,048 INFO sqlalchemy.engine.Engine [generated in 0.00017s] (None, 1, 1, None, None, None, 10.0, 0.0, '')
+2026-05-06 22:02:52,048 INFO sqlalchemy.engine.Engine COMMIT
+Lanzando 50 ventas concurrentes...
+2026-05-06 22:02:52,049 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,051 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,051 INFO sqlalchemy.engine.Engine [generated in 0.00013s] (1,)
+2026-05-06 22:02:52,051 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine [cached since 0.0007517s ago] (1,)
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine [cached since 0.001209s ago] (1,)
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,052 INFO sqlalchemy.engine.Engine [cached since 0.001636s ago] (1,)
+2026-05-06 22:02:52,053 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,053 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,053 INFO sqlalchemy.engine.Engine [cached since 0.002085s ago] (1,)
+2026-05-06 22:02:52,053 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,053 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,053 INFO sqlalchemy.engine.Engine [cached since 0.00246s ago] (1,)
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine [cached since 0.002863s ago] (1,)
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine [cached since 0.003261s ago] (1,)
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,054 INFO sqlalchemy.engine.Engine [cached since 0.003637s ago] (1,)
+2026-05-06 22:02:52,055 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,055 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,055 INFO sqlalchemy.engine.Engine [cached since 0.004046s ago] (1,)
+2026-05-06 22:02:52,055 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,055 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,055 INFO sqlalchemy.engine.Engine [cached since 0.004446s ago] (1,)
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine [cached since 0.00485s ago] (1,)
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine [cached since 0.005265s ago] (1,)
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,056 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine [cached since 0.005662s ago] (1,)
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine [cached since 0.00605s ago] (1,)
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine [cached since 0.006431s ago] (1,)
+2026-05-06 22:02:52,057 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine [cached since 0.006831s ago] (1,)
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine [cached since 0.007259s ago] (1,)
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,058 INFO sqlalchemy.engine.Engine [cached since 0.007579s ago] (1,)
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine [cached since 0.007967s ago] (1,)
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine [cached since 0.008338s ago] (1,)
+2026-05-06 22:02:52,059 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine [cached since 0.008759s ago] (1,)
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine [cached since 0.009137s ago] (1,)
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,060 INFO sqlalchemy.engine.Engine [cached since 0.009494s ago] (1,)
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine [cached since 0.009881s ago] (1,)
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine [cached since 0.01026s ago] (1,)
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,061 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine [cached since 0.01065s ago] (1,)
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine [cached since 0.01101s ago] (1,)
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine [cached since 0.01137s ago] (1,)
+2026-05-06 22:02:52,062 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine [cached since 0.01177s ago] (1,)
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine [cached since 0.01223s ago] (1,)
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,063 INFO sqlalchemy.engine.Engine [cached since 0.01262s ago] (1,)
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine [cached since 0.01302s ago] (1,)
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine [cached since 0.01342s ago] (1,)
+2026-05-06 22:02:52,064 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine [cached since 0.01383s ago] (1,)
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine [cached since 0.01424s ago] (1,)
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,065 INFO sqlalchemy.engine.Engine [cached since 0.01463s ago] (1,)
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine [cached since 0.01502s ago] (1,)
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine [cached since 0.01541s ago] (1,)
+2026-05-06 22:02:52,066 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine [cached since 0.01581s ago] (1,)
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine [cached since 0.01624s ago] (1,)
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,067 INFO sqlalchemy.engine.Engine [cached since 0.01662s ago] (1,)
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine [cached since 0.01701s ago] (1,)
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine [cached since 0.01739s ago] (1,)
+2026-05-06 22:02:52,068 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine [cached since 0.01779s ago] (1,)
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine [cached since 0.0182s ago] (1,)
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,069 INFO sqlalchemy.engine.Engine [cached since 0.01859s ago] (1,)
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine [cached since 0.01894s ago] (1,)
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine [cached since 0.01925s ago] (1,)
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine SELECT recipeitem.product_id, recipeitem.variant_id, recipeitem.ingredient_id, recipeitem.child_product_id, recipeitem.child_variant_id, recipeitem.modifier_group_id, recipeitem.quantity, recipeitem.input_quantity, recipeitem.input_unit, recipeitem.id 
+FROM recipeitem 
+WHERE recipeitem.variant_id = ?
+2026-05-06 22:02:52,070 INFO sqlalchemy.engine.Engine [cached since 0.01952s ago] (1,)
+2026-05-06 22:02:52,076 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,076 INFO sqlalchemy.engine.Engine [generated in 0.00014s] (1,)
+2026-05-06 22:02:52,076 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,076 INFO sqlalchemy.engine.Engine [cached since 0.0005918s ago] (1,)
+2026-05-06 22:02:52,076 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,076 INFO sqlalchemy.engine.Engine [cached since 0.0009338s ago] (1,)
+2026-05-06 22:02:52,077 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,077 INFO sqlalchemy.engine.Engine [cached since 0.001282s ago] (1,)
+2026-05-06 22:02:52,077 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,077 INFO sqlalchemy.engine.Engine [cached since 0.001613s ago] (1,)
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine [cached since 0.002024s ago] (1,)
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine [cached since 0.002363s ago] (1,)
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine [cached since 0.002668s ago] (1,)
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,078 INFO sqlalchemy.engine.Engine [cached since 0.002957s ago] (1,)
+2026-05-06 22:02:52,079 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,079 INFO sqlalchemy.engine.Engine [cached since 0.003254s ago] (1,)
+2026-05-06 22:02:52,079 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,079 INFO sqlalchemy.engine.Engine [cached since 0.003541s ago] (1,)
+2026-05-06 22:02:52,079 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,079 INFO sqlalchemy.engine.Engine [cached since 0.00382s ago] (1,)
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine [cached since 0.004109s ago] (1,)
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine [cached since 0.00441s ago] (1,)
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine [cached since 0.004718s ago] (1,)
+2026-05-06 22:02:52,080 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine [cached since 0.005001s ago] (1,)
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine [cached since 0.005288s ago] (1,)
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine [cached since 0.005575s ago] (1,)
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,081 INFO sqlalchemy.engine.Engine [cached since 0.005845s ago] (1,)
+2026-05-06 22:02:52,082 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,082 INFO sqlalchemy.engine.Engine [cached since 0.006129s ago] (1,)
+2026-05-06 22:02:52,082 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,082 INFO sqlalchemy.engine.Engine [cached since 0.006443s ago] (1,)
+2026-05-06 22:02:52,082 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,082 INFO sqlalchemy.engine.Engine [cached since 0.006746s ago] (1,)
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine [cached since 0.00704s ago] (1,)
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine [cached since 0.007323s ago] (1,)
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine [cached since 0.007597s ago] (1,)
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,083 INFO sqlalchemy.engine.Engine [cached since 0.007881s ago] (1,)
+2026-05-06 22:02:52,084 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,084 INFO sqlalchemy.engine.Engine [cached since 0.008195s ago] (1,)
+2026-05-06 22:02:52,084 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,084 INFO sqlalchemy.engine.Engine [cached since 0.008491s ago] (1,)
+2026-05-06 22:02:52,084 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,084 INFO sqlalchemy.engine.Engine [cached since 0.008777s ago] (1,)
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine [cached since 0.009063s ago] (1,)
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine [cached since 0.009348s ago] (1,)
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine [cached since 0.009671s ago] (1,)
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,085 INFO sqlalchemy.engine.Engine [cached since 0.009969s ago] (1,)
+2026-05-06 22:02:52,086 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,086 INFO sqlalchemy.engine.Engine [cached since 0.01026s ago] (1,)
+2026-05-06 22:02:52,086 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,086 INFO sqlalchemy.engine.Engine [cached since 0.01054s ago] (1,)
+2026-05-06 22:02:52,086 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,086 INFO sqlalchemy.engine.Engine [cached since 0.01082s ago] (1,)
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine [cached since 0.0111s ago] (1,)
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine [cached since 0.01138s ago] (1,)
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine [cached since 0.01169s ago] (1,)
+2026-05-06 22:02:52,087 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine [cached since 0.012s ago] (1,)
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine [cached since 0.01234s ago] (1,)
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine [cached since 0.01266s ago] (1,)
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,088 INFO sqlalchemy.engine.Engine [cached since 0.01296s ago] (1,)
+2026-05-06 22:02:52,089 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,089 INFO sqlalchemy.engine.Engine [cached since 0.01331s ago] (1,)
+2026-05-06 22:02:52,089 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,089 INFO sqlalchemy.engine.Engine [cached since 0.0136s ago] (1,)
+2026-05-06 22:02:52,089 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,089 INFO sqlalchemy.engine.Engine [cached since 0.0139s ago] (1,)
+2026-05-06 22:02:52,090 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,090 INFO sqlalchemy.engine.Engine [cached since 0.01422s ago] (1,)
+2026-05-06 22:02:52,090 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,090 INFO sqlalchemy.engine.Engine [cached since 0.01453s ago] (1,)
+2026-05-06 22:02:52,090 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,090 INFO sqlalchemy.engine.Engine [cached since 0.01483s ago] (1,)
+2026-05-06 22:02:52,091 INFO sqlalchemy.engine.Engine SELECT ingredient.name, ingredient.measure_type, ingredient.unit, ingredient.current_stock, ingredient.minimum_stock, ingredient.category, ingredient.category_id, ingredient.protein_per_unit, ingredient.calories_per_unit, ingredient.carbs_per_unit, ingredient.fats_per_unit, ingredient.id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,091 INFO sqlalchemy.engine.Engine [cached since 0.01517s ago] (1,)
+2026-05-06 22:02:52,096 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,096 INFO sqlalchemy.engine.Engine [generated in 0.00019s] (990.0, 1)
+2026-05-06 22:02:52,097 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,097 INFO sqlalchemy.engine.Engine [cached since 0.001267s ago] (990.0, 1)
+2026-05-06 22:02:52,098 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,098 INFO sqlalchemy.engine.Engine [cached since 0.001977s ago] (990.0, 1)
+2026-05-06 22:02:52,098 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,098 INFO sqlalchemy.engine.Engine [cached since 0.002653s ago] (990.0, 1)
+2026-05-06 22:02:52,099 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,099 INFO sqlalchemy.engine.Engine [cached since 0.003374s ago] (990.0, 1)
+2026-05-06 22:02:52,100 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,100 INFO sqlalchemy.engine.Engine [cached since 0.003974s ago] (990.0, 1)
+2026-05-06 22:02:52,100 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,100 INFO sqlalchemy.engine.Engine [cached since 0.004545s ago] (990.0, 1)
+2026-05-06 22:02:52,101 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,101 INFO sqlalchemy.engine.Engine [cached since 0.005014s ago] (990.0, 1)
+2026-05-06 22:02:52,101 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,101 INFO sqlalchemy.engine.Engine [cached since 0.005474s ago] (990.0, 1)
+2026-05-06 22:02:52,102 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,102 INFO sqlalchemy.engine.Engine [cached since 0.006086s ago] (990.0, 1)
+2026-05-06 22:02:52,102 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,102 INFO sqlalchemy.engine.Engine [cached since 0.006555s ago] (990.0, 1)
+2026-05-06 22:02:52,103 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,103 INFO sqlalchemy.engine.Engine [cached since 0.007074s ago] (990.0, 1)
+2026-05-06 22:02:52,103 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,103 INFO sqlalchemy.engine.Engine [cached since 0.007703s ago] (990.0, 1)
+2026-05-06 22:02:52,104 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,104 INFO sqlalchemy.engine.Engine [cached since 0.008204s ago] (990.0, 1)
+2026-05-06 22:02:52,104 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,104 INFO sqlalchemy.engine.Engine [cached since 0.008759s ago] (990.0, 1)
+2026-05-06 22:02:52,105 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,105 INFO sqlalchemy.engine.Engine [cached since 0.009186s ago] (990.0, 1)
+2026-05-06 22:02:52,105 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,105 INFO sqlalchemy.engine.Engine [cached since 0.009594s ago] (990.0, 1)
+2026-05-06 22:02:52,106 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,106 INFO sqlalchemy.engine.Engine [cached since 0.01033s ago] (990.0, 1)
+2026-05-06 22:02:52,107 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,107 INFO sqlalchemy.engine.Engine [cached since 0.01099s ago] (990.0, 1)
+2026-05-06 22:02:52,107 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,107 INFO sqlalchemy.engine.Engine [cached since 0.01159s ago] (990.0, 1)
+2026-05-06 22:02:52,108 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,108 INFO sqlalchemy.engine.Engine [cached since 0.01213s ago] (990.0, 1)
+2026-05-06 22:02:52,108 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,108 INFO sqlalchemy.engine.Engine [cached since 0.01258s ago] (990.0, 1)
+2026-05-06 22:02:52,109 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,109 INFO sqlalchemy.engine.Engine [cached since 0.01303s ago] (990.0, 1)
+2026-05-06 22:02:52,109 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,109 INFO sqlalchemy.engine.Engine [cached since 0.01349s ago] (990.0, 1)
+2026-05-06 22:02:52,110 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,110 INFO sqlalchemy.engine.Engine [cached since 0.01399s ago] (990.0, 1)
+2026-05-06 22:02:52,110 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,110 INFO sqlalchemy.engine.Engine [cached since 0.01439s ago] (990.0, 1)
+2026-05-06 22:02:52,110 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,110 INFO sqlalchemy.engine.Engine [cached since 0.01484s ago] (990.0, 1)
+2026-05-06 22:02:52,111 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,111 INFO sqlalchemy.engine.Engine [cached since 0.01534s ago] (990.0, 1)
+2026-05-06 22:02:52,111 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,111 INFO sqlalchemy.engine.Engine [cached since 0.01584s ago] (990.0, 1)
+2026-05-06 22:02:52,112 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,112 INFO sqlalchemy.engine.Engine [cached since 0.01627s ago] (990.0, 1)
+2026-05-06 22:02:52,112 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,112 INFO sqlalchemy.engine.Engine [cached since 0.01671s ago] (990.0, 1)
+2026-05-06 22:02:52,113 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,113 INFO sqlalchemy.engine.Engine [cached since 0.01719s ago] (990.0, 1)
+2026-05-06 22:02:52,113 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,113 INFO sqlalchemy.engine.Engine [cached since 0.01763s ago] (990.0, 1)
+2026-05-06 22:02:52,114 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,114 INFO sqlalchemy.engine.Engine [cached since 0.01809s ago] (990.0, 1)
+2026-05-06 22:02:52,114 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,114 INFO sqlalchemy.engine.Engine [cached since 0.01855s ago] (990.0, 1)
+2026-05-06 22:02:52,115 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,115 INFO sqlalchemy.engine.Engine [cached since 0.01902s ago] (990.0, 1)
+2026-05-06 22:02:52,115 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,115 INFO sqlalchemy.engine.Engine [cached since 0.01945s ago] (990.0, 1)
+2026-05-06 22:02:52,115 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,116 INFO sqlalchemy.engine.Engine [cached since 0.01988s ago] (990.0, 1)
+2026-05-06 22:02:52,116 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,116 INFO sqlalchemy.engine.Engine [cached since 0.02033s ago] (990.0, 1)
+2026-05-06 22:02:52,116 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,116 INFO sqlalchemy.engine.Engine [cached since 0.0208s ago] (990.0, 1)
+2026-05-06 22:02:52,117 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,117 INFO sqlalchemy.engine.Engine [cached since 0.02127s ago] (990.0, 1)
+2026-05-06 22:02:52,117 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,117 INFO sqlalchemy.engine.Engine [cached since 0.02169s ago] (990.0, 1)
+2026-05-06 22:02:52,118 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,118 INFO sqlalchemy.engine.Engine [cached since 0.02211s ago] (990.0, 1)
+2026-05-06 22:02:52,129 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,129 INFO sqlalchemy.engine.Engine [cached since 0.03356s ago] (990.0, 1)
+2026-05-06 22:02:52,130 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,130 INFO sqlalchemy.engine.Engine [cached since 0.03479s ago] (990.0, 1)
+2026-05-06 22:02:52,131 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,131 INFO sqlalchemy.engine.Engine [cached since 0.03571s ago] (990.0, 1)
+2026-05-06 22:02:52,132 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,132 INFO sqlalchemy.engine.Engine [cached since 0.0362s ago] (990.0, 1)
+2026-05-06 22:02:52,132 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,132 INFO sqlalchemy.engine.Engine [cached since 0.03666s ago] (990.0, 1)
+2026-05-06 22:02:52,133 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,133 INFO sqlalchemy.engine.Engine [cached since 0.03711s ago] (990.0, 1)
+2026-05-06 22:02:52,133 INFO sqlalchemy.engine.Engine UPDATE ingredient SET current_stock=? WHERE ingredient.id = ?
+2026-05-06 22:02:52,133 INFO sqlalchemy.engine.Engine [cached since 0.03753s ago] (990.0, 1)
+2026-05-06 22:02:52,136 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,136 INFO sqlalchemy.engine.Engine [generated in 0.00012s] (1, 0)
+2026-05-06 22:02:52,136 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,136 INFO sqlalchemy.engine.Engine [cached since 0.0005888s ago] (1, 0)
+2026-05-06 22:02:52,137 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,137 INFO sqlalchemy.engine.Engine [cached since 0.0009032s ago] (1, 0)
+2026-05-06 22:02:52,137 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,137 INFO sqlalchemy.engine.Engine [cached since 0.001174s ago] (1, 0)
+2026-05-06 22:02:52,137 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,137 INFO sqlalchemy.engine.Engine [cached since 0.001497s ago] (1, 0)
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine [cached since 0.001772s ago] (1, 0)
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine [cached since 0.002049s ago] (1, 0)
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine [cached since 0.002317s ago] (1, 0)
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,138 INFO sqlalchemy.engine.Engine [cached since 0.002525s ago] (1, 0)
+2026-05-06 22:02:52,139 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,139 INFO sqlalchemy.engine.Engine [cached since 0.00277s ago] (1, 0)
+2026-05-06 22:02:52,139 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,139 INFO sqlalchemy.engine.Engine [cached since 0.003121s ago] (1, 0)
+2026-05-06 22:02:52,139 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,139 INFO sqlalchemy.engine.Engine [cached since 0.003449s ago] (1, 0)
+2026-05-06 22:02:52,140 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,140 INFO sqlalchemy.engine.Engine [cached since 0.003807s ago] (1, 0)
+2026-05-06 22:02:52,140 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,140 INFO sqlalchemy.engine.Engine [cached since 0.004158s ago] (1, 0)
+2026-05-06 22:02:52,140 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,140 INFO sqlalchemy.engine.Engine [cached since 0.004502s ago] (1, 0)
+2026-05-06 22:02:52,141 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,141 INFO sqlalchemy.engine.Engine [cached since 0.004929s ago] (1, 0)
+2026-05-06 22:02:52,141 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,141 INFO sqlalchemy.engine.Engine [cached since 0.005186s ago] (1, 0)
+2026-05-06 22:02:52,141 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,141 INFO sqlalchemy.engine.Engine [cached since 0.005493s ago] (1, 0)
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine [cached since 0.005787s ago] (1, 0)
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine [cached since 0.006083s ago] (1, 0)
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine [cached since 0.006348s ago] (1, 0)
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,142 INFO sqlalchemy.engine.Engine [cached since 0.006568s ago] (1, 0)
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine [cached since 0.006791s ago] (1, 0)
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine [cached since 0.007008s ago] (1, 0)
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine [cached since 0.007222s ago] (1, 0)
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,143 INFO sqlalchemy.engine.Engine [cached since 0.00748s ago] (1, 0)
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine [cached since 0.007721s ago] (1, 0)
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine [cached since 0.007939s ago] (1, 0)
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine [cached since 0.008155s ago] (1, 0)
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine [cached since 0.008375s ago] (1, 0)
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,144 INFO sqlalchemy.engine.Engine [cached since 0.008593s ago] (1, 0)
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine [cached since 0.008816s ago] (1, 0)
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine [cached since 0.009026s ago] (1, 0)
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine [cached since 0.009244s ago] (1, 0)
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,145 INFO sqlalchemy.engine.Engine [cached since 0.00946s ago] (1, 0)
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine [cached since 0.009702s ago] (1, 0)
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine [cached since 0.009941s ago] (1, 0)
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine [cached since 0.01029s ago] (1, 0)
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,146 INFO sqlalchemy.engine.Engine [cached since 0.01055s ago] (1, 0)
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine [cached since 0.01087s ago] (1, 0)
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine [cached since 0.0111s ago] (1, 0)
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine [cached since 0.01131s ago] (1, 0)
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,147 INFO sqlalchemy.engine.Engine [cached since 0.01152s ago] (1, 0)
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine [cached since 0.01175s ago] (1, 0)
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine [cached since 0.01204s ago] (1, 0)
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine [cached since 0.01227s ago] (1, 0)
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,148 INFO sqlalchemy.engine.Engine [cached since 0.0125s ago] (1, 0)
+2026-05-06 22:02:52,149 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,149 INFO sqlalchemy.engine.Engine [cached since 0.01274s ago] (1, 0)
+2026-05-06 22:02:52,149 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,149 INFO sqlalchemy.engine.Engine [cached since 0.01296s ago] (1, 0)
+2026-05-06 22:02:52,149 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ? AND ingredientbatch.current_quantity > ? ORDER BY ingredientbatch.expiration_date ASC NULLS LAST, ingredientbatch.arrival_date ASC
+2026-05-06 22:02:52,149 INFO sqlalchemy.engine.Engine [cached since 0.01317s ago] (1, 0)
+2026-05-06 22:02:52,154 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,154 INFO sqlalchemy.engine.Engine [generated in 0.00019s] (990.0, 1)
+2026-05-06 22:02:52,154 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,154 INFO sqlalchemy.engine.Engine [cached since 0.0006958s ago] (990.0, 1)
+2026-05-06 22:02:52,154 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,155 INFO sqlalchemy.engine.Engine [cached since 0.001085s ago] (990.0, 1)
+2026-05-06 22:02:52,155 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,155 INFO sqlalchemy.engine.Engine [cached since 0.001494s ago] (990.0, 1)
+2026-05-06 22:02:52,155 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,155 INFO sqlalchemy.engine.Engine [cached since 0.001852s ago] (990.0, 1)
+2026-05-06 22:02:52,156 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,156 INFO sqlalchemy.engine.Engine [cached since 0.002199s ago] (990.0, 1)
+2026-05-06 22:02:52,156 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,156 INFO sqlalchemy.engine.Engine [cached since 0.002507s ago] (990.0, 1)
+2026-05-06 22:02:52,156 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,156 INFO sqlalchemy.engine.Engine [cached since 0.002821s ago] (990.0, 1)
+2026-05-06 22:02:52,157 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,157 INFO sqlalchemy.engine.Engine [cached since 0.003152s ago] (990.0, 1)
+2026-05-06 22:02:52,157 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,157 INFO sqlalchemy.engine.Engine [cached since 0.003468s ago] (990.0, 1)
+2026-05-06 22:02:52,157 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,157 INFO sqlalchemy.engine.Engine [cached since 0.003788s ago] (990.0, 1)
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine [cached since 0.004106s ago] (990.0, 1)
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine [cached since 0.004412s ago] (990.0, 1)
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine [cached since 0.004721s ago] (990.0, 1)
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,158 INFO sqlalchemy.engine.Engine [cached since 0.005027s ago] (990.0, 1)
+2026-05-06 22:02:52,159 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,159 INFO sqlalchemy.engine.Engine [cached since 0.005333s ago] (990.0, 1)
+2026-05-06 22:02:52,159 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,159 INFO sqlalchemy.engine.Engine [cached since 0.005633s ago] (990.0, 1)
+2026-05-06 22:02:52,159 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,159 INFO sqlalchemy.engine.Engine [cached since 0.00596s ago] (990.0, 1)
+2026-05-06 22:02:52,160 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,160 INFO sqlalchemy.engine.Engine [cached since 0.006274s ago] (990.0, 1)
+2026-05-06 22:02:52,160 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,160 INFO sqlalchemy.engine.Engine [cached since 0.006589s ago] (990.0, 1)
+2026-05-06 22:02:52,160 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,160 INFO sqlalchemy.engine.Engine [cached since 0.006895s ago] (990.0, 1)
+2026-05-06 22:02:52,161 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,161 INFO sqlalchemy.engine.Engine [cached since 0.007223s ago] (990.0, 1)
+2026-05-06 22:02:52,161 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,161 INFO sqlalchemy.engine.Engine [cached since 0.007527s ago] (990.0, 1)
+2026-05-06 22:02:52,161 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,161 INFO sqlalchemy.engine.Engine [cached since 0.007811s ago] (990.0, 1)
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine [cached since 0.008112s ago] (990.0, 1)
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine [cached since 0.00843s ago] (990.0, 1)
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine [cached since 0.008726s ago] (990.0, 1)
+2026-05-06 22:02:52,162 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,163 INFO sqlalchemy.engine.Engine [cached since 0.009054s ago] (990.0, 1)
+2026-05-06 22:02:52,163 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,163 INFO sqlalchemy.engine.Engine [cached since 0.009544s ago] (990.0, 1)
+2026-05-06 22:02:52,163 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,163 INFO sqlalchemy.engine.Engine [cached since 0.009917s ago] (990.0, 1)
+2026-05-06 22:02:52,164 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,164 INFO sqlalchemy.engine.Engine [cached since 0.01023s ago] (990.0, 1)
+2026-05-06 22:02:52,164 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,164 INFO sqlalchemy.engine.Engine [cached since 0.01053s ago] (990.0, 1)
+2026-05-06 22:02:52,164 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,164 INFO sqlalchemy.engine.Engine [cached since 0.01085s ago] (990.0, 1)
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine [cached since 0.01118s ago] (990.0, 1)
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine [cached since 0.01148s ago] (990.0, 1)
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine [cached since 0.01176s ago] (990.0, 1)
+2026-05-06 22:02:52,165 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine [cached since 0.01205s ago] (990.0, 1)
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine [cached since 0.01233s ago] (990.0, 1)
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine [cached since 0.01262s ago] (990.0, 1)
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,166 INFO sqlalchemy.engine.Engine [cached since 0.01291s ago] (990.0, 1)
+2026-05-06 22:02:52,167 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,167 INFO sqlalchemy.engine.Engine [cached since 0.01323s ago] (990.0, 1)
+2026-05-06 22:02:52,167 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,167 INFO sqlalchemy.engine.Engine [cached since 0.01354s ago] (990.0, 1)
+2026-05-06 22:02:52,167 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,167 INFO sqlalchemy.engine.Engine [cached since 0.01383s ago] (990.0, 1)
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine [cached since 0.01412s ago] (990.0, 1)
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine [cached since 0.01443s ago] (990.0, 1)
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine [cached since 0.01471s ago] (990.0, 1)
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,168 INFO sqlalchemy.engine.Engine [cached since 0.015s ago] (990.0, 1)
+2026-05-06 22:02:52,169 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,169 INFO sqlalchemy.engine.Engine [cached since 0.01536s ago] (990.0, 1)
+2026-05-06 22:02:52,169 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,169 INFO sqlalchemy.engine.Engine [cached since 0.0158s ago] (990.0, 1)
+2026-05-06 22:02:52,170 INFO sqlalchemy.engine.Engine UPDATE ingredientbatch SET current_quantity=? WHERE ingredientbatch.id = ?
+2026-05-06 22:02:52,170 INFO sqlalchemy.engine.Engine [cached since 0.01639s ago] (990.0, 1)
+2026-05-06 22:02:52,172 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,172 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,172 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,173 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,173 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,173 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,173 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,173 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,174 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,175 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,175 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,175 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,175 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,175 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,175 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,176 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,177 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+2026-05-06 22:02:52,178 INFO sqlalchemy.engine.Engine COMMIT
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+❓ No hay proveedor registrado para el tópico: inventory
+2026-05-06 22:02:52,185 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-05-06 22:02:52,185 INFO sqlalchemy.engine.Engine SELECT ingredient.name AS ingredient_name, ingredient.measure_type AS ingredient_measure_type, ingredient.unit AS ingredient_unit, ingredient.current_stock AS ingredient_current_stock, ingredient.minimum_stock AS ingredient_minimum_stock, ingredient.category AS ingredient_category, ingredient.category_id AS ingredient_category_id, ingredient.protein_per_unit AS ingredient_protein_per_unit, ingredient.calories_per_unit AS ingredient_calories_per_unit, ingredient.carbs_per_unit AS ingredient_carbs_per_unit, ingredient.fats_per_unit AS ingredient_fats_per_unit, ingredient.id AS ingredient_id 
+FROM ingredient 
+WHERE ingredient.id = ?
+2026-05-06 22:02:52,185 INFO sqlalchemy.engine.Engine [generated in 0.00010s] (1,)
+2026-05-06 22:02:52,187 INFO sqlalchemy.engine.Engine SELECT ingredientbatch.id, ingredientbatch.ingredient_id, ingredientbatch.original_quantity, ingredientbatch.current_quantity, ingredientbatch.expiration_date, ingredientbatch.arrival_date 
+FROM ingredientbatch 
+WHERE ingredientbatch.ingredient_id = ?
+2026-05-06 22:02:52,187 INFO sqlalchemy.engine.Engine [generated in 0.00010s] (1,)
+Stock inicial: 1000.0ml
+Ventas realizadas: 50
+Reducción esperada: 500.0ml
+Stock final real: 990.0ml
+Total en lotes: 990.0ml
+❌ STRESS TEST FAILED: Discrepancia detectada. Stock final: 990.0ml
+2026-05-06 22:02:52,187 INFO sqlalchemy.engine.Engine ROLLBACK

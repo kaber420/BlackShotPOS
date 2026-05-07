@@ -58,6 +58,20 @@
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
+		if (!ingredient) return;
+
+		// --- Optimistic UI Update ---
+		const previousStock = ingredient.current_stock;
+		const change = adjustmentForm.quantity;
+		
+		if (movementType === 'IN') {
+			ingredient.current_stock += change;
+		} else if (movementType === 'OUT') {
+			ingredient.current_stock -= change;
+		} else if (movementType === 'SET') {
+			ingredient.current_stock = change;
+		}
+
 		try {
 			isSubmitting = true;
 			const payload = { ...adjustmentForm };
@@ -65,9 +79,11 @@
 				delete payload.expiration_date;
 			}
 			await IngredientService.registerAdjustment(payload);
-			onSave();
+			onSave(); // Refrescará con los datos reales del servidor
 			onClose();
 		} catch (e: any) {
+			// Revertir en caso de error
+			ingredient.current_stock = previousStock;
 			alert('Error al registrar movimiento: ' + e.message);
 		} finally {
 			isSubmitting = false;

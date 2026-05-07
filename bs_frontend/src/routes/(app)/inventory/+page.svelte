@@ -24,12 +24,24 @@
 	let inventoryCategories = $state<InventoryCategory[]>([]);
 	
 	let searchQuery = $state('');
+	let searchInput = $state(''); // Valor del input sin debounce
+	let stockStatus = $state<'all' | 'low' | 'none' | 'expiring'>('all');
+	
 	let selectedCategoryIds = $state<number[]>([]);
 	let viewMode = $state<'grid' | 'list'>('grid');
 	let modifierGroups = $state<ModifierGroup[]>([]);
 	let isLoading = $state(true);
 	let activeTab = $state<'ingredients' | 'groups'>('ingredients');
 	let error = $state('');
+
+	// Debounce para la búsqueda
+	let debounceTimer: any;
+	$effect(() => {
+		clearTimeout(debounceTimer);
+		debounceTimer = setTimeout(() => {
+			searchQuery = searchInput;
+		}, 300);
+	});
 
 	// Estado de Modales
 	let isIngredientModalOpen = $state(false);
@@ -50,6 +62,7 @@
 			const res = await IngredientService.getIngredients({
 				search: searchQuery,
 				category_ids: selectedCategoryIds.length > 0 ? selectedCategoryIds : undefined,
+				stock_status: stockStatus !== 'all' ? stockStatus : undefined,
 				limit: pageSize,
 				offset: (currentPage - 1) * pageSize
 			});
@@ -124,6 +137,7 @@
 		if (activeTab === 'ingredients') {
 			searchQuery;
 			selectedCategoryIds.length;
+			stockStatus;
 			currentPage;
 			pageSize;
 			posSocket.ingredients; 
@@ -178,10 +192,30 @@
 					</div>
 					<input 
 						type="text" 
-						bind:value={searchQuery}
+						bind:value={searchInput}
 						placeholder="Buscar por nombre..." 
 						class="input input-lg w-full pl-14 bg-base-100 border-2 border-base-200 rounded-[1.5rem] font-bold focus:border-primary/50 transition-all shadow-sm"
 					/>
+				</div>
+
+				<!-- Filtro de Estado de Stock -->
+				<div class="join bg-base-100 border-2 border-base-200 rounded-[1.5rem] p-1 shadow-sm overflow-hidden">
+					<button 
+						class="btn btn-sm join-item border-none {stockStatus === 'all' ? 'btn-primary' : 'btn-ghost opacity-40'} font-black text-[10px] uppercase tracking-widest px-4"
+						onclick={() => { stockStatus = 'all'; currentPage = 1; }}
+					>Todos</button>
+					<button 
+						class="btn btn-sm join-item border-none {stockStatus === 'low' ? 'bg-warning text-warning-content shadow-inner' : 'btn-ghost opacity-40'} font-black text-[10px] uppercase tracking-widest px-4"
+						onclick={() => { stockStatus = 'low'; currentPage = 1; }}
+					>Bajo</button>
+					<button 
+						class="btn btn-sm join-item border-none {stockStatus === 'none' ? 'bg-error text-error-content shadow-inner' : 'btn-ghost opacity-40'} font-black text-[10px] uppercase tracking-widest px-4"
+						onclick={() => { stockStatus = 'none'; currentPage = 1; }}
+					>Agotado</button>
+					<button 
+						class="btn btn-sm join-item border-none {stockStatus === 'expiring' ? 'bg-info text-info-content shadow-inner' : 'btn-ghost opacity-40'} font-black text-[10px] uppercase tracking-widest px-4"
+						onclick={() => { stockStatus = 'expiring'; currentPage = 1; }}
+					>Caduca</button>
 				</div>
 
 				<div class="dropdown dropdown-bottom">
@@ -246,9 +280,15 @@
 			</div>
 		</div>
 
-		{#if selectedCategoryIds.length > 0 || searchQuery}
+		{#if selectedCategoryIds.length > 0 || searchQuery || stockStatus !== 'all'}
 			<div class="flex flex-wrap items-center gap-2 mt-4 animate-in slide-in-from-top-2 duration-300">
 				<span class="text-[10px] font-black opacity-30 uppercase tracking-widest mr-2">Filtros activos:</span>
+				{#if stockStatus !== 'all'}
+					<div class="badge badge-secondary rounded-full px-4 py-3 font-black flex items-center gap-2 shadow-sm border-2">
+						Estado: {stockStatus === 'low' ? 'Bajo Stock' : stockStatus === 'none' ? 'Agotado' : 'Próximo a Vencer'}
+						<button class="hover:text-error transition-colors" onclick={() => stockStatus = 'all'}>✕</button>
+					</div>
+				{/if}
 				{#each selectedCategoryIds as sid}
 					{@const cat = inventoryCategories.find(c => c.id === sid)}
 					{#if cat && cat.name.toLowerCase() !== 'insumo'}
@@ -261,10 +301,10 @@
 				{#if searchQuery}
 					<div class="badge badge-ghost rounded-full px-4 py-3 font-black flex items-center gap-2 border-2 border-base-300">
 						Buscando: "{searchQuery}"
-						<button class="hover:text-error transition-colors" onclick={() => searchQuery = ''}>✕</button>
+						<button class="hover:text-error transition-colors" onclick={() => { searchQuery = ''; searchInput = ''; }}>✕</button>
 					</div>
 				{/if}
-				<button class="btn btn-link btn-xs font-black opacity-40 hover:opacity-100" onclick={() => { selectedCategoryIds = []; searchQuery = ''; }}>Limpiar todo</button>
+				<button class="btn btn-link btn-xs font-black opacity-40 hover:opacity-100" onclick={() => { selectedCategoryIds = []; searchQuery = ''; searchInput = ''; stockStatus = 'all'; }}>Limpiar todo</button>
 			</div>
 		{/if}
 
