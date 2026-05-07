@@ -106,6 +106,14 @@
             icon: '🎨',
             color: 'bg-pink-500/10 text-pink-600',
             action: () => activeSection = 'appearance'
+        },
+        {
+            id: 'menu',
+            title: 'Carta Digital',
+            desc: 'Personaliza títulos, footer y redes sociales.',
+            icon: '📜',
+            color: 'bg-rose-500/10 text-rose-600',
+            action: () => activeSection = 'menu'
         }
     ];
 
@@ -239,75 +247,85 @@
                         </div>
                     {/if}
 
-                    {#if activeSection === 'appearance'}
+                    {#if activeSection === 'menu'}
                         <h2 class="text-2xl font-black uppercase flex items-center gap-3">
-                            <span class="w-2 h-8 bg-pink-500 rounded-full"></span>
-                            Personalización Visual
+                            <span class="w-2 h-8 bg-rose-500 rounded-full"></span>
+                            Configuración de Carta Digital
                         </h2>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                            <div class="form-control w-full">
-                                <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Forma de Notificaciones</span></label>
-                                <select bind:value={toastConfig.shape} class="select select-bordered font-bold focus:border-primary rounded-xl">
-                                    <option value="bean">Semilla (Original)</option>
-                                    <option value="square">Cuadrado (Moderno)</option>
-                                </select>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div class="space-y-6">
+                                <h3 class="text-lg font-black uppercase flex items-center gap-2 opacity-70">
+                                    <span class="w-1.5 h-5 bg-rose-400 rounded-full"></span>
+                                    Encabezado y Textos
+                                </h3>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Título de la Carta</span></label>
+                                    <input type="text" bind:value={settings.menu_title} class="input input-bordered font-bold focus:border-primary rounded-xl" />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Subtítulo / Frase</span></label>
+                                    <input type="text" bind:value={settings.menu_subtitle} class="input input-bordered font-bold focus:border-primary rounded-xl" />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">URL del Logo (Opcional)</span></label>
+                                    <input type="text" bind:value={settings.menu_logo_url} class="input input-bordered font-mono text-xs focus:border-primary rounded-xl" placeholder="https://ejemplo.com/logo.png" />
+                                </div>
                             </div>
-                            <div class="form-control w-full">
-                                <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Posición</span></label>
-                                <select bind:value={toastConfig.position} class="select select-bordered font-bold focus:border-primary rounded-xl">
-                                    <option value="bottom-right">Abajo-Derecha</option>
-                                    <option value="bottom-center">Abajo-Centro</option>
-                                    <option value="top-right">Arriba-Derecha</option>
-                                </select>
-                            </div>
-                            <div class="form-control w-full">
-                                <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Tamaño Texto</span></label>
-                                <select bind:value={toastConfig.fontSize} class="select select-bordered font-bold focus:border-primary rounded-xl">
-                                    <option value="0.75rem">Pequeño</option>
-                                    <option value="0.9rem">Medio</option>
-                                    <option value="1.1rem">Grande</option>
-                                </select>
+
+                            <div class="space-y-6">
+                                <h3 class="text-lg font-black uppercase flex items-center gap-2 opacity-70">
+                                    <span class="w-1.5 h-5 bg-rose-400 rounded-full"></span>
+                                    Footer (Pie de Página)
+                                </h3>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Texto Principal Footer</span></label>
+                                    <input type="text" bind:value={settings.menu_footer_text} class="input input-bordered font-bold focus:border-primary rounded-xl" />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Tagline del Footer</span></label>
+                                    <input type="text" bind:value={settings.menu_footer_tagline} class="input input-bordered font-bold focus:border-primary rounded-xl" />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Color de Acento (Hex)</span></label>
+                                    <div class="flex gap-2">
+                                        <input type="color" bind:value={settings.menu_accent_color} class="w-12 h-12 rounded-xl cursor-pointer" />
+                                        <input type="text" bind:value={settings.menu_accent_color} class="input input-bordered font-mono flex-1 rounded-xl" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="space-y-4">
+                        <div class="space-y-6 mt-4">
                             <h3 class="text-lg font-black uppercase flex items-center gap-2 opacity-70">
-                                <span class="w-1.5 h-5 bg-pink-500 rounded-full"></span>
-                                Tema del Sistema
+                                <span class="w-1.5 h-5 bg-rose-400 rounded-full"></span>
+                                Redes Sociales (URLs)
                             </h3>
-                            <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                {#each ['corporate', 'coffee', 'bumblebee', 'light', 'dark', 'dim'] as theme}
-                                    <button 
-                                        class="flex flex-col items-center gap-3 p-4 rounded-2xl border-2 transition-all {appState.currentTheme === theme ? 'border-primary bg-primary/5' : 'border-base-200 bg-base-100 hover:border-base-300'}"
-                                        onclick={() => setTheme(theme)}
-                                    >
-                                        <div data-theme={theme} class="w-full aspect-video rounded-lg shadow-inner flex flex-col p-1 gap-1 bg-base-100 overflow-hidden border border-base-content/10">
-                                            <div class="h-2 w-full bg-primary rounded-full"></div>
-                                            <div class="h-2 w-3/4 bg-secondary rounded-full"></div>
-                                            <div class="h-2 w-1/2 bg-accent rounded-full"></div>
-                                        </div>
-                                        <span class="text-[10px] font-black uppercase tracking-widest">{theme}</span>
-                                    </button>
-                                {/each}
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-base-200/50 p-8 rounded-[2rem]">
-                            <div class="flex items-center gap-4">
-                                <div class="flex-1">
-                                    <label class="label"><span class="label-text font-bold">Fondo Notificación</span></label>
-                                    <input type="color" bind:value={toastConfig.backgroundColor} class="w-full h-12 rounded-xl border-0 p-0 cursor-pointer" />
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50 text-blue-600">Facebook</span></label>
+                                    <input type="text" bind:value={settings.menu_facebook_url} class="input input-bordered text-sm rounded-xl focus:border-blue-500" placeholder="https://facebook.com/..." />
                                 </div>
-                                <div class="flex-1">
-                                    <label class="label"><span class="label-text font-bold">Color Texto</span></label>
-                                    <input type="color" bind:value={toastConfig.textColor} class="w-full h-12 rounded-xl border-0 p-0 cursor-pointer" />
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50 text-pink-600">Instagram</span></label>
+                                    <input type="text" bind:value={settings.menu_instagram_url} class="input input-bordered text-sm rounded-xl focus:border-pink-500" placeholder="https://instagram.com/..." />
                                 </div>
-                            </div>
-                            <div class="flex flex-col justify-center">
-                                <label class="label cursor-pointer justify-start gap-4">
-                                    <input type="checkbox" bind:checked={toastConfig.hasShadow} class="toggle toggle-secondary" />
-                                    <span class="label-text font-bold">Habilitar Sombras</span>
-                                </label>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50 text-red-600">YouTube</span></label>
+                                    <input type="text" bind:value={settings.menu_youtube_url} class="input input-bordered text-sm rounded-xl focus:border-red-500" placeholder="https://youtube.com/..." />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50 text-sky-500">Twitter / X</span></label>
+                                    <input type="text" bind:value={settings.menu_twitter_url} class="input input-bordered text-sm rounded-xl focus:border-sky-500" placeholder="https://x.com/..." />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50 text-emerald-600">TikTok</span></label>
+                                    <input type="text" bind:value={settings.menu_tiktok_url} class="input input-bordered text-sm rounded-xl focus:border-emerald-500" placeholder="https://tiktok.com/@..." />
+                                </div>
+                                <div class="form-control w-full">
+                                    <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50 text-green-500">WhatsApp</span></label>
+                                    <input type="text" bind:value={settings.menu_whatsapp_url} class="input input-bordered text-sm rounded-xl focus:border-green-500" placeholder="https://wa.me/..." />
+                                </div>
                             </div>
                         </div>
                     {/if}

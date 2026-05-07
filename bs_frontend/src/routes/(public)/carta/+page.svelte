@@ -67,7 +67,7 @@
 </svelte:head>
 
 <div class="min-h-screen bg-base-100 pb-20">
-    <!-- Header Minimalista y Premium -->
+    <!-- Header Minimalista y Premium (Revertido a estado anterior que gustaba al usuario) -->
     <header class="pt-10 pb-6 px-4 max-w-7xl mx-auto flex flex-col items-center text-center">
         <h1 class="text-4xl md:text-5xl font-black tracking-tighter uppercase mb-2 bg-gradient-to-b from-base-content to-base-content/60 bg-clip-text text-transparent">
             {settings?.menu_title || 'Nuestra Selección'}
@@ -85,7 +85,8 @@
             <div class="flex gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2 md:pb-0">
                 <button 
                     class="h-10 px-6 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap 
-                    {selectedCategory === null ? 'bg-primary text-primary-content shadow-xl shadow-primary/20' : 'bg-base-200 text-base-content/60 hover:bg-base-300'}"
+                    {selectedCategory === null ? 'shadow-xl text-white' : 'bg-base-200 text-base-content/60 hover:bg-base-300'}"
+                    style={selectedCategory === null ? `background-color: var(--menu-accent); shadow-color: var(--menu-accent)` : ''}
                     onclick={() => selectedCategory = null}
                 >
                     Todos
@@ -93,7 +94,8 @@
                 {#each categories as category}
                     <button 
                         class="h-10 px-6 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap 
-                        {selectedCategory === category.id ? 'bg-primary text-primary-content shadow-xl shadow-primary/20' : 'bg-base-200 text-base-content/60 hover:bg-base-300'}"
+                        {selectedCategory === category.id ? 'shadow-xl text-white' : 'bg-base-200 text-base-content/60 hover:bg-base-300'}"
+                        style={selectedCategory === category.id ? `background-color: var(--menu-accent); shadow-color: var(--menu-accent)` : ''}
                         onclick={() => selectedCategory = category.id || null}
                     >
                         {category.name}

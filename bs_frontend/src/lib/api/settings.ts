@@ -16,6 +16,16 @@ export interface BusinessSettings {
     branch_id: string;
     menu_title: string;
     menu_subtitle: string;
+    menu_logo_url?: string;
+    menu_footer_text: string;
+    menu_footer_tagline: string;
+    menu_accent_color: string;
+    menu_facebook_url?: string;
+    menu_instagram_url?: string;
+    menu_youtube_url?: string;
+    menu_twitter_url?: string;
+    menu_tiktok_url?: string;
+    menu_whatsapp_url?: string;
 }
 
 export const SettingsService = {

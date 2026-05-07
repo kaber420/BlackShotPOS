@@ -21,6 +21,18 @@ class BusinessSettings(SQLModel, table=True):
     # Menu Public Settings
     menu_title: str = Field(default="Nuestra Selección", description="Título de la carta digital")
     menu_subtitle: str = Field(default="Preparado con pasión, servido con arte.", description="Subtítulo de la carta digital")
+    menu_logo_url: Optional[str] = Field(default=None, description="URL del logo para la carta")
+    menu_footer_text: str = Field(default="BlackShot POS", description="Texto principal del footer")
+    menu_footer_tagline: str = Field(default="Disfruta de nuestra selección premium.", description="Tagline del footer")
+    menu_accent_color: str = Field(default="#6366f1", description="Color de acento para la carta")
+    
+    # Social Media
+    menu_facebook_url: Optional[str] = Field(default=None, description="URL de Facebook")
+    menu_instagram_url: Optional[str] = Field(default=None, description="URL de Instagram")
+    menu_youtube_url: Optional[str] = Field(default=None, description="URL de YouTube")
+    menu_twitter_url: Optional[str] = Field(default=None, description="URL de Twitter/X")
+    menu_tiktok_url: Optional[str] = Field(default=None, description="URL de TikTok")
+    menu_whatsapp_url: Optional[str] = Field(default=None, description="URL de WhatsApp")
 
 class BusinessSettingsUpdate(SQLModel):
     name: Optional[str] = None
@@ -37,3 +49,13 @@ class BusinessSettingsUpdate(SQLModel):
     branch_id: Optional[str] = None
     menu_title: Optional[str] = None
     menu_subtitle: Optional[str] = None
+    menu_logo_url: Optional[str] = None
+    menu_footer_text: Optional[str] = None
+    menu_footer_tagline: Optional[str] = None
+    menu_accent_color: Optional[str] = None
+    menu_facebook_url: Optional[str] = None
+    menu_instagram_url: Optional[str] = None
+    menu_youtube_url: Optional[str] = None
+    menu_twitter_url: Optional[str] = None
+    menu_tiktok_url: Optional[str] = None
+    menu_whatsapp_url: Optional[str] = None
