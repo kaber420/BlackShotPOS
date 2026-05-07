@@ -14,6 +14,8 @@ export interface BusinessSettings {
     bridge_public_key?: string;
     nats_url: string;
     branch_id: string;
+    menu_title: string;
+    menu_subtitle: string;
 }
 
 export const SettingsService = {

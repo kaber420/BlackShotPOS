@@ -17,6 +17,10 @@ class BusinessSettings(SQLModel, table=True):
     bridge_public_key: Optional[str] = Field(default=None, description="Llave pública RS256 para validación del Bridge")
     nats_url: str = Field(default="nats://localhost:4222", description="URL del servidor NATS para sincronización")
     branch_id: str = Field(default="branch_default", description="Identificador único de esta sucursal en la Central")
+    
+    # Menu Public Settings
+    menu_title: str = Field(default="Nuestra Selección", description="Título de la carta digital")
+    menu_subtitle: str = Field(default="Preparado con pasión, servido con arte.", description="Subtítulo de la carta digital")
 
 class BusinessSettingsUpdate(SQLModel):
     name: Optional[str] = None
@@ -31,3 +35,5 @@ class BusinessSettingsUpdate(SQLModel):
     bridge_public_key: Optional[str] = None
     nats_url: Optional[str] = None
     branch_id: Optional[str] = None
+    menu_title: Optional[str] = None
+    menu_subtitle: Optional[str] = None
