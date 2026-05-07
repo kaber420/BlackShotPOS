@@ -7,6 +7,7 @@ from ..models import Order, OrderItem, OrderStatus, OrderType
 from ..repository import order_repo, item_repo
 from pos_core.inventory.services.stock_service import process_inventory_depletion
 from pos_core.accounting.service import get_active_shift
+from pos_core.events.bus import event_bus
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
 
 
@@ -31,18 +32,21 @@ async def create_order(
         waiter_name=waiter_name,
     )
     session.add(db_order)
-
-    # Marcar mesa como ocupada si se asigna una
-    if table_id:
-        from pos_core.tables.models import Table
-        db_table = await session.get(Table, table_id)
-        if db_table and db_table.status != "Occupied":
-            db_table.status = "Occupied"
-            db_table.occupied_at = datetime.now(timezone.utc)
-            session.add(db_table)
-
     await session.commit()
     await session.refresh(db_order)
+
+    # Emitir evento de creación para que otros módulos reaccionen
+    await event_bus.publish(
+        "sales.order_created", 
+        {
+            "order_id": db_order.id,
+            "table_id": db_order.table_id,
+            "type": db_order.type,
+            "waiter_uuid": db_order.waiter_uuid
+        },
+        actor_uuid=waiter_uuid
+    )
+
     return db_order
 
 
@@ -103,14 +107,19 @@ async def update_order_status(
         order.delivered_at = now
 
     await order_repo.save(session, order)
-
-    # Cancelación: delegar liberación de mesa al table_service (sin acoplamiento directo)
-    if new_status == OrderStatus.CANCELLED and order.table_id:
-        from pos_core.tables import service as table_service
-        await table_service.vacate_table_service(session, order.table_id)
-
     await session.commit()
     await session.refresh(order)
+
+    # Emitir cambio de estado
+    await event_bus.publish(
+        "sales.order_status_changed",
+        {
+            "order_id": order.id,
+            "old_status": old_status,
+            "new_status": new_status,
+            "table_id": order.table_id
+        }
+    )
 
     # Propagar estado a los ítems
     order_items = await item_repo.get_items_for_order(session, order_id)
@@ -201,10 +210,16 @@ async def delete_order(session: AsyncSession, order_id: int) -> bool:
             "Use Cancelar para mantener auditoría."
         )
 
-    if order.table_id:
-        from pos_core.tables import service as table_service
-        await table_service.vacate_table_service(session, order.table_id)
-
     await order_repo.delete(session, order)
     await session.commit()
+
+    # Emitir evento de eliminación
+    await event_bus.publish(
+        "sales.order_deleted",
+        {
+            "order_id": order_id,
+            "table_id": order.table_id
+        }
+    )
+
     return True

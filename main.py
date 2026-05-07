@@ -22,7 +22,7 @@ from pos_core.iot.admin_router import router as admin_iot_router
 from pos_core.auth.router import auth_router, user_router
 from pos_core.customers.router import router as customer_router
 from pos_core.communications.router import router as communications_router
-from pos_core.events.discovery import discover_event_providers
+from pos_core.events.discovery import discover_event_providers, discover_event_listeners
 
 
 @asynccontextmanager
@@ -32,8 +32,10 @@ async def lifespan(app: FastAPI):
     setup_environment()
     # Inicializa las tablas si no existen
     await init_db()
-    # Descubrimiento automático de proveedores de eventos
+    # Descubrimiento automático de proveedores de eventos (WebSockets)
     discover_event_providers()
+    # Descubrimiento automático de suscriptores de eventos (Lógica Interna)
+    discover_event_listeners()
     yield
 
 app = FastAPI(
