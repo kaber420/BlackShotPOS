@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { OrderService, type Order, OrderStatus } from '$lib/api/orders';
+    import { KitchenService } from '$lib/api/kitchen';
     import { TableService, type Table } from '$lib/api/tables';
     import { printTicket, getRecommendedMethod, type PrintMethod } from '$lib/printer';
     import { can, appState, loadOrderToCart } from '$lib/app_state.svelte';
@@ -98,14 +99,20 @@
     async function handleItemAdvance(order: Order, item: any) {
         try {
             if (item.status === 'PENDING') {
-                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.PREPARING);
+                // Ahora hablamos directamente con Cocina para estados operativos
+                await KitchenService.startPreparingItem(
+                    item.id, 
+                    appState.userUuid || "system", 
+                    appState.userName || "Admin"
+                );
             } else if (item.status === 'PREPARING') {
-                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.READY);
+                await KitchenService.markItemAsReady(item.id);
             } else if (item.status === 'READY') {
+                // Entregar sí es un estado comercial (Ventas)
                 await OrderService.updateItemStatus(order.id, item.id, OrderStatus.DELIVERED);
             }
-        } catch (e) {
-            alert(`Error al actualizar platillo: ${e}`);
+        } catch (e: any) {
+            alert(`Error al actualizar platillo: ${e.message || e}`);
         }
     }
 

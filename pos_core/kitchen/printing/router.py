@@ -91,6 +91,16 @@ async def get_ticket_html(
 
 # ── Comanda de cocina (Generación de datos) ──────────────────────────────────
 
+async def _get_tickets_for_order(order_id: int, session: AsyncSession) -> list[KitchenTicket]:
+    """Helper: carga todos los tickets de cocina asociados a una orden."""
+    statement = (
+        select(KitchenTicket)
+        .where(KitchenTicket.order_id == order_id)
+        .options(selectinload(KitchenTicket.production_area))
+    )
+    result = await session.execute(statement)
+    return list(result.scalars().all())
+
 @router.get(
     "/comanda/{order_id}/raw",
     summary="Descargar comanda de cocina como bytes ESC/POS",
@@ -101,9 +111,11 @@ async def get_comanda_raw(
     session: AsyncSession = Depends(get_session),
     user=Depends(require_role("waiter")),
 ):
-    order = await _get_order_with_items(order_id, session)
+    tickets = await _get_tickets_for_order(order_id, session)
+    if not tickets:
+        raise HTTPException(status_code=404, detail="No hay tickets de cocina para esta orden")
     settings = await get_settings(session)
-    data = formatter.format_comanda(order, settings)
+    data = formatter.format_comanda(tickets, settings)
     return Response(
         content=data,
         media_type="application/octet-stream",
@@ -122,9 +134,11 @@ async def get_comanda_html(
     session: AsyncSession = Depends(get_session),
     user=Depends(require_role("waiter")),
 ):
-    order = await _get_order_with_items(order_id, session)
+    tickets = await _get_tickets_for_order(order_id, session)
+    if not tickets:
+        raise HTTPException(status_code=404, detail="No hay tickets de cocina para esta orden")
     settings = await get_settings(session)
-    return formatter.format_comanda_html(order, settings)
+    return formatter.format_comanda_html(tickets, settings)
 
 
 # ── Tickets Individuales de Cocina (KDS) ────────────────────────────────────

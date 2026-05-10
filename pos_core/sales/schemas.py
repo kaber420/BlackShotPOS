@@ -69,16 +69,9 @@ class OrderItemRead(BaseModel):
     variant: Optional[VariantRead] = None
     modifiers: List[ModifierSimpleRead] = []
 
-    # Rastreo de cocinero y mesero
-    cook_uuid: Optional[str] = None
-    cook_name: Optional[str] = None
-    delivered_by_uuid: Optional[str] = None
-    delivered_by_name: Optional[str] = None
+    status: OrderStatus
 
-    # Timestamps de ciclo de vida del ítem
-    preparing_at: Optional[datetime] = None
-    ready_at: Optional[datetime] = None
-    delivered_at: Optional[datetime] = None
+    # Relaciones anidadas
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -104,15 +97,6 @@ class OrderRead(BaseModel):
     # Rastreo del mesero creador
     waiter_uuid: Optional[str] = None
     waiter_name: Optional[str] = None
-
-    # Rastreo del cocinero responsable
-    cook_uuid: Optional[str] = None
-    cook_name: Optional[str] = None
-
-    # Timestamps de ciclo de vida de la orden
-    preparing_at: Optional[datetime] = None
-    ready_at: Optional[datetime] = None
-    delivered_at: Optional[datetime] = None
 
     # Relaciones anidadas
     items: List[OrderItemRead] = []

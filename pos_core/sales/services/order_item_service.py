@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import OrderItem, OrderStatus
+from ..models import Order, OrderItem, OrderStatus
 from ..repository import order_repo, item_repo
 from pos_core.events.service import trigger_iot_broadcast
 
@@ -72,9 +72,14 @@ async def add_item_to_order(
         raise ValueError(f"Error reloading order item {order_item.id}")
 
     # Emitir evento para que otros módulos (como Cocina) reaccionen
+    order = await session.get(Order, order_id)
     from pos_core.events.bus import event_bus
     await event_bus.publish("sales.items_added", {
         "order_id": order_id,
+        "table_id": order.table_id if order else None,
+        "order_type": order.type if order else "DINE_IN",
+        "waiter_name": order.waiter_name if order else None,
+        "external_reference": order.external_reference if order else None,
         "items": [
             {
                 "id": order_item.id,
@@ -111,13 +116,6 @@ async def update_order_item_status(
 
     item.status = new_status
     await item_repo.save(session, item)
-
-    if old_status == OrderStatus.PENDING and new_status in (
-        OrderStatus.PREPARING, OrderStatus.READY, OrderStatus.DELIVERED
-    ):
-        # El descuento de inventario ahora se maneja vía Listener en el módulo Inventory
-        # reaccionando a eventos de Cocina o Venta Realizada.
-        pass
 
     await session.commit()
 

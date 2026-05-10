@@ -209,13 +209,6 @@ async def split_order_items(
                 tax_rate=orig_item.tax_rate,
                 tax_amount=0.0, # se recalcula luego
                 status=orig_item.status,
-                cook_uuid=orig_item.cook_uuid,
-                cook_name=orig_item.cook_name,
-                delivered_by_uuid=orig_item.delivered_by_uuid,
-                delivered_by_name=orig_item.delivered_by_name,
-                preparing_at=orig_item.preparing_at,
-                ready_at=orig_item.ready_at,
-                delivered_at=orig_item.delivered_at
             )
             session.add(new_item)
             await session.flush()

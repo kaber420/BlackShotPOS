@@ -130,52 +130,50 @@ def format_ticket(order: Order, settings: BusinessSettings) -> bytes:
     return p.output
 
 
-def format_comanda(order: Order, settings: BusinessSettings) -> bytes:
+def format_comanda(tickets: list[KitchenTicket], settings: BusinessSettings) -> bytes:
     """
-    Genera la comanda para la cocina (sin precios).
+    Genera la comanda para la cocina (sin precios) a partir de KitchenTickets.
     Formato grande y legible para ser vista rápidamente en la cocina.
-
-    Args:
-        order: Instancia de Order con items cargados.
-
-    Returns:
-        bytes en formato ESC/POS.
     """
+    if not tickets:
+        return b""
+        
     p = _get_printer()
+    first = tickets[0]
 
     # ── Encabezado compacto ──────────────────────
     p.set(align="center", bold=True, double_height=True, double_width=True)
     p.text("*** COMANDA ***\n")
     p.set(double_height=False, double_width=False)
 
-    p.text(f"ORDEN #{order.id}")
-    if order.table_id:
-        p.text(f"  |  MESA {order.table_id}")
+    p.text(f"ORDEN #{first.order_id}")
+    if first.table_id:
+        p.text(f"  |  MESA {first.table_id}")
     p.text("\n")
     p.text(f"{datetime.now().strftime('%H:%M  %d/%m/%Y')}\n")
-    if order.external_reference:
-        p.text(f"REF: {order.external_reference}\n")
+    if first.waiter_name:
+        p.text(f"MESERO: {first.waiter_name}\n")
+    if first.external_reference:
+        p.text(f"REF: {first.external_reference}\n")
 
     p.set(align="left", bold=False)
     p.text("=" * 32 + "\n")
 
-    # ── Items ────────────────────────────────────
-    items: list[OrderItem] = order.items or []
-    for item in items:
-        product_name = item.product.name if item.product else f"Producto #{item.product_id}"
+    # ── Items (Tickets) ──────────────────────────
+    for t in tickets:
         # Nombre grande para legibilidad rápida
         p.set(bold=True, double_height=True)
-        p.text(f"{item.quantity}x  {product_name}\n")
+        p.text(f"1x  {t.product_name}\n") # En el KDS cada ticket es 1 unidad
         p.set(bold=False, double_height=False)
 
         # Variant si existe
-        if item.variant:
-            p.text(f"    [{item.variant.measure}]\n")
+        if t.variant_name:
+            p.text(f"    [{t.variant_name}]\n")
 
         # Modificadores
-        if item.modifiers:
-            for mod in item.modifiers:
-                p.text(f"    + {mod.name}\n")
+        if t.modifiers_text:
+            for mod in t.modifiers_text.split(","):
+                p.text(f"    + {mod.strip()}\n")
 
         p.text("\n")
 
@@ -278,17 +276,21 @@ def format_ticket_html(order: Order, settings: BusinessSettings) -> str:
     """
 
 
-def format_comanda_html(order: Order, settings: BusinessSettings) -> str:
-    """Genera el HTML de comanda para cocina (grande, sin precios)."""
+def format_comanda_html(tickets: list[KitchenTicket], settings: BusinessSettings) -> str:
+    """Genera el HTML de comanda para cocina (grande, sin precios) desde KitchenTickets."""
+    if not tickets:
+        return "<h1>Sin tickets</h1>"
+        
     items_html = ""
-    for item in (order.items or []):
-        product_name = item.product.name if item.product else f"Producto #{item.product_id}"
-        variant_html = f"<div>[{item.variant.measure}]</div>" if item.variant else ""
-        mods_html = "".join([f"<div>+ {m.name}</div>" for m in (item.modifiers or [])])
+    first = tickets[0]
+    
+    for t in tickets:
+        variant_html = f"<div>[{t.variant_name}]</div>" if t.variant_name else ""
+        mods_html = "".join([f"<div>+ {m.strip()}</div>" for m in (t.modifiers_text.split(",") if t.modifiers_text else [])])
         
         items_html += f"""
         <div style="margin-bottom: 15px;">
-            <div style="font-size: 1.5em; font-weight: bold;">{item.quantity}x {product_name}</div>
+            <div style="font-size: 1.5em; font-weight: bold;">1x {t.product_name}</div>
             <div style="font-size: 1em; margin-left:15px;">
                 {variant_html}
                 {mods_html}
@@ -309,8 +311,9 @@ def format_comanda_html(order: Order, settings: BusinessSettings) -> str:
     <body>
         <div class="center">
             <h1 style="margin: 5px 0;">COMANDA</h1>
-            <div style="font-size: 1.2em;">ORDEN #{order.id}</div>
-            {f"<div>MESA {order.table_id}</div>" if order.table_id else "<div>MOSTRADOR</div>"}
+            <div style="font-size: 1.2em;">ORDEN #{first.order_id}</div>
+            {f"<div>MESA {first.table_id}</div>" if first.table_id else "<div>MOSTRADOR</div>"}
+            {f"<div>MESERO: {first.waiter_name}</div>" if first.waiter_name else ""}
             <div style="font-size: 0.8em; margin-bottom: 10px;">{datetime.now().strftime('%H:%M  %d/%m/%Y')}</div>
             <hr>
         </div>

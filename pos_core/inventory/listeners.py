@@ -24,11 +24,18 @@ async def on_payment_received(payload: dict, metadata: dict):
                 logger.error(f"❌ Orden {order_id} no encontrada en listener de inventario")
                 return
 
-            # Identificar items que están PENDING (intención de despacho tras pago)
-            items_to_deplete = [i for i in order.items if i.status == OrderStatus.PENDING]
+            # Identificar items que están PENDING y que NO van a cocina (ej. productos empaquetados)
+            # Los items de cocina se descuentan en el evento 'kitchen.item_preparing'
+            items_to_deplete = []
+            for i in order.items:
+                if i.status == OrderStatus.PENDING:
+                    # Verificamos si el producto tiene área de producción
+                    if not i.product or not i.product.category or not i.product.category.production_area_id:
+                        items_to_deplete.append(i)
             
             if not items_to_deplete:
-                return # Nada que hacer si ya estaban procesados
+                logger.info(f"ℹ️ No hay items de venta directa para descontar en orden {order_id}. Los de cocina se procesarán al iniciar preparación.")
+                return 
 
             logger.info(f"📦 Procesando descarga de inventario para {len(items_to_deplete)} items de la orden {order_id}")
             

@@ -6,7 +6,6 @@ if TYPE_CHECKING:
     # Evita importación circular real, pero permite el tipado estático
     from pos_core.inventory.models import Ingredient, IngredientRead
 
-from pos_core.kitchen.models import ProductionArea, ProductionAreaRead
 
 class CategoryBase(SQLModel):
     name: str = Field(index=True, unique=True)
@@ -18,7 +17,7 @@ class CategoryBase(SQLModel):
 class Category(CategoryBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     products: List["Product"] = Relationship(back_populates="category")
-    production_area: Optional[ProductionArea] = Relationship(back_populates="categories")
+
 
 class CategoryCreate(CategoryBase):
     pass
@@ -281,7 +280,7 @@ class ProductVariantRead(ProductVariantBase):
 
 class CategoryRead(CategoryBase):
     id: int
-    production_area: Optional[ProductionAreaRead] = None
+
 
 class ProductRead(ProductBase):
     id: int
@@ -297,4 +296,4 @@ ModifierRead.model_rebuild()
 ProductRead.model_rebuild()
 ModifierGroupRead.model_rebuild()
 CategoryRead.model_rebuild()
-ProductionAreaRead.model_rebuild()
+

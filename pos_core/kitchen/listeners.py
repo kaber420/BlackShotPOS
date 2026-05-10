@@ -30,7 +30,9 @@ async def on_items_added(payload: dict, metadata: dict):
         
     async with async_session_maker() as session:
         try:
-            await create_tickets_for_order(session, order_id, items)
+            # Filtramos el payload para evitar colisión con argumentos ya pasados
+            extra_metadata = {k: v for k, v in payload.items() if k not in ["order_id", "items"]}
+            await create_tickets_for_order(session, order_id, items, **extra_metadata)
             logger.info(f"👨‍🍳 Tickets de cocina generados para orden {order_id}")
         except Exception as e:
             logger.error(f"❌ Error al crear tickets de cocina para orden {order_id}: {e}", exc_info=True)

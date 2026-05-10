@@ -140,11 +140,6 @@ async def update_item_status(
     user=Depends(require_permission(Permission.VIEW_ORDERS)),
 ):
     """Actualiza el estado de un ítem individual. Emite evento para sincronización entre módulos."""
-    if status in (OrderStatus.PREPARING, OrderStatus.READY):
-        raise HTTPException(
-            status_code=400, 
-            detail=f"El estado {status} es operativo de Cocina. Use los endpoints de /kitchen para esto."
-        )
     item = await order_item_service.update_order_item_status(
         db,
         order_id,

@@ -28,6 +28,7 @@ from pos_core.events.discovery import discover_event_providers, discover_event_l
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+
     """Acciones a realizar al encender/apagar el servidor."""
     # Asegura que el entorno (.env y tokens) esté listo
     setup_environment()

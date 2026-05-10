@@ -1,11 +1,8 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 from datetime import datetime, timezone
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import field_serializer
-
-if TYPE_CHECKING:
-    from pos_core.catalog.models import Category
 
 class KitchenStatus(str, Enum):
     PENDING = "PENDING"
@@ -24,14 +21,19 @@ class ProductionAreaBase(SQLModel):
 
 class ProductionArea(ProductionAreaBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    categories: List["Category"] = Relationship(back_populates="production_area")
 
 class KitchenTicket(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     order_id: int = Field(index=True)
     item_id: int = Field(index=True)
     
-    # Snapshot de datos del producto para evitar joins pesados en KDS
+    # Snapshot de datos de la orden para independencia total del KDS
+    table_id: Optional[int] = Field(default=None, index=True)
+    order_type: str = Field(default="DINE_IN") # DINE_IN, TAKEAWAY, DELIVERY
+    waiter_name: Optional[str] = None
+    external_reference: Optional[str] = None
+
+    # Snapshot de datos del producto
     product_name: str
     variant_name: Optional[str] = None
     modifiers_text: Optional[str] = None # Ej: "+ Sin cebolla, + Extra queso"
@@ -43,7 +45,8 @@ class KitchenTicket(SQLModel, table=True):
     cook_uuid: Optional[str] = None
     cook_name: Optional[str] = None
     
-    received_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    received_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
     started_at: Optional[datetime] = None
     finished_at: Optional[datetime] = None
     delivered_at: Optional[datetime] = None
@@ -75,6 +78,12 @@ class KitchenTicketRead(SQLModel):
     id: int
     order_id: int
     item_id: int
+    # Snapshot info
+    table_id: Optional[int]
+    order_type: str
+    waiter_name: Optional[str]
+    external_reference: Optional[str]
+    
     product_name: str
     variant_name: Optional[str]
     modifiers_text: Optional[str]

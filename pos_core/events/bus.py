@@ -43,11 +43,12 @@ class InternalEventBus:
             "actor_uuid": actor_uuid
         }
 
-        logger.info(f"📤 Publicando evento '{topic}' (ID: {metadata['event_id']})")
-
+        logger.info(f"📤 Publicando evento '{topic}' (ID: {metadata['event_id']}) a {len(self._subscribers[topic])} suscriptores")
+ 
         # Disparar cada suscriptor en una tarea independiente
         for handler in self._subscribers[topic]:
             asyncio.create_task(self._safe_execute(handler, topic, payload, metadata))
+
 
     async def _safe_execute(self, handler: EventHandler, topic: str, payload: Dict[str, Any], metadata: Dict[str, Any]):
         """Ejecuta un handler capturando errores para no romper el bus."""

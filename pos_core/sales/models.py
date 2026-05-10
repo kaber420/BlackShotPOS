@@ -5,7 +5,6 @@ from uuid import UUID
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import field_validator, field_serializer
 from pos_core.catalog.models import Modifier, Product, ProductVariant
-from pos_core.customers.models import Customer
 
 class OrderType(str, Enum):
     DINE_IN = "DINE_IN"
@@ -42,28 +41,6 @@ class OrderItem(SQLModel, table=True):
     tax_rate: float = Field(default=0.0, description="Tasa de impuesto aplicada (snapshot)")
     tax_amount: float = Field(default=0.0, description="Monto de impuesto para este ítem")
     status: OrderStatus = Field(default=OrderStatus.PENDING)
-
-    # ── [DEPRECATED] Rastreo de entrega ──────────────────────────────────────
-    # Movido al dominio de Cocina (KitchenTicket.delivered_at)
-    delivered_by_uuid: Optional[str] = Field(default=None)
-    delivered_by_name: Optional[str] = Field(default=None)
-
-    # ── [DEPRECATED] Rastreo de cocina ───────────────────────────────────────
-    # Movido al dominio de Cocina (KitchenTicket.cook_uuid)
-    cook_uuid: Optional[str] = Field(default=None)
-    cook_name: Optional[str] = Field(default=None)
-
-    # ── [DEPRECATED] Timestamps de ciclo de vida por ítem ────────────────────
-    # Movido al dominio de Cocina (KitchenTicket)
-    preparing_at: Optional[datetime] = Field(default=None)
-    ready_at: Optional[datetime] = Field(default=None)
-    delivered_at: Optional[datetime] = Field(default=None)
-
-    @field_serializer("preparing_at", "ready_at", "delivered_at")
-    def serialize_item_times(self, v: Optional[datetime]) -> Optional[str]:
-        if v is None: return None
-        if v.tzinfo is None: v = v.replace(tzinfo=timezone.utc)
-        return v.isoformat()
 
     order: "Order" = Relationship(back_populates="items")
     product: "Product" = Relationship()
@@ -114,27 +91,10 @@ class Order(SQLModel, table=True):
     waiter_uuid: Optional[str] = Field(default=None, description="UUID del mesero que creó la orden")
     waiter_name: Optional[str] = Field(default=None, description="Nombre del mesero (snapshot de auditoría)")
 
-    # ── [DEPRECATED] Rastreo del cocinero responsable ─────────────────────────
-    # Movido al dominio de Cocina
-    cook_uuid: Optional[str] = Field(default=None, description="UUID del cocinero que tomó/preparó la orden")
-    cook_name: Optional[str] = Field(default=None, description="Nombre del cocinero (snapshot de auditoría)")
-
-    # ── [DEPRECATED] Timestamps de ciclo de vida de la orden ──────────────────
-    # Movido al dominio de Cocina
-    preparing_at: Optional[datetime] = Field(default=None, description="Cuando cocina empezó a preparar")
-    ready_at: Optional[datetime] = Field(default=None, description="Cuando cocina marcó la orden como lista")
-    delivered_at: Optional[datetime] = Field(default=None, description="Cuando el mesero entregó al cliente")
-
-    @field_serializer("created_at", "updated_at", "preparing_at", "ready_at", "delivered_at")
-    def serialize_order_times(self, v: Optional[datetime]) -> Optional[str]:
-        if v is None: return None
-        if v.tzinfo is None: v = v.replace(tzinfo=timezone.utc)
-        return v.isoformat()
-
     items: List[OrderItem] = Relationship(back_populates="order")
     payments: List[Payment] = Relationship(back_populates="order")
-    shift: Optional["Shift"] = Relationship(back_populates="orders")
-    customer: Optional["Customer"] = Relationship()
+    # shift: Optional["Shift"] = Relationship(back_populates="orders")
+
 
     @property
     def total_price(self) -> float:

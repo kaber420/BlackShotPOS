@@ -9,7 +9,6 @@ from .registry import get_provider, list_registered_topics
 from .iot_registry import get_iot_mapper
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
-from pos_core.sales.models import OrderStatus
 
 logger = logging.getLogger(__name__)
 

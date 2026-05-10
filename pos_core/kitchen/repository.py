@@ -28,6 +28,16 @@ class KitchenRepository:
         session.add(ticket)
         return ticket
 
+    async def get_ticket_by_item_id(self, session: AsyncSession, item_id: int) -> Optional[KitchenTicket]:
+        """Busca el ticket activo asociado a un ítem de venta."""
+        statement = (
+            select(KitchenTicket)
+            .where(KitchenTicket.item_id == item_id)
+            .where(KitchenTicket.status != KitchenStatus.CANCELLED)
+        )
+        result = await session.execute(statement)
+        return result.scalar_one_or_none()
+
     async def delete_tickets_by_order(self, session: AsyncSession, order_id: int):
         statement = select(KitchenTicket).where(KitchenTicket.order_id == order_id)
         result = await session.execute(statement)

@@ -6,6 +6,7 @@ from typing import Optional
 
 from pos_core.database import get_session
 from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus, OrderItem
+from pos_core.kitchen.models import KitchenTicket
 from pos_core.accounting.models import Shift, ShiftStatus
 from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
@@ -240,19 +241,21 @@ async def get_waiter_performance(
 
     # ── Tiempo promedio de entrega: ready_at → delivered_at ──────────────────
     # (qué tan rápido lleva el mesero el plato una vez que cocina lo marca listo)
+    # Ahora consultamos KitchenTicket en lugar de Order
     stmt_times = (
-        select(Order.waiter_uuid, Order.ready_at, Order.delivered_at)
+        select(Order.waiter_uuid, KitchenTicket.finished_at, KitchenTicket.delivered_at)
+        .join(KitchenTicket, KitchenTicket.order_id == Order.id)
         .where(
             Order.created_at >= today_start,
-            Order.ready_at.isnot(None),
-            Order.delivered_at.isnot(None),
+            KitchenTicket.finished_at.isnot(None),
+            KitchenTicket.delivered_at.isnot(None),
             Order.waiter_uuid.isnot(None),
         )
     )
     result_times = await db.execute(stmt_times)
     delivery_times: dict[str, list[float]] = {}
     for row in result_times.all():
-        delta = (row.delivered_at - row.ready_at).total_seconds()
+        delta = (row.delivered_at - row.finished_at).total_seconds()
         if delta >= 0:
             delivery_times.setdefault(row.waiter_uuid, []).append(delta)
 
@@ -276,17 +279,18 @@ async def get_kitchen_performance(
     today_start = datetime.combine(date.today(), datetime.min.time())
 
     # ── Órdenes tomadas por cada cocinero (hoy) ──────────────────────────────
+    # Ahora consultamos KitchenTicket en lugar de Order
     stmt_orders = (
         select(
-            Order.cook_uuid,
-            Order.cook_name,
-            func.count(func.distinct(Order.id)).label("orders_handled"),
+            KitchenTicket.cook_uuid,
+            KitchenTicket.cook_name,
+            func.count(func.distinct(KitchenTicket.order_id)).label("orders_handled"),
         )
         .where(
-            Order.created_at >= today_start,
-            Order.cook_uuid.isnot(None),
+            KitchenTicket.received_at >= today_start,
+            KitchenTicket.cook_uuid.isnot(None),
         )
-        .group_by(Order.cook_uuid, Order.cook_name)
+        .group_by(KitchenTicket.cook_uuid, KitchenTicket.cook_name)
     )
     result_orders = await db.execute(stmt_orders)
     cook_stats: dict = {}
@@ -299,20 +303,21 @@ async def get_kitchen_performance(
             "avg_prep_seconds": None,  # calculado abajo
         }
 
-    # ── Tiempo promedio de preparación: preparing_at → ready_at ─────────────
+    # ── Tiempo promedio de preparación: started_at → finished_at ─────────────
+    # Ahora consultamos KitchenTicket en lugar de Order
     stmt_times = (
-        select(Order.cook_uuid, Order.preparing_at, Order.ready_at)
+        select(KitchenTicket.cook_uuid, KitchenTicket.started_at, KitchenTicket.finished_at)
         .where(
-            Order.created_at >= today_start,
-            Order.preparing_at.isnot(None),
-            Order.ready_at.isnot(None),
-            Order.cook_uuid.isnot(None),
+            KitchenTicket.received_at >= today_start,
+            KitchenTicket.started_at.isnot(None),
+            KitchenTicket.finished_at.isnot(None),
+            KitchenTicket.cook_uuid.isnot(None),
         )
     )
     result_times = await db.execute(stmt_times)
     prep_times: dict[str, list[float]] = {}
     for row in result_times.all():
-        delta = (row.ready_at - row.preparing_at).total_seconds()
+        delta = (row.finished_at - row.started_at).total_seconds()
         if delta >= 0:
             prep_times.setdefault(row.cook_uuid, []).append(delta)
 
@@ -320,14 +325,14 @@ async def get_kitchen_performance(
         if uuid in cook_stats and times:
             cook_stats[uuid]["avg_prep_seconds"] = round(sum(times) / len(times), 1)
 
-    # ── Ítems preparados por cocinero (de OrderItem) ─────────────────────────
+    # ── Ítems preparados por cocinero (desde KitchenTicket) ───────────────────
     stmt_items = (
-        select(OrderItem.cook_uuid, func.count(OrderItem.id).label("items_count"))
+        select(KitchenTicket.cook_uuid, func.count(KitchenTicket.id).label("items_count"))
         .where(
-            OrderItem.cook_uuid.isnot(None),
-            OrderItem.ready_at.isnot(None),
+            KitchenTicket.cook_uuid.isnot(None),
+            KitchenTicket.finished_at.isnot(None),
         )
-        .group_by(OrderItem.cook_uuid)
+        .group_by(KitchenTicket.cook_uuid)
     )
     result_items = await db.execute(stmt_items)
     for row in result_items.all():
@@ -347,46 +352,32 @@ async def get_dish_speed(
     Ordenado de más lento a más rápido para identificar cuellos de botella.
     Solo incluye ítems con ambos timestamps registrados (datos históricos acumulados).
     """
-    from sqlalchemy import text
-
-    # SQLite: julianday() para diff en segundos
+    # ── Tiempo promedio por platillo (started_at → finished_at en KitchenTicket)
+    # ── Tiempo promedio por platillo (started_at → finished_at en KitchenTicket)
+    # Usamos extract('epoch') para compatibilidad con PostgreSQL
     stmt = (
         select(
-            OrderItem.product_id,
-            func.count(OrderItem.id).label("sample_count"),
+            KitchenTicket.product_name,
+            func.count(KitchenTicket.id).label("sample_count"),
             func.avg(
-                (func.julianday(OrderItem.ready_at) - func.julianday(OrderItem.preparing_at))
-                * 86400
+                func.extract("epoch", KitchenTicket.finished_at - KitchenTicket.started_at)
             ).label("avg_seconds"),
         )
         .where(
-            OrderItem.preparing_at.isnot(None),
-            OrderItem.ready_at.isnot(None),
+            KitchenTicket.started_at.isnot(None),
+            KitchenTicket.finished_at.isnot(None),
         )
-        .group_by(OrderItem.product_id)
-        .order_by(
-            func.avg(
-                (func.julianday(OrderItem.ready_at) - func.julianday(OrderItem.preparing_at))
-                * 86400
-            ).desc()
-        )
+        .group_by(KitchenTicket.product_name)
+        .order_by(func.avg(
+            func.extract("epoch", KitchenTicket.finished_at - KitchenTicket.started_at)
+        ).desc())
     )
     result = await db.execute(stmt)
     rows = result.all()
 
-    # Resolver nombres de productos
-    from pos_core.catalog.models import Product
-    product_ids = [row.product_id for row in rows]
-    names: dict[int, str] = {}
-    if product_ids:
-        products_stmt = select(Product).where(Product.id.in_(product_ids))
-        products_res = await db.execute(products_stmt)
-        names = {p.id: p.name for p in products_res.scalars().all()}
-
     return [
         {
-            "product_id": row.product_id,
-            "product_name": names.get(row.product_id, f"Producto #{row.product_id}"),
+            "product_name": row.product_name,
             "avg_prep_seconds": round(row.avg_seconds or 0.0, 1),
             "sample_count": row.sample_count,
         }

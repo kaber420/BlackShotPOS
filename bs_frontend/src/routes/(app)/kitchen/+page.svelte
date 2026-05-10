@@ -1,7 +1,9 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
     import { OrderService, OrderStatus } from '$lib/api/orders';
+    import { KitchenService } from '$lib/api/kitchen';
     import { TableService, type Table } from '$lib/api/tables';
+    import { appState } from '$lib/app_state.svelte';
     import { marked } from 'marked';
     import {
         printComanda,
@@ -166,15 +168,24 @@
 
     // ── Acciones de orden ────────────────────────────────────────────────────
     async function handleItemComplete(order: any, item: any) {
+        if (!item.kitchen_ticket_id) {
+            alert("Error: Este platillo no tiene un ticket de cocina vinculado.");
+            return;
+        }
+
         try {
             if (item.status === OrderStatus.PENDING) {
-                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.PREPARING);
+                await KitchenService.startPreparing(
+                    item.kitchen_ticket_id, 
+                    appState.userUuid || "system", 
+                    appState.userName || "KDS"
+                );
             } else if (item.status === OrderStatus.PREPARING) {
-                await OrderService.updateItemStatus(order.id, item.id, OrderStatus.READY);
+                await KitchenService.markAsReady(item.kitchen_ticket_id);
             }
             // La actualización llegará por WebSocket automáticamente
-        } catch (e) {
-            alert(`Error al actualizar platillo: ${e}`);
+        } catch (e: any) {
+            alert(`Error al actualizar platillo: ${e.message || e}`);
         }
     }
 
@@ -190,14 +201,24 @@
     }
 
     async function handleComplete(order: any) {
+        // En un sistema desacoplado, "Completar Orden" en KDS significa marcar todos sus tickets como LISTOS.
+        const pendingItems = (order.items || []).filter((i: any) => 
+            i.status === OrderStatus.PENDING || i.status === OrderStatus.PREPARING
+        );
+
+        if (pendingItems.length === 0) return;
+
         try {
-            if (order.status === OrderStatus.PENDING) {
-                await OrderService.updateStatus(order.id, OrderStatus.PREPARING);
-            } else if (order.status === OrderStatus.PREPARING) {
-                await OrderService.updateStatus(order.id, OrderStatus.READY);
-            }
-        } catch (e) {
-            alert(`Error al completar orden completa: ${e}`);
+            const promises = pendingItems.map(async (item: any) => {
+                if (!item.kitchen_ticket_id) return;
+                
+                // Si está pendiente, primero marcar como preparando (para auditoría) y luego listo, 
+                // o simplemente listo (el backend de kitchen lo permite).
+                return KitchenService.markAsReady(item.kitchen_ticket_id);
+            });
+            await Promise.all(promises);
+        } catch (e: any) {
+            alert(`Error al completar orden completa: ${e.message || e}`);
         }
     }
 

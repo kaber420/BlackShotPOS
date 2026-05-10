@@ -23,10 +23,15 @@ Actualmente, el módulo de Ventas actúa como un "Cerebro" que intenta orquestar
 - [x] Restringir estados operativos en Ventas (bloqueo de `PREPARING` y `READY` vía API de Ventas).
 - [x] Estandarizar auditoría mediante `actor_uuid`.
 
-### [EN PROCESO] Fase 2: Desacoplamiento de Lógica (Cerebro vs Músculo)
-- [ ] **Eliminar Inventario de Ventas**: Quitar llamadas a `process_inventory_depletion` desde `order_item_service.py`.
-- [ ] **Cocina como Disparador**: Asegurar que `KitchenTicket` sea quien dispare el evento de inicio de producción.
-- [ ] **Inventario Reactivo**: Crear listener en Inventario que escuche a Cocina para descontar stock.
+### [COMPLETADO] Fase 2: Desacoplamiento de Lógica (Cerebro vs Músculo)
+- [x] **Eliminar Inventario de Ventas**: Quitar llamadas a `process_inventory_depletion` desde `order_item_service.py`.
+- [x] **Cocina como Disparador**: Asegurar que `KitchenTicket` sea quien dispare el evento de inicio de producción.
+- [x] **Inventario Reactivo**: Crear listener en Inventario que escuche a Cocina para descontar stock.
+
+### [EN PROCESO] Fase 3: Limpieza y Consolidación de Analytics
+- [ ] **Migrar Analytics**: Actualizar reportes para usar `KitchenTicket` en lugar de campos de Ventas.
+- [ ] **Eliminar Campos Deprecados**: Borrar `cook_uuid`, `ready_at`, etc., de los modelos de Ventas.
+- [ ] **Refactorizar Split**: Ajustar `split_order_items` para no depender de campos de cocina heredados.
 
 ---
 

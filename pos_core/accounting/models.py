@@ -1,12 +1,9 @@
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, List
 from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID
 from sqlmodel import SQLModel, Field, Relationship
 from pydantic import field_serializer
-
-if TYPE_CHECKING:
-    from pos_core.sales.models import Order
 
 class CashRegister(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -64,5 +61,5 @@ class Shift(SQLModel, table=True):
         if v.tzinfo is None: v = v.replace(tzinfo=timezone.utc)
         return v.isoformat()
     
-    orders: List["Order"] = Relationship(back_populates="shift")
     movements: List["CashMovement"] = Relationship()
+
