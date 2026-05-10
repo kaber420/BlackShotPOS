@@ -74,6 +74,66 @@ async def provide_kitchen_orders(db: AsyncSession) -> List[Dict[str, Any]]:
     sorted_orders = sorted(orders_map.values(), key=lambda x: x["created_at"])
     return sorted_orders
 
+@topic_provider("recent_orders")
+async def provide_recent_orders(db: AsyncSession):
+    """
+    Proveedor para el tópico 'recent_orders'.
+    AHORA EN COCURA: Agrega información de Cocina en tiempo real para que el mesero vea el progreso.
+    """
+    from pos_core.sales.services.order_lifecycle_service import get_orders
+    from pos_core.sales.schemas import OrderRead
+    from pos_core.sales.models import OrderStatus
+    
+    orders = await get_orders(db)
+    order_ids = [o.id for o in orders]
+    
+    if not order_ids:
+        return []
+        
+    # Obtener estados de cocina para estas órdenes
+    stmt = select(KitchenTicket).where(KitchenTicket.order_id.in_(order_ids))
+    result = await db.execute(stmt)
+    tickets = result.scalars().all()
+    
+    # Mapeo de item_id -> status de cocina
+    kitchen_status_map: Dict[int, str] = {t.item_id: t.status for t in tickets}
+    
+    data = []
+    for o in orders:
+        order_dict = OrderRead.model_validate(o).model_dump(mode="json")
+        item_statuses = []
+        
+        # Enriquecer cada item con su estado real de cocina
+        for item in order_dict.get("items", []):
+            item_id = item.get("id")
+            if item_id in kitchen_status_map:
+                k_status = kitchen_status_map[item_id]
+                status_str = k_status.value if hasattr(k_status, "value") else str(k_status)
+                item["status"] = status_str
+                item_statuses.append(status_str)
+            else:
+                s = item.get("status")
+                status_str = s.value if hasattr(s, "value") else str(s)
+                item_statuses.append(status_str)
+        
+        # SINTESIS DE ESTADO DE LA ORDEN PARA LA UI
+        if any(s == "PREPARING" for s in item_statuses):
+            order_dict["status"] = "PREPARING"
+        elif all(s in ["READY", "DELIVERED", "PAID"] for s in item_statuses) and item_statuses:
+            if any(s == "READY" for s in item_statuses):
+                order_dict["status"] = "READY"
+            elif all(s == "DELIVERED" for s in item_statuses):
+                order_dict["status"] = "DELIVERED"
+        
+        # FILTRO DE VISIBILIDAD: Desaparece si está PAGADA y ENTREGADA
+        is_paid = o.status == OrderStatus.PAID
+        is_all_delivered = all(s == "DELIVERED" for s in item_statuses) if item_statuses else True
+        
+        if not (is_paid and is_all_delivered):
+            data.append(order_dict)
+            
+    return sorted(data, key=lambda x: x["created_at"], reverse=True)
+
 @iot_mapper("kitchen_orders")
 async def map_kitchen_to_iot(topic: str, data: Any):
     """Mapea actualizaciones de cocina a dispositivos IoT."""

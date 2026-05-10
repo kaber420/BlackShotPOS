@@ -21,7 +21,7 @@ async def on_order_created(payload: dict, metadata: dict):
             db_table = await session.get(Table, table_id)
             if db_table and db_table.status != "Occupied":
                 db_table.status = "Occupied"
-                db_table.occupied_at = datetime.now(timezone.utc)
+                db_table.occupied_at = datetime.now(timezone.utc).replace(tzinfo=None)
                 session.add(db_table)
                 await session.commit()
                 logger.info(f"📍 Mesa {db_table.number} marcada como OCUPADA por orden {payload.get('order_id')}")
@@ -114,7 +114,7 @@ async def on_order_transferred(payload: dict, metadata: dict):
                 if new_table:
                     new_table.status = "Occupied"
                     # Preservamos el tiempo de ocupación si venía de otra mesa
-                    new_table.occupied_at = occupied_at if occupied_at else datetime.now(timezone.utc)
+                    new_table.occupied_at = occupied_at if occupied_at else datetime.now(timezone.utc).replace(tzinfo=None)
                     session.add(new_table)
             
             await session.commit()

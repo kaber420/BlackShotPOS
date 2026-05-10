@@ -119,6 +119,14 @@ async def update_ticket_status(
         })
     elif new_status == KitchenStatus.DELIVERED:
         ticket.delivered_at = now
+        # Emitir evento kitchen.item_delivered
+        from pos_core.events.bus import event_bus
+        await event_bus.publish("kitchen.item_delivered", {
+            "ticket_id": ticket.id,
+            "order_id": ticket.order_id,
+            "item_id": ticket.item_id,
+            "product_name": ticket.product_name
+        })
 
     await kitchen_repo.save(session, ticket)
     await session.commit()
@@ -142,3 +150,20 @@ async def update_ticket_status_by_item_id(
     if not ticket:
         return None
     return await update_ticket_status(session, ticket.id, new_status, cook_uuid, cook_name)
+
+async def update_order_tickets_status(
+    session: AsyncSession,
+    order_id: int,
+    new_status: KitchenStatus,
+    cook_uuid: Optional[str] = None,
+    cook_name: Optional[str] = None
+) -> List[KitchenTicket]:
+    """Actualiza todos los tickets asociados a una orden."""
+    tickets = await kitchen_repo.get_tickets_by_order_id(session, order_id)
+    updated = []
+    for t in tickets:
+        u = await update_ticket_status(session, t.id, new_status, cook_uuid, cook_name)
+        if u:
+            updated.append(u)
+    return updated
+

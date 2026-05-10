@@ -45,4 +45,14 @@ class KitchenRepository:
         for t in tickets:
             await session.delete(t)
 
+    async def count_tickets_by_status(self, session: AsyncSession, order_id: Optional[int] = None):
+        """Cuenta tickets agrupados por estado, opcionalmente filtrados por orden."""
+        from sqlalchemy import func
+        statement = select(KitchenTicket.status, func.count(KitchenTicket.id)).group_by(KitchenTicket.status)
+        if order_id:
+            statement = statement.where(KitchenTicket.order_id == order_id)
+        
+        result = await session.execute(statement)
+        return dict(result.all())
+
 kitchen_repo = KitchenRepository()

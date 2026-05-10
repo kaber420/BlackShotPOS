@@ -70,9 +70,6 @@ async def add_payment(
     # 3. Actualizar estado de la orden
     if order.balance_due <= 0:
         order.status = OrderStatus.PAID
-    elif order.status == OrderStatus.PENDING:
-        # Si se hizo un pago parcial, la orden ya no está 'pendiente' de iniciar
-        order.status = OrderStatus.PREPARING
 
     # 4. Inventario y Estados de Item: Delegado a listeners vía EDA.
     # El listener de Inventario reaccionará a 'sales.payment_received' para descontar stock.

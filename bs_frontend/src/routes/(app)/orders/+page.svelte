@@ -130,6 +130,13 @@
             await Promise.all(readyItems.map(item => 
                 OrderService.updateItemStatus(orderId, item.id, OrderStatus.DELIVERED)
             ));
+
+            // Si todos los ítems de la orden ya están entregados, forzamos actualización del estado global
+            // (Aunque el backend ahora lo hace, esto asegura consistencia inmediata en la UI)
+            const updatedOrder = orders.find(o => o.id === orderId);
+            if (updatedOrder && updatedOrder.items.every(i => i.status === 'DELIVERED' || i.status === 'CANCELLED')) {
+                await OrderService.updateStatus(orderId, OrderStatus.DELIVERED);
+            }
         } catch (e) {
             alert(`Error al entregar listos: ${e}`);
         }

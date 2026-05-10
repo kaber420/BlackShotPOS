@@ -16,50 +16,34 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.sales.models import OrderStatus
 from pos_core.sales.repository import order_repo
 from pos_core.sales.schemas import OrderRead
+from pos_core.kitchen.repository import kitchen_repo
+from pos_core.kitchen.models import KitchenStatus
 
 
 async def get_dashboard_stats(session: AsyncSession) -> dict:
     """
     Calcula las estadísticas en tiempo real para el widget del Dashboard POS.
-    Opera sobre todas las órdenes actuales en memoria usando los DTOs de Pydantic.
+    Utiliza agregación SQL para máxima eficiencia y estabilidad.
     """
-    orders_db = await order_repo.get_all(session)
-    orders = [OrderRead.model_validate(o).model_dump(mode="json") for o in orders_db]
-
-    preparing_count = len([
-        o for o in orders
-        if o["status"] in (OrderStatus.PREPARING.value, OrderStatus.PENDING.value)
-    ])
-    ready_count = len([o for o in orders if o["status"] == OrderStatus.READY.value])
-
-    now = datetime.now(timezone.utc)
-    start_of_today = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+    now = datetime.now()
+    start_of_today = datetime(now.year, now.month, now.day)
     start_of_week = start_of_today - timedelta(days=now.weekday())
+    start_of_month = datetime(now.year, now.month, 1)
 
-    def find_best_product(filtered_orders: List[dict]) -> str:
-        product_counts: dict = {}
-        for o in filtered_orders:
-            for item in o.get("items", []):
-                name = (
-                    item.get("product", {}).get("name", "Producto")
-                    if item.get("product")
-                    else "Producto"
-                )
-                product_counts[name] = product_counts.get(name, 0) + item.get("quantity", 0)
-        if not product_counts:
-            return "Ninguno aún"
-        return sorted(product_counts.items(), key=lambda x: x[1], reverse=True)[0][0]
+    # Obtenemos los productos estrella directamente desde SQL
+    star_today = await order_repo.get_star_product_name(session, start_of_today)
+    star_week  = await order_repo.get_star_product_name(session, start_of_week)
+    star_month = await order_repo.get_star_product_name(session, start_of_month)
 
-    def ensure_utc(dt_str: str) -> datetime:
-        dt = datetime.fromisoformat(dt_str)
-        return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
-
-    today_orders = [o for o in orders if ensure_utc(o["created_at"]) >= start_of_today]
-    week_orders  = [o for o in orders if ensure_utc(o["created_at"]) >= start_of_week]
+    # Métricas operativas desde Cocina
+    kitchen_stats = await kitchen_repo.count_tickets_by_status(session)
+    preparing_count = kitchen_stats.get(KitchenStatus.PREPARING, 0) + kitchen_stats.get(KitchenStatus.PENDING, 0)
+    ready_count = kitchen_stats.get(KitchenStatus.READY, 0)
 
     return {
         "preparingCount":   preparing_count,
         "readyCount":       ready_count,
-        "starProductToday": find_best_product(today_orders),
-        "starProductWeek":  find_best_product(week_orders),
+        "starProductToday": star_today,
+        "starProductWeek":  star_week,
+        "starProductMonth": star_month,
     }

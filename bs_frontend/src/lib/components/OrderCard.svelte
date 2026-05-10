@@ -318,8 +318,7 @@
                                 variant="success" 
                                 size="sm" 
                                 class="shadow-sm font-bold" 
-                                disabled={progress < 100}
-                                title={progress < 100 ? 'Todos los platillos deben estar listos para entregar la orden completa' : 'Entregar pedido completo'}
+                                title="Entregar ítems listos"
                                 onclick={() => onDeliver(order.id)}
                             >
                                 Entregar

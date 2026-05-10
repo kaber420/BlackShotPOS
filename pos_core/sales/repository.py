@@ -10,10 +10,11 @@ REGLA FUNDAMENTAL:
 """
 
 from typing import List, Optional
+from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from sqlalchemy import select
+from sqlalchemy import select, func, desc
 
 from .models import Order, OrderItem, Payment, OrderStatus, PaymentMethod
 from pos_core.catalog.models import ProductVariant, Product
@@ -54,45 +55,56 @@ class OrderRepository:
         self,
         session: AsyncSession,
         status: Optional[OrderStatus] = None,
+        shift_id: Optional[int] = None,
+        start_date: Optional[datetime] = None,
+        include_relations: bool = False,
     ) -> List[Order]:
         """
-        Lista todas las órdenes con relaciones completas.
-        Filtra opcionalmente por estado.
+        Lista todas las órdenes con filtros opcionales y carga de relaciones.
         """
-        statement = select(Order).options(
-            selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.tax),
-            selectinload(Order.items).selectinload(OrderItem.modifiers),
-            selectinload(Order.items)
-            .selectinload(OrderItem.variant)
-            .selectinload(ProductVariant.measure),
-            selectinload(Order.payments),
-        )
+        statement = select(Order)
         if status is not None:
             statement = statement.where(Order.status == status)
+        if shift_id is not None:
+            statement = statement.where(Order.shift_id == shift_id)
+        if start_date is not None:
+            statement = statement.where(Order.created_at >= start_date)
 
-        result = await session.execute(statement)
-        return list(result.unique().scalars().all())
-
-    async def get_active_for_kitchen(self, session: AsyncSession) -> List[Order]:
-        """
-        Retorna las órdenes PENDING y PREPARING para la pantalla KDS.
-        Ordenadas por antigüedad (la más vieja primero).
-        """
-        statement = (
-            select(Order)
-            .where(Order.status.in_([OrderStatus.PENDING, OrderStatus.PREPARING]))
-            .order_by(Order.created_at)
-            .options(
-                selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.tax),
+        if include_relations:
+            statement = statement.options(
+                selectinload(Order.items).selectinload(OrderItem.product),
                 selectinload(Order.items).selectinload(OrderItem.modifiers),
                 selectinload(Order.items)
                 .selectinload(OrderItem.variant)
                 .selectinload(ProductVariant.measure),
                 selectinload(Order.payments),
             )
+        
+        result = await session.execute(statement)
+        return list(result.scalars().all())
+
+    async def get_star_product_name(
+        self, session: AsyncSession, start_date: datetime
+    ) -> str:
+        """
+        Calcula el producto más vendido desde una fecha dada usando agregación SQL.
+        Mucho más eficiente que cargar todas las órdenes en Python.
+        """
+        statement = (
+            select(Product.name, func.sum(OrderItem.quantity).label("total_qty"))
+            .join(OrderItem, OrderItem.product_id == Product.id)
+            .join(Order, OrderItem.order_id == Order.id)
+            .where(Order.created_at >= start_date)
+            .where(Order.status != OrderStatus.CANCELLED)
+            .group_by(Product.name)
+            .order_by(desc("total_qty"))
+            .limit(1)
         )
         result = await session.execute(statement)
-        return list(result.unique().scalars().all())
+        row = result.first()
+        return row[0] if row else "Ninguno"
+
+
 
     async def save(self, session: AsyncSession, order: Order) -> None:
         """Agrega/actualiza un objeto Order en la sesión activa (sin commit)."""

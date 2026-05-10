@@ -19,7 +19,10 @@ async def create_order(
     waiter_name: Optional[str] = None,
 ) -> Order:
     active_shift = await get_active_shift(session)
-    shift_id = active_shift.id if active_shift else None
+    if not active_shift:
+        raise InvalidOrderStateError("No se puede crear una orden sin un turno abierto.")
+    
+    shift_id = active_shift.id
 
     db_order = Order(
         type=order_type,
@@ -56,12 +59,25 @@ async def get_order_by_id(session: AsyncSession, order_id: int) -> Optional[Orde
 async def get_orders(
     session: AsyncSession, status: Optional[OrderStatus] = None
 ) -> List[Order]:
-    return await order_repo.get_all(session, status)
+    """Obtiene las órdenes, asegurando carga aislada de relaciones."""
+    active_shift = await get_active_shift(session)
+    shift_id = active_shift.id if active_shift else None
+    
+    # Obtenemos solo los esqueletos
+    base_orders = await order_repo.get_all(session, status, shift_id=shift_id)
+    
+    # Cargamos relaciones una por una para evitar el bug de 'mezclado'
+    full_orders = []
+    for o in base_orders:
+        full_o = await get_order_with_relations(session, o.id)
+        if full_o:
+            full_orders.append(full_o)
+            
+    return full_orders
 
 
-async def get_kitchen_orders(session: AsyncSession) -> List[Order]:
-    """Retorna las órdenes PENDING y PREPARING para la pantalla KDS."""
-    return await order_repo.get_active_for_kitchen(session)
+
+
 
 
 async def get_order_with_relations(
@@ -89,6 +105,14 @@ async def update_order_status(
     old_status = order.status
     order.status = new_status
     
+    if new_status == OrderStatus.DELIVERED:
+        # Al entregar la orden, aseguramos que todos los items estén entregados
+        items = await item_repo.get_items_for_order(session, order_id)
+        for i in items:
+            if i.status != OrderStatus.CANCELLED:
+                i.status = OrderStatus.DELIVERED
+                await item_repo.save(session, i)
+
     await order_repo.save(session, order)
     await session.commit()
     order = await order_repo.get_with_relations(session, order_id)
@@ -108,6 +132,8 @@ async def update_order_status(
 
     if new_status == OrderStatus.CANCELLED:
         await event_bus.publish("sales.order_cancelled", {"order_id": order_id}, actor_uuid=actor_uuid)
+    elif new_status == OrderStatus.DELIVERED:
+        await event_bus.publish("sales.order_delivered", {"order_id": order_id, "table_id": order.table_id}, actor_uuid=actor_uuid)
 
     return order
 

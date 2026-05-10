@@ -116,9 +116,25 @@ async def update_order_item_status(
 
     item.status = new_status
     await item_repo.save(session, item)
-
     await session.commit()
+    # Emitir evento para que Cocina u otros módulos reaccionen
+    from pos_core.events.bus import event_bus
+    await event_bus.publish("sales.item_status_changed", {
+        "order_id": order_id,
+        "item_id": item_id,
+        "old_status": old_status,
+        "new_status": new_status,
+        "actor_name": actor_name
+    }, actor_uuid=actor_uuid)
 
     # Recargamos con relaciones para asegurar serialización correcta en el router
     item = await item_repo.get_by_id(session, order_id, item.id)
+
+    # Lógica de Autocierre: si todos los ítems están entregados, marcar orden como entregada
+    if new_status == OrderStatus.DELIVERED:
+        items = await item_repo.get_items_for_order(session, order_id)
+        if all(i.status == OrderStatus.DELIVERED or i.status == OrderStatus.CANCELLED for i in items):
+            from .order_lifecycle_service import update_order_status
+            await update_order_status(session, order_id, OrderStatus.DELIVERED, actor_uuid=actor_uuid, actor_name=actor_name)
+
     return item

@@ -8,7 +8,6 @@ from .services.order_lifecycle_service import (
     create_order,
     get_order_by_id,
     get_orders,
-    get_kitchen_orders,
     get_order_with_relations,
     update_order_status,
     delete_order,

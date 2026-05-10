@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 async def on_payment_received(payload: dict, metadata: dict):
     """
     Cuando se recibe un pago, el inventario revisa si hay items que deban
-    ser descontados (aquellos que pasan de PENDING a PREPARING).
+    ser descontados (aquellos que aún están PENDING y son de venta directa).
     """
     order_id = payload.get("order_id")
     
@@ -31,6 +31,7 @@ async def on_payment_received(payload: dict, metadata: dict):
                 if i.status == OrderStatus.PENDING:
                     # Verificamos si el producto tiene área de producción
                     if not i.product or not i.product.category or not i.product.category.production_area_id:
+                        i.status = OrderStatus.READY
                         items_to_deplete.append(i)
             
             if not items_to_deplete:
@@ -42,12 +43,8 @@ async def on_payment_received(payload: dict, metadata: dict):
             # 1. Descontar stock
             await process_inventory_depletion(session, items_to_deplete)
             
-            # 2. Actualizar estado de los items (Cerebro vs Músculo: el inventario confirma el cambio)
-            for item in items_to_deplete:
-                item.status = OrderStatus.PREPARING
-            
             await session.commit()
-            logger.info(f"✅ Inventario descontado y estados actualizados para orden {order_id}")
+            logger.info(f"✅ Inventario descontado para orden {order_id}")
             
             # 3. Broadcast UI
             from pos_core.events.service import trigger_broadcast

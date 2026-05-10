@@ -83,6 +83,17 @@ async def deliver_ticket(
         raise HTTPException(status_code=404, detail="Ticket no encontrado")
     return {"status": "ok", "new_status": KitchenStatus.DELIVERED}
 
+@router.post("/orders/{order_id}/deliver")
+async def deliver_order(
+    order_id: int, 
+    session: AsyncSession = Depends(get_session)
+):
+    """Marca TODOS los tickets de una orden como 'Entregados'."""
+    from .services import update_order_tickets_status
+    await update_order_tickets_status(session, order_id, KitchenStatus.DELIVERED)
+    return {"status": "ok", "new_status": KitchenStatus.DELIVERED}
+
+
 
 @router.get("/production-areas", response_model=List[ProductionAreaRead])
 async def get_production_areas(session: AsyncSession = Depends(get_session)):

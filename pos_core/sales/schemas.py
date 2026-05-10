@@ -69,10 +69,6 @@ class OrderItemRead(BaseModel):
     variant: Optional[VariantRead] = None
     modifiers: List[ModifierSimpleRead] = []
 
-    status: OrderStatus
-
-    # Relaciones anidadas
-
     model_config = ConfigDict(from_attributes=True)
 
 # ---------------------------------------------------------------------------
