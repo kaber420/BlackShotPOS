@@ -69,3 +69,31 @@ async def on_order_delivered(payload: dict, metadata: dict):
             await trigger_broadcast("inventory", db=session)
         except Exception as e:
             logger.error(f"❌ Error en on_order_delivered: {e}")
+
+@on_event("kitchen.item_preparing")
+async def on_kitchen_item_preparing(payload: dict, metadata: dict):
+    """
+    Cuando la cocina empieza a preparar un ítem, el inventario descuenta los insumos.
+    Este es el punto de verdad para el consumo de stock en ítems de producción.
+    """
+    order_id = payload.get("order_id")
+    item_id = payload.get("item_id")
+    
+    async with async_session_maker() as session:
+        try:
+            from pos_core.sales.repository import item_repo
+            
+            # Obtenemos el item para tener acceso a su product_id y modificadores
+            item = await item_repo.get_by_id(session, order_id, item_id)
+            if not item:
+                logger.error(f"❌ Item {item_id} no encontrado en Sales para descarga de inventario")
+                return
+
+            logger.info(f"📦 Descontando inventario por inicio de cocina: Item {item_id} (Orden {order_id})")
+            await process_inventory_depletion(session, [item])
+            await session.commit()
+            
+            from pos_core.events.service import trigger_broadcast
+            await trigger_broadcast("inventory", db=session)
+        except Exception as e:
+            logger.error(f"❌ Error en inventario al procesar kitchen.item_preparing: {e}")

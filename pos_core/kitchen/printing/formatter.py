@@ -20,6 +20,7 @@ from escpos.printer import Dummy  # Dummy = genera bytes sin conectar a hardware
 if TYPE_CHECKING:
     from pos_core.sales.models import Order, OrderItem
     from pos_core.settings.models import BusinessSettings
+    from pos_core.kitchen.models import KitchenTicket
 
 # La configuración del negocio ahora se pasa como argumento desde el router
 # (obtenida de la base de datos).
@@ -317,6 +318,72 @@ def format_comanda_html(order: Order, settings: BusinessSettings) -> str:
         {items_html}
         
         <hr>
+        <script>
+            window.onload = () => {{
+                window.print();
+                setTimeout(() => {{ window.close(); }}, 500);
+            }};
+        </script>
+    </body>
+    </html>
+    """
+
+def format_kitchen_ticket(ticket: KitchenTicket, settings: BusinessSettings) -> bytes:
+    """Genera la comanda para un ticket individual de cocina."""
+    p = _get_printer()
+    p.set(align="center", bold=True, double_height=True, double_width=True)
+    p.text("COMANDA\n")
+    p.set(double_height=False, double_width=False)
+    
+    p.text(f"ORDEN #{ticket.order_id}\n")
+    p.text(f"AREA: {ticket.production_area.name if ticket.production_area else 'GRAL'}\n")
+    p.text("-" * 32 + "\n")
+    
+    p.set(align="left", bold=True, double_height=True)
+    p.text(f"{ticket.product_name}\n")
+    p.set(bold=False, double_height=False)
+    
+    if ticket.variant_name:
+        p.text(f"  [{ticket.variant_name}]\n")
+    if ticket.modifiers_text:
+        # Los modificadores suelen venir separados por comas
+        for mod in ticket.modifiers_text.split(","):
+            p.text(f"  {mod.strip()}\n")
+        
+    p.text("-" * 32 + "\n")
+    p.text(f"Recibido: {ticket.received_at.strftime('%H:%M:%S')}\n")
+    p.text("\n\n\n")
+    p.cut()
+    return p.output
+
+def format_kitchen_ticket_html(ticket: KitchenTicket, settings: BusinessSettings) -> str:
+    """Genera el HTML para un ticket individual de cocina."""
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: sans-serif; width: 58mm; margin: 0 auto; }}
+            .center {{ text-align: center; }}
+            .product {{ font-size: 1.5em; font-weight: bold; margin: 10px 0; }}
+            .mods {{ font-size: 1.1em; margin-left: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="center">
+            <h1 style="margin: 5px 0;">COMANDA</h1>
+            <div>ORDEN #{ticket.order_id}</div>
+            <div style="font-weight: bold;">{ticket.production_area.name if ticket.production_area else 'GRAL'}</div>
+            <hr>
+        </div>
+        <div class="product">{ticket.product_name}</div>
+        <div class="mods">
+            {f"<div>[{ticket.variant_name}]</div>" if ticket.variant_name else ""}
+            {ticket.modifiers_text.replace(', ', '<br>') if ticket.modifiers_text else ""}
+        </div>
+        <hr>
+        <div style="font-size: 0.8em;">{ticket.received_at.strftime('%H:%M:%S')}</div>
         <script>
             window.onload = () => {{
                 window.print();

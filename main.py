@@ -11,7 +11,7 @@ from pos_core.catalog.router import router as catalog_router
 from pos_core.catalog.production_router import router as production_area_router
 from pos_core.tables.router import router as tables_router
 from pos_core.sales.router import router as sales_router
-from pos_core.printing.router import router as printing_router
+from pos_core.kitchen.printing.router import router as printing_router
 from pos_core.accounting.router import router as shifts_router
 from pos_core.settings.router import router as settings_router
 from pos_core.analytics.router import router as analytics_router
@@ -22,6 +22,7 @@ from pos_core.iot.admin_router import router as admin_iot_router
 from pos_core.auth.router import auth_router, user_router
 from pos_core.customers.router import router as customer_router
 from pos_core.communications.router import router as communications_router
+from pos_core.kitchen.router import router as kitchen_router
 from pos_core.events.discovery import discover_event_providers, discover_event_listeners
 
 
@@ -88,6 +89,7 @@ app.include_router(events_router, prefix="/api/v1/pos/events", tags=["Eventos"])
 app.include_router(iot_router, prefix="/api/v1/pos/iot", tags=["IoT"])
 app.include_router(admin_iot_router, prefix="/api/v1/pos/admin/iot", tags=["IoT Admin"])
 app.include_router(communications_router, prefix="/api/v1/pos/communications", tags=["Comunicaciones/Intercom"])
+app.include_router(kitchen_router, prefix="/api/v1/pos/kitchen", tags=["Cocina"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/api/users", tags=["Users"])
 

@@ -6,23 +6,14 @@ if TYPE_CHECKING:
     # Evita importación circular real, pero permite el tipado estático
     from pos_core.inventory.models import Ingredient, IngredientRead
 
+from pos_core.kitchen.models import ProductionArea, ProductionAreaRead
+
 class CategoryBase(SQLModel):
     name: str = Field(index=True, unique=True)
     description: Optional[str] = None
     is_modifier_category: bool = Field(default=False)
     production_area_id: Optional[int] = Field(default=None, foreign_key="productionarea.id", index=True)
 
-class ProductionAreaBase(SQLModel):
-    name: str = Field(index=True, unique=True)
-    description: Optional[str] = None
-    printer_ip: Optional[str] = None
-    printer_port: int = Field(default=9100)
-    printer_type: str = Field(default="network", description="network, bluetooth, usb")
-    is_active: bool = Field(default=True)
-
-class ProductionArea(ProductionAreaBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    categories: List["Category"] = Relationship(back_populates="production_area")
 
 class Category(CategoryBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -38,16 +29,6 @@ class CategoryUpdate(SQLModel):
     is_modifier_category: Optional[bool] = None
     production_area_id: Optional[int] = None
 
-class ProductionAreaCreate(ProductionAreaBase):
-    pass
-
-class ProductionAreaUpdate(SQLModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    printer_ip: Optional[str] = None
-    printer_port: Optional[int] = None
-    printer_type: Optional[str] = None
-    is_active: Optional[bool] = None
 
 class MeasureBase(SQLModel):
     name: str = Field(index=True)
@@ -297,8 +278,6 @@ class ProductVariantRead(ProductVariantBase):
     id: int
     measure: MeasureRead
 
-class ProductionAreaRead(ProductionAreaBase):
-    id: int
 
 class CategoryRead(CategoryBase):
     id: int

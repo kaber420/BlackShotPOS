@@ -75,131 +75,41 @@ async def update_order_status(
     session: AsyncSession,
     order_id: int,
     new_status: OrderStatus,
-    cook_uuid: Optional[str] = None,
-    cook_name: Optional[str] = None,
-    delivered_by_uuid: Optional[str] = None,
-    delivered_by_name: Optional[str] = None,
+    actor_uuid: Optional[str] = None,
+    actor_name: Optional[str] = None,
 ) -> Optional[Order]:
+    """
+    Actualiza el estado comercial de una orden.
+    La lógica operativa (cocina) ahora se maneja en el dominio Kitchen.
+    """
     order = await order_repo.get_by_id(session, order_id)
     if not order:
         raise OrderNotFoundError(order_id)
 
     old_status = order.status
     order.status = new_status
-    now = datetime.now()
-
-    if new_status == OrderStatus.PREPARING and order.preparing_at is None:
-        order.preparing_at = now
-        if cook_uuid and order.cook_uuid is None:
-            order.cook_uuid = cook_uuid
-            order.cook_name = cook_name
-
-    elif new_status == OrderStatus.READY and order.ready_at is None:
-        order.ready_at = now
-        if cook_uuid and order.cook_uuid is None:
-            order.cook_uuid = cook_uuid
-            order.cook_name = cook_name
-        if order.table_id:
-            pass # El evento es manejado automáticamente por el Bus de Eventos Unificado
-
-    elif new_status == OrderStatus.DELIVERED and order.delivered_at is None:
-        order.delivered_at = now
-
+    
     await order_repo.save(session, order)
     await session.commit()
-    await session.refresh(order)
+    order = await order_repo.get_with_relations(session, order_id)
 
-    # Emitir cambio de estado
+    # Emitir cambio de estado para que otros módulos (Kitchen, Tables, IoT) reaccionen
     await event_bus.publish(
         "sales.order_status_changed",
         {
             "order_id": order.id,
             "old_status": old_status,
             "new_status": new_status,
-            "table_id": order.table_id
-        }
+            "table_id": order.table_id,
+            "actor_name": actor_name
+        },
+        actor_uuid=actor_uuid
     )
 
-    # Propagar estado a los ítems
-    order_items = await item_repo.get_items_for_order(session, order_id)
+    if new_status == OrderStatus.CANCELLED:
+        await event_bus.publish("sales.order_cancelled", {"order_id": order_id}, actor_uuid=actor_uuid)
 
-    if new_status in (OrderStatus.READY, OrderStatus.DELIVERED):
-        items_to_advance = [
-            i for i in order_items
-            if i.status in (OrderStatus.PENDING, OrderStatus.PREPARING, OrderStatus.READY)
-        ]
-        items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-        for i in items_to_advance:
-            i.status = new_status
-            if new_status == OrderStatus.READY and i.ready_at is None:
-                i.ready_at = now
-                if cook_uuid and i.cook_uuid is None:
-                    i.cook_uuid = cook_uuid
-                    i.cook_name = cook_name
-            elif new_status == OrderStatus.DELIVERED and i.delivered_at is None:
-                i.delivered_at = now
-                if delivered_by_uuid and i.delivered_by_uuid is None:
-                    i.delivered_by_uuid = delivered_by_uuid
-                    i.delivered_by_name = delivered_by_name
-            await item_repo.save(session, i)
-        if items_to_deplete:
-            serialized_items = [
-                {
-                    "product_id": i.product_id,
-                    "product_variant_id": i.product_variant_id,
-                    "quantity": i.quantity,
-                    "modifiers": [
-                        {
-                            "id": m.id,
-                            "modifier_group_id": m.modifier_group_id,
-                            "ingredient_id": m.ingredient_id,
-                            "product_id": m.product_id,
-                            "variant_id": m.variant_id,
-                            "quantity": m.quantity
-                        } for m in i.modifiers
-                    ]
-                } for i in items_to_deplete
-            ]
-            await event_bus.publish("sales.order_delivered", {
-                "order_id": order.id,
-                "items": serialized_items
-            })
-        if items_to_advance:
-            await session.commit()
-
-    elif old_status == OrderStatus.PENDING and new_status == OrderStatus.PREPARING:
-        items_to_deplete = [i for i in order_items if i.status == OrderStatus.PENDING]
-        for i in items_to_deplete:
-            i.status = OrderStatus.PREPARING
-            if i.preparing_at is None:
-                i.preparing_at = now
-            if cook_uuid and i.cook_uuid is None:
-                i.cook_uuid = cook_uuid
-                i.cook_name = cook_name
-            await item_repo.save(session, i)
-        if items_to_deplete:
-            serialized_items = [
-                {
-                    "product_id": i.product_id,
-                    "product_variant_id": i.product_variant_id,
-                    "quantity": i.quantity,
-                    "modifiers": [
-                        {
-                            "id": m.id,
-                            "modifier_group_id": m.modifier_group_id,
-                            "ingredient_id": m.ingredient_id,
-                            "product_id": m.product_id,
-                            "variant_id": m.variant_id,
-                            "quantity": m.quantity
-                        } for m in i.modifiers
-                    ]
-                } for i in items_to_deplete
-            ]
-            await event_bus.publish("sales.order_delivered", {
-                "order_id": order_id,
-                "items": serialized_items
-            })
-            await session.commit()
+    return order
 
     return order
 
@@ -230,7 +140,7 @@ async def recalculate_order_totals(session: AsyncSession, order_id: int) -> Orde
     
     await order_repo.save(session, order)
     await session.commit()
-    await session.refresh(order)
+    order = await order_repo.get_with_relations(session, order_id)
     return order
 
 

@@ -112,17 +112,18 @@ async def update_status(
     db: AsyncSession = Depends(get_session),
     user=Depends(require_permission(Permission.VIEW_ORDERS)),
 ):
-    """Actualiza el estado de una orden. Registra cocinero o mesero según la transición."""
-    is_kitchen = status in (OrderStatus.PREPARING, OrderStatus.READY)
-    is_delivery = status == OrderStatus.DELIVERED
+    """Actualiza el estado de una orden. Emite evento para sincronización entre módulos."""
+    if status in (OrderStatus.PREPARING, OrderStatus.READY):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El estado {status} es operativo de Cocina. Use los endpoints de /kitchen para esto."
+        )
     order = await order_service.update_order_status(
         db,
         order_id,
         status,
-        cook_uuid=str(user.id) if is_kitchen else None,
-        cook_name=user.email if is_kitchen else None,
-        delivered_by_uuid=str(user.id) if is_delivery else None,
-        delivered_by_name=user.email if is_delivery else None,
+        actor_uuid=str(user.id),
+        actor_name=user.email,
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -138,18 +139,19 @@ async def update_item_status(
     db: AsyncSession = Depends(get_session),
     user=Depends(require_permission(Permission.VIEW_ORDERS)),
 ):
-    """Actualiza el estado de un ítem individual. Registra cocinero o mesero según la transición."""
-    is_kitchen = status in (OrderStatus.PREPARING, OrderStatus.READY)
-    is_delivery = status == OrderStatus.DELIVERED
+    """Actualiza el estado de un ítem individual. Emite evento para sincronización entre módulos."""
+    if status in (OrderStatus.PREPARING, OrderStatus.READY):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El estado {status} es operativo de Cocina. Use los endpoints de /kitchen para esto."
+        )
     item = await order_item_service.update_order_item_status(
         db,
         order_id,
         item_id,
         status,
-        cook_uuid=str(user.id) if is_kitchen else None,
-        cook_name=user.email if is_kitchen else None,
-        delivered_by_uuid=str(user.id) if is_delivery else None,
-        delivered_by_name=user.email if is_delivery else None,
+        actor_uuid=str(user.id),
+        actor_name=user.email,
     )
     if not item:
         raise HTTPException(status_code=404, detail="OrderItem not found")

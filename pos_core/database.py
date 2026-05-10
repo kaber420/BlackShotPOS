@@ -43,6 +43,7 @@ async def init_db():
     async with engine.begin() as conn:
         # Importamos los modelos aquí para asegurar que se registren en SQLModel.metadata
         from pos_core.catalog.models import Category, Product, RecipeItem, Measure, ProductVariant
+        from pos_core.kitchen.models import KitchenTicket, ProductionArea
         from pos_core.inventory.models import Ingredient
         from pos_core.tables.models import Table
         from pos_core.sales.models import Order, OrderItem, Payment

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from pos_core.database import get_session
-from .models import ProductionArea, ProductionAreaCreate, ProductionAreaUpdate, ProductionAreaRead
+from pos_core.kitchen.models import ProductionArea, ProductionAreaCreate, ProductionAreaUpdate, ProductionAreaRead
 from pos_core.auth.dependencies import require_role
 
 router = APIRouter()

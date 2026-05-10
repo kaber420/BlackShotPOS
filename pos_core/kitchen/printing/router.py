@@ -21,6 +21,7 @@ from pos_core.database import get_session
 from pos_core.sales.models import Order, OrderItem
 from pos_core.settings.service import get_settings
 from pos_core.auth.dependencies import require_role
+from pos_core.kitchen.models import KitchenTicket
 from . import formatter
 
 logger = logging.getLogger(__name__)
@@ -124,3 +125,55 @@ async def get_comanda_html(
     order = await _get_order_with_items(order_id, session)
     settings = await get_settings(session)
     return formatter.format_comanda_html(order, settings)
+
+
+# ── Tickets Individuales de Cocina (KDS) ────────────────────────────────────
+
+@router.get(
+    "/kitchen-ticket/{ticket_id}/raw",
+    summary="Descargar ticket de cocina individual como bytes ESC/POS",
+    tags=["Impresión"],
+)
+async def get_kitchen_ticket_raw(
+    ticket_id: int,
+    session: AsyncSession = Depends(get_session),
+    user=Depends(require_role("waiter")),
+):
+    from sqlalchemy.orm import selectinload
+    statement = select(KitchenTicket).where(KitchenTicket.id == ticket_id).options(selectinload(KitchenTicket.production_area))
+    result = await session.execute(statement)
+    ticket = result.scalar_one_or_none()
+    
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket #{ticket_id} no encontrado")
+        
+    settings = await get_settings(session)
+    data = formatter.format_kitchen_ticket(ticket, settings)
+    return Response(
+        content=data,
+        media_type="application/octet-stream",
+        headers={"Content-Disposition": f"inline; filename=kticket_{ticket_id}.bin"},
+    )
+
+
+@router.get(
+    "/kitchen-ticket/{ticket_id}/html",
+    summary="Ver ticket de cocina individual en HTML",
+    response_class=HTMLResponse,
+    tags=["Impresión"],
+)
+async def get_kitchen_ticket_html(
+    ticket_id: int,
+    session: AsyncSession = Depends(get_session),
+    user=Depends(require_role("waiter")),
+):
+    from sqlalchemy.orm import selectinload
+    statement = select(KitchenTicket).where(KitchenTicket.id == ticket_id).options(selectinload(KitchenTicket.production_area))
+    result = await session.execute(statement)
+    ticket = result.scalar_one_or_none()
+    
+    if not ticket:
+        raise HTTPException(status_code=404, detail=f"Ticket #{ticket_id} no encontrado")
+        
+    settings = await get_settings(session)
+    return formatter.format_kitchen_ticket_html(ticket, settings)

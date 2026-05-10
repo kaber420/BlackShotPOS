@@ -43,15 +43,18 @@ class OrderItem(SQLModel, table=True):
     tax_amount: float = Field(default=0.0, description="Monto de impuesto para este ítem")
     status: OrderStatus = Field(default=OrderStatus.PENDING)
 
-    # ── Rastreo de entrega (¿quién entregó este ítem al cliente?) ────────────
+    # ── [DEPRECATED] Rastreo de entrega ──────────────────────────────────────
+    # Movido al dominio de Cocina (KitchenTicket.delivered_at)
     delivered_by_uuid: Optional[str] = Field(default=None)
     delivered_by_name: Optional[str] = Field(default=None)
 
-    # ── Rastreo de cocina (¿qué cocinero preparó este ítem?) ────────────────
+    # ── [DEPRECATED] Rastreo de cocina ───────────────────────────────────────
+    # Movido al dominio de Cocina (KitchenTicket.cook_uuid)
     cook_uuid: Optional[str] = Field(default=None)
     cook_name: Optional[str] = Field(default=None)
 
-    # ── Timestamps de ciclo de vida por ítem ─────────────────────────────────
+    # ── [DEPRECATED] Timestamps de ciclo de vida por ítem ────────────────────
+    # Movido al dominio de Cocina (KitchenTicket)
     preparing_at: Optional[datetime] = Field(default=None)
     ready_at: Optional[datetime] = Field(default=None)
     delivered_at: Optional[datetime] = Field(default=None)
@@ -111,11 +114,13 @@ class Order(SQLModel, table=True):
     waiter_uuid: Optional[str] = Field(default=None, description="UUID del mesero que creó la orden")
     waiter_name: Optional[str] = Field(default=None, description="Nombre del mesero (snapshot de auditoría)")
 
-    # ── Rastreo del cocinero responsable ─────────────────────────────────────
+    # ── [DEPRECATED] Rastreo del cocinero responsable ─────────────────────────
+    # Movido al dominio de Cocina
     cook_uuid: Optional[str] = Field(default=None, description="UUID del cocinero que tomó/preparó la orden")
     cook_name: Optional[str] = Field(default=None, description="Nombre del cocinero (snapshot de auditoría)")
 
-    # ── Timestamps de ciclo de vida de la orden ───────────────────────────────
+    # ── [DEPRECATED] Timestamps de ciclo de vida de la orden ──────────────────
+    # Movido al dominio de Cocina
     preparing_at: Optional[datetime] = Field(default=None, description="Cuando cocina empezó a preparar")
     ready_at: Optional[datetime] = Field(default=None, description="Cuando cocina marcó la orden como lista")
     delivered_at: Optional[datetime] = Field(default=None, description="Cuando el mesero entregó al cliente")
