@@ -48,8 +48,7 @@ Mejorar la percepción de velocidad sin comprometer la integridad:
 - **Estado Local:** Al realizar un ajuste, el `$state` del componente se actualiza inmediatamente.
 - **Gestión de Errores:** Si la API falla, se utiliza un sistema de `revert` para restaurar el estado previo y se notifica al usuario mediante un Toast de error.
 
-### Throttling y Eficiencia de Búsqueda
-- **Debouncing:** Implementar un retraso de 300ms en el input de búsqueda global para evitar inundar el servidor con peticiones parciales mientras el usuario escribe.
+#
 - **Filtros Operativos:** Implementar un selector de "Estado de Insumo" con opciones: `Bajo Stock`, `Próximo a Vencer`, `Sin Stock`.
 
 ---

@@ -68,3 +68,59 @@ async def on_order_deleted(payload: dict, metadata: dict):
                 await trigger_broadcast("tables", db=session)
             except Exception as e:
                 logger.error(f"❌ Error al liberar mesa {table_id} por eliminación: {e}")
+
+@on_event("sales.payment_received")
+async def on_payment_received(payload: dict, metadata: dict):
+    """
+    Si el pago indica 'vacate_table', liberamos la mesa.
+    """
+    vacate_table = payload.get("vacate_table", False)
+    table_id = payload.get("table_id")
+    
+    if vacate_table and table_id:
+        async with async_session_maker() as session:
+            try:
+                await vacate_table_service(session, table_id)
+                logger.info(f"📍 Mesa {table_id} LIBERADA vía evento de pago (vacate_table=True)")
+                
+                from pos_core.events.service import trigger_broadcast
+                await trigger_broadcast("tables", db=session)
+            except Exception as e:
+                logger.error(f"❌ Error al liberar mesa {table_id} por pago: {e}")
+
+@on_event("sales.order_transferred")
+async def on_order_transferred(payload: dict, metadata: dict):
+    """
+    Maneja el cambio de estado de mesas cuando una orden se transfiere.
+    """
+    old_table_id = payload.get("from_table_id")
+    new_table_id = payload.get("to_table_id")
+    
+    async with async_session_maker() as session:
+        try:
+            occupied_at = None
+            # 1. Liberar mesa vieja
+            if old_table_id:
+                old_table = await session.get(Table, old_table_id)
+                if old_table:
+                    occupied_at = old_table.occupied_at
+                    old_table.status = "Free"
+                    old_table.occupied_at = None
+                    session.add(old_table)
+            
+            # 2. Ocupar mesa nueva
+            if new_table_id:
+                new_table = await session.get(Table, new_table_id)
+                if new_table:
+                    new_table.status = "Occupied"
+                    # Preservamos el tiempo de ocupación si venía de otra mesa
+                    new_table.occupied_at = occupied_at if occupied_at else datetime.now(timezone.utc)
+                    session.add(new_table)
+            
+            await session.commit()
+            logger.info(f"📍 Transferencia de mesa completada: {old_table_id} -> {new_table_id}")
+            
+            from pos_core.events.service import trigger_broadcast
+            await trigger_broadcast("tables", db=session)
+        except Exception as e:
+            logger.error(f"❌ Error en transferencia de mesa vía evento: {e}")

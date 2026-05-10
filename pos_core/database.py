@@ -16,11 +16,23 @@ connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
 db_echo_env = os.getenv("DB_ECHO", "False").lower()
 is_db_echo = db_echo_env in ("true", "1", "t", "yes")
 
-engine = create_async_engine(
-    DATABASE_URL, 
-    echo=is_db_echo, 
-    connect_args=connect_args
-)
+# Configuración optimizada para PostgreSQL
+engine_params = {
+    "echo": is_db_echo,
+}
+
+if "postgresql" in DATABASE_URL:
+    engine_params.update({
+        "pool_size": 20,
+        "max_overflow": 10,
+        "pool_recycle": 3600,
+        "pool_pre_ping": True,
+    })
+else:
+    # Para SQLite
+    engine_params["connect_args"] = connect_args
+
+engine = create_async_engine(DATABASE_URL, **engine_params)
 
 async_session_maker = sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False

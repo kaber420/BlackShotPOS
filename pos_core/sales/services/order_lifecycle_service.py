@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Order, OrderItem, OrderStatus, OrderType
 from ..repository import order_repo, item_repo
-from pos_core.inventory.services.stock_service import process_inventory_depletion
 from pos_core.accounting.service import get_active_shift
 from pos_core.events.bus import event_bus
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
@@ -87,7 +86,7 @@ async def update_order_status(
 
     old_status = order.status
     order.status = new_status
-    now = datetime.now(timezone.utc)
+    now = datetime.now()
 
     if new_status == OrderStatus.PREPARING and order.preparing_at is None:
         order.preparing_at = now
@@ -144,7 +143,27 @@ async def update_order_status(
                     i.delivered_by_name = delivered_by_name
             await item_repo.save(session, i)
         if items_to_deplete:
-            await process_inventory_depletion(session, items_to_deplete)
+            serialized_items = [
+                {
+                    "product_id": i.product_id,
+                    "product_variant_id": i.product_variant_id,
+                    "quantity": i.quantity,
+                    "modifiers": [
+                        {
+                            "id": m.id,
+                            "modifier_group_id": m.modifier_group_id,
+                            "ingredient_id": m.ingredient_id,
+                            "product_id": m.product_id,
+                            "variant_id": m.variant_id,
+                            "quantity": m.quantity
+                        } for m in i.modifiers
+                    ]
+                } for i in items_to_deplete
+            ]
+            await event_bus.publish("sales.order_delivered", {
+                "order_id": order.id,
+                "items": serialized_items
+            })
         if items_to_advance:
             await session.commit()
 
@@ -159,7 +178,27 @@ async def update_order_status(
                 i.cook_name = cook_name
             await item_repo.save(session, i)
         if items_to_deplete:
-            await process_inventory_depletion(session, items_to_deplete)
+            serialized_items = [
+                {
+                    "product_id": i.product_id,
+                    "product_variant_id": i.product_variant_id,
+                    "quantity": i.quantity,
+                    "modifiers": [
+                        {
+                            "id": m.id,
+                            "modifier_group_id": m.modifier_group_id,
+                            "ingredient_id": m.ingredient_id,
+                            "product_id": m.product_id,
+                            "variant_id": m.variant_id,
+                            "quantity": m.quantity
+                        } for m in i.modifiers
+                    ]
+                } for i in items_to_deplete
+            ]
+            await event_bus.publish("sales.order_delivered", {
+                "order_id": order_id,
+                "items": serialized_items
+            })
             await session.commit()
 
     return order

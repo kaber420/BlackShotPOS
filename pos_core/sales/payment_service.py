@@ -13,7 +13,7 @@ from typing import Optional
 from .models import Payment, PaymentMethod, OrderStatus
 from .repository import order_repo, item_repo
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
-from pos_core.inventory.services.stock_service import process_inventory_depletion
+from pos_core.events.bus import event_bus
 from bs_sync.service import enqueue_event
 
 
@@ -24,6 +24,7 @@ async def add_payment(
     amount: float,
     received_amount: Optional[float] = None,
     tip_amount: float = 0.0,
+    vacate_table: bool = False,
 ) -> Payment:
     """
     Registra un pago (total o parcial) y opcionalmente una propina.
@@ -73,16 +74,24 @@ async def add_payment(
         # Si se hizo un pago parcial, la orden ya no está 'pendiente' de iniciar
         order.status = OrderStatus.PREPARING
 
-    # 4. Manejo de Inventario: Descontar stock al recibir el primer pago si estaba PENDING
-    if order.status == OrderStatus.PREPARING and any(i.status == OrderStatus.PENDING for i in order.items):
-        await process_inventory_depletion(session, order.items)
-        for item in order.items:
-            if item.status == OrderStatus.PENDING:
-                item.status = OrderStatus.PREPARING
+    # 4. Inventario y Estados de Item: Delegado a listeners vía EDA.
+    # El listener de Inventario reaccionará a 'sales.payment_received' para descontar stock.
 
     await order_repo.save(session, order)
     
-    # 5. Sincronización Central
+    # 5. Notificar a Contabilidad, Mesas y otros módulos (EDA Interno)
+    await event_bus.publish("sales.payment_received", {
+        "order_id": order.id,
+        "table_id": order.table_id,
+        "shift_id": order.shift_id,
+        "payment_id": payment.id,
+        "amount": amount,
+        "method": payment.method,
+        "tip_amount": tip_amount,
+        "vacate_table": vacate_table
+    })
+
+    # 6. Sincronización Central
     await enqueue_event(session, "sales.payment_added", {
         "order_id": order.id,
         "payment_id": payment.id,

@@ -20,7 +20,7 @@ class AuditLog(SQLModel, table=True):
     target_id: Optional[str] = Field(default=None)
     target_type: Optional[str] = Field(default=None)
     changes_json: Optional[str] = Field(default=None)
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now())
 
     @field_serializer("timestamp")
     def serialize_audit_time(self, v: Optional[datetime]) -> Optional[str]:

@@ -9,7 +9,6 @@ from pos_core.sales.services import (
     order_action_service
 )
 from pos_core.sales import payment_service
-from pos_core.tables import service as table_service
 from pos_core.events.service import trigger_broadcast, trigger_standard_broadcasts
 from pos_core.auth.dependencies import require_role, require_permission
 from pos_core.roles import Permission
@@ -219,18 +218,16 @@ async def pay_order(
         raise HTTPException(status_code=404, detail="Order not found")
 
     # 1. Registrar el pago (dominio financiero puro)
+    # Se pasa el flag vacate_table para que el módulo de Mesas reaccione vía EDA
     payment = await payment_service.add_payment(
         db, 
         order_id, 
         payment_in.method, 
         payment_in.amount,
         tip_amount=payment_in.tip_amount,
-        received_amount=payment_in.received_amount
+        received_amount=payment_in.received_amount,
+        vacate_table=payment_in.vacate_table
     )
-
-    # 2. Si el cliente se va, liberar la mesa (dominio de mesas, independiente)
-    if order.table_id and payment_in.vacate_table:
-        await table_service.vacate_table_service(db, order.table_id)
 
     # 3. Broadcasts
     asyncio.create_task(trigger_standard_broadcasts())

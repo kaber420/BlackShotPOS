@@ -70,9 +70,10 @@ Este documento unifica la visión estratégica y operativa para transformar Blac
     - **Control por Lotes (Batches):** Seguimiento de caducidades y lotes de entrada (FIFO/FEFO).
     - **Edición Masiva (Bulk Update):** Herramienta para actualizar múltiples items (precios, stock, categorías) de manera simultánea.
 - **Arquitectura Dirigida por Eventos (P1):** Ver [Especificación EDA](file:///home/kaberromero/Documentos/proyectos/BlackShotPOS/docs/ARCHITECTURE_EVENT_DRIVEN.md)
-    - [ ] **Global Persistence Worker (GPW):** Implementación del "músculo" de escritura serializada para garantizar integridad total.
-    - [ ] **Refactorización de Ventas (RFC-003):** Migración de Ventas al modelo de "Emisión Pura", eliminando todas las importaciones circulares de Inventario y Mesas. Ver [EVOLUTION_SALES.md](file:///home/kaberromero/Documentos/proyectos/BlackShotPOS/docs/EVOLUTION_SALES.md)
-    - [ ] **Inventory & Table Processors:** Implementación de los listeners que reaccionan a ventas para gatillar stock y estados de mesa vía GPW.
+    - [x] **Internal Event Bus (Core):** Bus asíncrono con decoradores para Pub/Sub interno.
+    - [x] **Descarte de GPW:** La migración a **PostgreSQL** permite escrituras concurrentes nativas, eliminando la necesidad de un worker serializador.
+    - [/] **Refactorización de Ventas (RFC-003):** Migración hacia "Emisión Pura". Desacoplado de Mesas; pendiente desacoplamiento final de lógica de Inventario y Auditoría.
+    - [x] **Inventory & Table Processors:** Listeners funcionales que reaccionan a eventos para gestionar stock y estados de mesa.
 
 ## 5. Ecosistema IoT y Experiencia de Cliente (P2)
 *Objetivo: Empoderar al cliente y digitalizar la mesa.*

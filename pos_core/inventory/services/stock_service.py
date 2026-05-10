@@ -12,6 +12,12 @@ from pos_core.exceptions import InsufficientStockError
 ALLOW_NEGATIVE_STOCK = False
 MAX_RECURSION_DEPTH = 5
 
+def _get_val(obj, key, default=None):
+    """Helper to get value from either a dict or an object."""
+    if isinstance(obj, dict):
+        return obj.get(key, default)
+    return getattr(obj, key, default)
+
 async def process_inventory_depletion(session: AsyncSession, order_items) -> None:
     """
     Resta los ingredientes del inventario basándose en las recetas de los productos o variantes en la orden.
@@ -23,10 +29,10 @@ async def process_inventory_depletion(session: AsyncSession, order_items) -> Non
             # Llamar a la función recursiva para el ítem principal
             await _deplete_recursive(
                 session=session,
-                product_id=getattr(item, 'product_id', None),
-                variant_id=getattr(item, 'product_variant_id', None),
-                quantity=item.quantity,
-                selected_modifiers=getattr(item, 'modifiers', []),
+                product_id=_get_val(item, 'product_id'),
+                variant_id=_get_val(item, 'product_variant_id'),
+                quantity=_get_val(item, 'quantity', 1),
+                selected_modifiers=_get_val(item, 'modifiers', []),
                 depth=0
             )
                     
@@ -91,12 +97,12 @@ async def _deplete_recursive(
         elif ri.modifier_group_id:
             # Ingrediente dinámico: Buscamos qué modificador de este grupo se seleccionó
             for mod in selected_modifiers:
-                m_group_id = getattr(mod, 'modifier_group_id', None) if not isinstance(mod, dict) else mod.get('modifier_group_id')
+                m_group_id = _get_val(mod, 'modifier_group_id')
                 if m_group_id == ri.modifier_group_id:
                     # Encontrado. Ver qué es este modificador (Ingrediente o Producto)
-                    mod_ing_id = getattr(mod, 'ingredient_id', None) if not isinstance(mod, dict) else mod.get('ingredient_id')
-                    mod_prod_id = getattr(mod, 'product_id', None) if not isinstance(mod, dict) else mod.get('product_id')
-                    mod_var_id = getattr(mod, 'variant_id', None) if not isinstance(mod, dict) else mod.get('variant_id')
+                    mod_ing_id = _get_val(mod, 'ingredient_id')
+                    mod_prod_id = _get_val(mod, 'product_id')
+                    mod_var_id = _get_val(mod, 'variant_id')
 
                     if mod_ing_id:
                         # Usar Pessimistic Locking
@@ -116,20 +122,20 @@ async def _deplete_recursive(
                         await _deplete_recursive(session, mod_prod_id, mod_var_id, current_item_qty, depth=depth + 1)
                     
                     # Registrar este modificador para evitar descuento doble
-                    mod_id = getattr(mod, 'id', None) if not isinstance(mod, dict) else mod.get('id')
+                    mod_id = _get_val(mod, 'id')
                     deducted_modifier_ids.add(mod_id)
                     break
     
     # 4. Depleción por modificadores seleccionados (que no estuvieran en la receta base)
     for modifier in selected_modifiers:
-        mod_id = getattr(modifier, 'id', None) if not isinstance(modifier, dict) else modifier.get('id')
+        mod_id = _get_val(modifier, 'id')
         
         if mod_id in deducted_modifier_ids:
             continue
 
-        mod_ing_id = getattr(modifier, 'ingredient_id', None) if not isinstance(modifier, dict) else modifier.get('ingredient_id')
-        mod_prod_id = getattr(modifier, 'product_id', None) if not isinstance(modifier, dict) else modifier.get('product_id')
-        mod_var_id = getattr(modifier, 'variant_id', None) if not isinstance(modifier, dict) else modifier.get('variant_id')
+        mod_ing_id = _get_val(modifier, 'ingredient_id')
+        mod_prod_id = _get_val(modifier, 'product_id')
+        mod_var_id = _get_val(modifier, 'variant_id')
 
         if mod_ing_id:
             # Buscar cantidad específica por medida si existe
@@ -153,7 +159,7 @@ async def _deplete_recursive(
                     mod_qty = mq.quantity
             
             if mod_qty == 0.0:
-                mod_qty = getattr(modifier, 'quantity', 0.0) if not isinstance(modifier, dict) else modifier.get('quantity', 0.0)
+                mod_qty = _get_val(modifier, 'quantity', 0.0)
 
             if mod_qty > 0:
                 # Usar Pessimistic Locking

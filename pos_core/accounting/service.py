@@ -35,12 +35,14 @@ async def get_active_shift(session: AsyncSession, user_id: Optional[UUID] = None
     return result.scalars().first()
 
 async def enrich_shift_data(session: AsyncSession, shift: Shift) -> dict:
-    """Calcula y rellena los totales en tiempo real para un turno abierto."""
-    totals = await calculate_shift_totals(session, shift.id)
+    """Utiliza los totales pre-calculados en tiempo real."""
     data = shift.model_dump()
-    data["expected_cash"] = round(shift.initial_cash + totals["cash_sales"] + totals["incomes"] - totals["expenses"] - totals["withdrawals"], 2)
-    data["expected_card"] = round(totals["card_sales"], 2)
-    data["expected_transfer"] = round(totals["transfer_sales"], 2)
+    data["expected_cash"] = round(shift.expected_cash, 2)
+    data["expected_card"] = round(shift.expected_card, 2)
+    data["expected_transfer"] = round(shift.expected_transfer, 2)
+    
+    # Estos siguen siendo informativos y podrían optimizarse luego si se desea
+    totals = await calculate_shift_totals(session, shift.id)
     data["withdrawals"] = round(totals["withdrawals"], 2)
     data["expenses"] = round(totals["expenses"], 2)
     data["incomes"] = round(totals["incomes"], 2)
@@ -72,6 +74,7 @@ async def open_shift(session: AsyncSession, initial_cash: float, register_id: in
 
     shift = Shift(
         initial_cash=initial_cash,
+        expected_cash=initial_cash, # Inicializamos con el fondo de caja
         register_id=register_id,
         user_id=user_id
     )
@@ -129,6 +132,16 @@ async def add_cash_movement(
         user_id=user_id
     )
     session.add(movement)
+    
+    # Actualizar el total esperado en el turno (Atomic Update)
+    from sqlalchemy import update
+    stmt = update(Shift).where(Shift.id == shift_id)
+    if type == CashMovementType.INCOME:
+        stmt = stmt.values(expected_cash=Shift.expected_cash + amount)
+    else:
+        stmt = stmt.values(expected_cash=Shift.expected_cash - amount)
+    
+    await session.execute(stmt)
     await session.commit()
     await session.refresh(movement)
     return movement
@@ -148,12 +161,13 @@ async def close_shift(
     if shift.status == ShiftStatus.CLOSED:
         raise HTTPException(status_code=400, detail="Shift is already closed")
 
-    totals = await calculate_shift_totals(session, shift_id)
-
-    # El efectivo esperado es: fondo inicial + ventas efectivo + entradas - gastos - retiros
-    shift.expected_cash = shift.initial_cash + totals["cash_sales"] + totals["incomes"] - totals["expenses"] - totals["withdrawals"]
-    shift.expected_card = totals["card_sales"]
-    shift.expected_transfer = totals["transfer_sales"]
+    # Ya no recalculamos desde cero, usamos los totales acumulados en tiempo real
+    # No obstante, se mantienen los campos del modelo actualizados para el cierre final.
+    # shift.expected_cash ya está actualizado por los movimientos y pagos.
+    # shift.expected_card y shift.expected_transfer también.
+    
+    # (Opcional) Podríamos dejar el cálculo de auditoría aquí si se desea doble verificación
+    # totals = await calculate_shift_totals(session, shift_id)
 
     shift.actual_cash = actual_cash
     shift.actual_card = actual_card
@@ -162,7 +176,7 @@ async def close_shift(
     shift.difference_cash = actual_cash - shift.expected_cash
     shift.notes = notes
     shift.status = ShiftStatus.CLOSED
-    shift.end_time = datetime.now(timezone.utc)
+    shift.end_time = datetime.now()
 
     await session.commit()
     await session.refresh(shift)
@@ -274,9 +288,9 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "start_time": shift.start_time.isoformat(),
             "end_time": shift.end_time.isoformat() if shift.end_time else None,
             "initial_cash": shift.initial_cash,
-            "expected_cash": round(shift.initial_cash + totals["cash_sales"] + totals["incomes"] - totals["expenses"] - totals["withdrawals"], 2),
-            "expected_card": round(totals["card_sales"], 2),
-            "expected_transfer": round(totals["transfer_sales"], 2),
+            "expected_cash": round(shift.expected_cash, 2),
+            "expected_card": round(shift.expected_card, 2),
+            "expected_transfer": round(shift.expected_transfer, 2),
             "total_withdrawals": round(totals["withdrawals"], 2),
             "total_expenses": round(totals["expenses"], 2),
             "actual_cash": shift.actual_cash,

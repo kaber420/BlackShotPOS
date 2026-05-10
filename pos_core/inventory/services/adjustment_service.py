@@ -2,7 +2,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from datetime import datetime
 from pos_core.inventory.models import InventoryAdjustment, InventoryAdjustmentCreate, Ingredient, AdjustmentReason, IngredientBatch
-from pos_core.audit.models import AuditLog, AuditCategory
 from pos_core.events.service import trigger_broadcast
 from bs_sync.service import enqueue_event
 import logging
@@ -90,19 +89,6 @@ async def create_adjustment(
         )
         session.add(new_batch)
     
-    # 3.5 Registrar en la Bitácora Global de Auditoría
-    audit_entry = AuditLog(
-        category=AuditCategory.INVENTORY,
-        action=f"INV_{reason}",
-        reason=adjustment_data.note,
-        actor_uuid=actor_uuid or "system",
-        actor_name=actor_name or "system",
-        target_id=str(ingredient.id),
-        target_type="ingredient",
-        changes_json=f'{{"ingredient": "{ingredient.name}", "old_stock": {old_stock}, "new_stock": {ingredient.current_stock}, "delta": {delta}}}'
-    )
-    session.add(audit_entry)
-    
     # Comiteamos para asegurar consistencia antes de disparar eventos
     await session.commit()
     await session.refresh(adjustment)
@@ -113,7 +99,20 @@ async def create_adjustment(
     # 4. Notificar actualización de inventario vía WebSocket
     await trigger_broadcast("inventory")
 
-    # 5. Encolar para Sincronización con Central Core
+    # 5. Emitir evento interno para Auditoría y otros módulos (EDA)
+    from pos_core.events.bus import event_bus
+    await event_bus.publish("inventory.stock_adjusted", {
+        "ingredient_id": ingredient.id,
+        "ingredient_name": ingredient.name,
+        "delta": delta,
+        "old_stock": old_stock,
+        "new_stock": ingredient.current_stock,
+        "reason": reason,
+        "note": adjustment_data.note,
+        "actor_name": actor_name
+    }, actor_uuid=actor_uuid)
+
+    # 6. Encolar para Sincronización con Central Core
     # El agente bs_sync se encargará de empujar esto a la Central
     sync_payload = {
         "id": adjustment.id,

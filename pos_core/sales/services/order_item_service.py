@@ -90,7 +90,7 @@ async def update_order_item_status(
         return item
 
     item.status = new_status
-    now = datetime.now(timezone.utc)
+    now = datetime.now()
 
     if new_status == OrderStatus.PREPARING and item.preparing_at is None:
         item.preparing_at = now

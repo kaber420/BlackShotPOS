@@ -14,6 +14,14 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
 
     async def on_after_register(self, user: User, request: Optional[Request] = None):
         print(f"User {user.id} has registered.")
+        from pos_core.events.bus import event_bus
+        await event_bus.publish("auth.user_registered", {"user_id": str(user.id), "email": user.email})
+
+    async def on_after_login(
+        self, user: User, response: Optional[Request] = None, request: Optional[Request] = None
+    ):
+        from pos_core.events.bus import event_bus
+        await event_bus.publish("auth.user_login", {"user_id": str(user.id), "email": user.email})
 
     async def on_after_forgot_password(
         self, user: User, token: str, request: Optional[Request] = None

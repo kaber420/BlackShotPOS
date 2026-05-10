@@ -29,6 +29,7 @@ dependencies = [
     "passlib[argon2]",
     "python-jose[cryptography]",
     "nats-py",
+    "asyncpg",
 ]
 
 [project.optional-dependencies]

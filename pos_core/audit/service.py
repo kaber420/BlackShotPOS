@@ -32,7 +32,7 @@ async def log_action(
         target_id=target_id,
         target_type=target_type,
         changes_json=changes_json,
-        timestamp=datetime.now(timezone.utc)
+        timestamp=datetime.now()
     )
     session.add(log)
     # Nota: No hacemos commit aquí, dejamos que el orquestador (Service o Router) lo haga.

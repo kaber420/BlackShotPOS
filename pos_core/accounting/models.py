@@ -12,7 +12,7 @@ class CashRegister(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True) # Ej: "Barra 1", "Caja Principal"
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now())
 
 class CashMovementType(str, Enum):
     INCOME = "INCOME"         # Fondo extra, corrección
@@ -26,7 +26,7 @@ class CashMovement(SQLModel, table=True):
     type: CashMovementType
     reason: str
     user_id: UUID = Field(foreign_key="user.id")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    timestamp: datetime = Field(default_factory=lambda: datetime.now())
 
 class ShiftStatus(str, Enum):
     OPEN = "OPEN"
@@ -37,7 +37,7 @@ class Shift(SQLModel, table=True):
     register_id: Optional[int] = Field(default=None, foreign_key="cashregister.id")
     user_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
     
-    start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    start_time: datetime = Field(default_factory=lambda: datetime.now())
     end_time: Optional[datetime] = Field(default=None)
     status: ShiftStatus = Field(default=ShiftStatus.OPEN)
     

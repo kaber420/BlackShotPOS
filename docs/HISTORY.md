@@ -29,6 +29,14 @@ Este documento sirve como registro de los hitos arquitectónicos y de funcionali
 - **Cambio:** Integración del tópico `"inventory"` en el sistema de eventos.
 - **Resultado:** Actualización automática del stock en todas las terminales al vender o realizar ajustes manuales.
 
+### [COMPLETO] Arquitectura Dirigida por Eventos (EDA)
+- **Cambio:** Implementación del `InternalEventBus` y migración a **PostgreSQL** para permitir autonomía total de módulos.
+- **Resultado:** Eliminación de bloqueos de base de datos y capacidad de procesar efectos secundarios (inventario, auditoría, contabilidad) de forma asíncrona y concurrente. Se descarta el GPW por capacidad nativa de Postgres.
+
+### [COMPLETO] Desacoplamiento de Ventas y Mesas
+- **Cambio:** Refactorización final para que el módulo de Ventas no dependa del módulo de Mesas.
+- **Resultado:** La liberación y transferencia de mesas se realiza exclusivamente vía listeners de eventos (`sales.payment_received`, `sales.order_transferred`), respetando la lógica de negocio de no liberar mesa automáticamente en cada pago.
+
 ---
 
 ## 🔒 Seguridad y Gestión

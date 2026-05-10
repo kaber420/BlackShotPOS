@@ -80,7 +80,7 @@ class Payment(SQLModel, table=True):
     received_amount: float = Field(default=0.0)
     change_amount: float = Field(default=0.0)
     tip_amount: float = Field(default=0.0, description="Monto de propina incluido en este pago")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(), index=True)
     
     @field_serializer("timestamp")
     def serialize_payment_time(self, v: Optional[datetime]) -> Optional[str]:
@@ -104,8 +104,8 @@ class Order(SQLModel, table=True):
     shift_id: Optional[int] = Field(default=None, foreign_key="shift.id")
     customer_id: Optional[UUID] = Field(default=None, foreign_key="customer.id")
     external_reference: Optional[str] = Field(default=None, description="PIN de Uber, ID de Rappi, etc.")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), index=True)
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(), index=True)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now())
 
     # ── Rastreo del mesero creador ────────────────────────────────────────────
     waiter_uuid: Optional[str] = Field(default=None, description="UUID del mesero que creó la orden")

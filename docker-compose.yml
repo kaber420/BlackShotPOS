@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: blackshot_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: blackshot_user
+      POSTGRES_PASSWORD: blackshot_password
+      POSTGRES_DB: blackshot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:

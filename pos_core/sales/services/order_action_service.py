@@ -7,8 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import Order, OrderItem, OrderStatus
 from pos_core.audit.models import AuditCategory
 from ..repository import order_repo, item_repo
-from pos_core.audit import service as audit_service
 from pos_core.exceptions import OrderNotFoundError
+from pos_core.events.bus import event_bus
 
 
 async def cancel_order(
@@ -39,25 +39,20 @@ async def cancel_order(
             item.status = OrderStatus.CANCELLED
             await item_repo.save(session, item)
 
-    # 3. Liberar mesa si aplica
-    if order.table_id:
-        from pos_core.tables import service as table_service
-        await table_service.vacate_table_service(session, order.table_id)
-
-    # 4. Registrar auditoría
-    await audit_service.log_action(
-        session,
-        category=AuditCategory.SALES,
-        action="ORDER_CANCELLED",
-        reason=reason,
-        actor_uuid=actor_uuid,
-        actor_name=actor_name,
-        target_id=str(order_id),
-        target_type="order",
-    )
+    # 3. La liberación de mesa se hace vía listener de 'sales.order_status_changed' o 'sales.order_cancelled'
+    # en el módulo de Mesas.
 
     from .order_lifecycle_service import recalculate_order_totals
     await recalculate_order_totals(session, order_id)
+
+    # 5. Emitir evento para Contabilidad/Inventario/Auditoría/Mesas
+    await event_bus.publish("sales.order_cancelled", {
+        "order_id": order_id,
+        "shift_id": order.shift_id,
+        "reason": reason,
+        "actor_name": actor_name,
+        "table_id": order.table_id
+    }, actor_uuid=actor_uuid)
 
     await session.commit()
     await session.refresh(order)
@@ -86,18 +81,13 @@ async def cancel_order_item(
     item.status = OrderStatus.CANCELLED
     await item_repo.save(session, item)
 
-    # 2. Registrar auditoría
-    await audit_service.log_action(
-        session,
-        category=AuditCategory.SALES,
-        action="ITEM_CANCELLED",
-        reason=reason,
-        actor_uuid=actor_uuid,
-        actor_name=actor_name,
-        target_id=str(item_id),
-        target_type="order_item",
-        changes_json=json.dumps({"order_id": order_id})
-    )
+    # 2. El log de auditoría ocurre vía EDA (listener de 'sales.item_cancelled')
+    await event_bus.publish("sales.item_cancelled", {
+        "order_id": order_id,
+        "item_id": item_id,
+        "reason": reason,
+        "actor_name": actor_name
+    }, actor_uuid=actor_uuid)
 
     # 3. Recalcular estado de la orden (si todos los ítems están cancelados, cancelar orden)
     items = await item_repo.get_items_for_order(session, order_id)
@@ -108,9 +98,7 @@ async def cancel_order_item(
         if order and order.status != OrderStatus.CANCELLED:
             order.status = OrderStatus.CANCELLED
             await order_repo.save(session, order)
-            if order.table_id:
-                from pos_core.tables import service as table_service
-                await table_service.vacate_table_service(session, order.table_id)
+            # La liberación de mesa ocurre vía EDA al cambiar el estado a CANCELLED
 
     from .order_lifecycle_service import recalculate_order_totals
     await recalculate_order_totals(session, order_id)
@@ -128,11 +116,8 @@ async def transfer_order_table(
     actor_name: str,
 ) -> Order:
     """
-    Transfiere una orden de una mesa a otra.
-    Mantiene el tiempo de ocupación (occupied_at) de la mesa original en la nueva.
+    Transfiere una orden de una mesa a otra emitiendo un evento para que Mesas gestione el estado.
     """
-    from pos_core.tables.models import Table
-
     order = await order_repo.get_by_id(session, order_id)
     if not order:
         raise OrderNotFoundError(order_id)
@@ -140,45 +125,18 @@ async def transfer_order_table(
     if order.table_id == new_table_id:
         return order
 
-    new_table = await session.get(Table, new_table_id)
-    if not new_table:
-        raise ValueError(f"Target table {new_table_id} does not exist")
-    
-    if new_table.status != "Free":
-        raise ValueError(f"Target table {new_table_id} is not free (Status: {new_table.status})")
-
     old_table_id = order.table_id
-    occupied_at = None
-
-    if old_table_id:
-        old_table = await session.get(Table, old_table_id)
-        if old_table:
-            occupied_at = old_table.occupied_at
-            old_table.status = "Free"
-            old_table.occupied_at = None
-            session.add(old_table)
-
-    if not occupied_at:
-        occupied_at = datetime.now(timezone.utc)
-
-    new_table.status = "Occupied"
-    new_table.occupied_at = occupied_at
-    session.add(new_table)
-
     order.table_id = new_table_id
     await order_repo.save(session, order)
 
-    await audit_service.log_action(
-        session,
-        category=AuditCategory.SALES,
-        action="TABLE_TRANSFERRED",
-        reason="Cambio de mesa",
-        actor_uuid=actor_uuid,
-        actor_name=actor_name,
-        target_id=str(order_id),
-        target_type="order",
-        changes_json=json.dumps({"from_table": old_table_id, "to_table": new_table_id})
-    )
+    # Emitir evento para que el módulo de Mesas actualice estados Free/Occupied
+    await event_bus.publish("sales.order_transferred", {
+        "order_id": order_id,
+        "from_table_id": old_table_id,
+        "to_table_id": new_table_id
+    }, actor_uuid=actor_uuid)
+
+    # 2. El log de auditoría ocurre vía EDA (listener de 'sales.order_transferred')
 
     await session.commit()
     await session.refresh(order)
@@ -272,22 +230,14 @@ async def split_order_items(
     await recalculate_order_totals(session, original_order.id)
     await recalculate_order_totals(session, new_order.id)
     
-    # Registrar auditoría
+    # 5. El log de auditoría ocurre vía EDA (listener de 'sales.order_split')
     items_log = [{"item_id": i.item_id, "quantity": i.quantity} for i in items_to_split]
-    await audit_service.log_action(
-        session,
-        category=AuditCategory.SALES,
-        action="ORDER_SPLIT",
-        reason="División de cuenta por productos",
-        actor_uuid=actor_uuid,
-        actor_name=actor_name,
-        target_id=str(original_order.id),
-        target_type="order",
-        changes_json=json.dumps({
-            "new_order_id": new_order.id,
-            "items_split": items_log
-        })
-    )
+    await event_bus.publish("sales.order_split", {
+        "original_order_id": original_order_id,
+        "new_order_id": new_order.id,
+        "items_split": items_log,
+        "actor_name": actor_name
+    }, actor_uuid=actor_uuid)
     
     await session.commit()
     await session.refresh(new_order)
