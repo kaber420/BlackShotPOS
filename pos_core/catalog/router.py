@@ -14,7 +14,8 @@ from .models import (
     Modifier, ModifierCreate, ModifierUpdate, ModifierRead, 
     POSPreset, POSPresetCreate, 
     Measure, MeasureCreate, MeasureRead, 
-    ProductVariant, ProductVariantCreate, ProductVariantUpdate, ProductVariantRead
+    ProductVariant, ProductVariantCreate, ProductVariantUpdate, ProductVariantRead,
+    Tax, TaxCreate, TaxUpdate, TaxRead
 )
 from pos_core.inventory.models import Ingredient
 from pos_core.inventory import unit_converter
@@ -304,6 +305,32 @@ async def list_measures(db: AsyncSession = Depends(get_session)):
 @router.post("/measures", response_model=Measure, dependencies=[Depends(require_role("admin"))])
 async def create_measure(measure: MeasureCreate, db: AsyncSession = Depends(get_session)):
     return await product_service.create_measure(db, measure)
+
+# --- Endpoints de Impuestos (Taxes) ---
+
+@router.get("/taxes", response_model=List[TaxRead])
+async def list_taxes(db: AsyncSession = Depends(get_session)):
+    """Listado de impuestos disponibles en el catálogo."""
+    return await product_service.get_taxes(db)
+
+@router.post("/taxes", response_model=TaxRead, dependencies=[Depends(require_role("admin"))])
+async def create_tax(tax: TaxCreate, db: AsyncSession = Depends(get_session)):
+    return await product_service.create_tax(db, tax)
+
+@router.put("/taxes/{tax_id}", response_model=TaxRead, dependencies=[Depends(require_role("admin"))])
+async def update_tax(tax_id: int, tax: TaxUpdate, db: AsyncSession = Depends(get_session)):
+    updated_tax = await product_service.update_tax(db, tax_id, tax)
+    if not updated_tax:
+        raise HTTPException(status_code=404, detail="Impuesto no encontrado")
+    return updated_tax
+
+@router.delete("/taxes/{tax_id}", dependencies=[Depends(require_role("admin"))])
+async def delete_tax(tax_id: int, db: AsyncSession = Depends(get_session)):
+    success = await product_service.delete_tax(db, tax_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Impuesto no encontrado")
+    return {"detail": "Impuesto eliminado"}
+
 
 # --- Endpoints de Variantes de Producto ---
 

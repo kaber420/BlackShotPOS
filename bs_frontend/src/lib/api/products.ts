@@ -63,6 +63,7 @@ export interface Product {
     variants?: ProductVariant[];
     modifier_groups?: ModifierGroup[];
     tax?: Tax;
+    tax_id?: number | null;
 }
 
 export const ProductService = {
@@ -89,6 +90,23 @@ export const ProductService = {
 
     delete: (id: number) =>
         fetchApi<{detail: string}>(`/api/v1/pos/catalog/products/${id}`, {
+            method: 'DELETE'
+        }),
+
+    // Impuestos
+    getTaxes: () => fetchApi<Tax[]>('/api/v1/pos/catalog/taxes'),
+    createTax: (tax: Partial<Tax>) =>
+        fetchApi<Tax>('/api/v1/pos/catalog/taxes', {
+            method: 'POST',
+            body: JSON.stringify(tax)
+        }),
+    updateTax: (id: number, tax: Partial<Tax>) =>
+        fetchApi<Tax>(`/api/v1/pos/catalog/taxes/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(tax)
+        }),
+    deleteTax: (id: number) =>
+        fetchApi<{detail: string}>(`/api/v1/pos/catalog/taxes/${id}`, {
             method: 'DELETE'
         }),
 

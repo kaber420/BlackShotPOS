@@ -17,6 +17,20 @@
 	let products = $state<Product[]>([]);
 	let selectedCategory = $state<number | null>(null);
 	let isLoading = $state(true);
+	let searchTerm = $state('');
+
+	let posSections = $derived(
+		categories.map(cat => {
+			const catProducts = products.filter(p => 
+				p.category_id === cat.id && 
+				(searchTerm === '' || p.name.toLowerCase().includes(searchTerm.toLowerCase()))
+			);
+			return { ...cat, products: catProducts };
+		}).filter(section => {
+			if (selectedCategory !== null) return section.id === selectedCategory && section.products.length > 0;
+			return section.products.length > 0;
+		})
+	);
 
 	// Operational Stats derived from global socket
 	let preparingCount = $derived(posSocket.dashboardStats?.preparingCount ?? 0);
@@ -35,9 +49,11 @@
 		posSocket.subscribe("dashboard_stats");
 
 		try {
-			categories = await CategoryService.getAll();
+			const allCategories = await CategoryService.getAll();
+			categories = allCategories.filter(c => !c.is_modifier_category);
+			
 			if (categories.length > 0) {
-				selectedCategory = categories[0].id || null;
+				selectedCategory = null;
 				await loadProducts(selectedCategory);
 			}
 
@@ -131,7 +147,15 @@
 			<!-- Categories & Compact Stats Row -->
 			<div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200">
                 <!-- Categories Tabs -->
-                <div class="flex gap-2 overflow-x-auto whitespace-nowrap elegant-scroll no-scrollbar flex-1 pr-4">
+                <div class="flex gap-2 overflow-x-auto whitespace-nowrap elegant-scroll no-scrollbar flex-1 pr-4 items-center">
+                    <Button 
+                        variant={selectedCategory === null ? 'primary' : 'ghost'}
+                        size="sm"
+                        class="rounded-lg transition-all"
+                        onclick={() => loadProducts(null)}
+                    >
+                        Todos
+                    </Button>
                     {#each categories as cat}
                         <Button 
                             variant={selectedCategory === (cat.id ?? null) ? 'primary' : 'ghost'}
@@ -142,6 +166,16 @@
                             {cat.name}
                         </Button>
                     {/each}
+                </div>
+
+                <!-- Search Input -->
+                <div class="relative w-full md:w-48 lg:w-64 shrink-0 mx-2 hidden md:block">
+                    <input 
+                        type="text" 
+                        placeholder="¿Qué se te antoja?" 
+                        bind:value={searchTerm}
+                        class="input input-sm w-full rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
+                    />
                 </div>
 
                 <!-- Compact Live Status -->
@@ -157,14 +191,34 @@
                 </div>
 			</div>
 			
+			<!-- Mobile Search Input -->
+			<div class="md:hidden w-full relative">
+				<input 
+					type="text" 
+					placeholder="¿Qué se te antoja?" 
+					bind:value={searchTerm}
+					class="input input-md w-full rounded-xl bg-base-200/40 backdrop-blur-md shadow-sm border border-base-200 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+				/>
+			</div>
+
 			<!-- Product Grid -->
-			<div class="flex-1 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5 overflow-y-auto pb-4 pr-2 min-h-0">
+			<div class="flex-1 overflow-y-auto pb-4 pr-2 min-h-0 elegant-scroll">
 				{#if isLoading}
-					<div class="col-span-full flex justify-center py-20">
+					<div class="flex justify-center py-20">
 						<span class="loading loading-spinner loading-lg text-primary"></span>
 					</div>
 				{:else}
-					{#each products as prod}
+					<div class="flex flex-col gap-8">
+						{#each posSections as section (section.id)}
+							<section>
+								{#if selectedCategory === null}
+									<div class="flex items-center gap-4 mb-4">
+										<h2 class="text-xl font-black uppercase tracking-tighter text-base-content/80">{section.name}</h2>
+										<div class="h-0.5 flex-1 bg-base-200 rounded-full"></div>
+									</div>
+								{/if}
+								<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3.5">
+									{#each section.products as prod (prod.id)}
                         {@const hasModifiers = prod.modifier_groups && prod.modifier_groups.length > 0}
                         {@const hasVariants = prod.variants && prod.variants.length > 0}
                         {@const hasOptions = hasModifiers || hasVariants}
@@ -289,7 +343,11 @@
 								</div>
 							{/if}
 						</div>
-					{/each}
+									{/each}
+								</div>
+							</section>
+						{/each}
+					</div>
 				{/if}
 			</div>
 		</div>

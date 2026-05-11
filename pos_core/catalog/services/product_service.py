@@ -6,7 +6,7 @@ from ..models import (
     Product, ProductCreate, ProductUpdate,
     ProductVariant, ProductVariantCreate, ProductVariantUpdate,
     POSPreset, Measure, MeasureCreate, ModifierGroup, Modifier,
-    RecipeItem
+    RecipeItem, Tax
 )
 from .utils import delete_local_image
 
@@ -201,5 +201,42 @@ async def clear_variant_recipe(session: AsyncSession, variant_id: int):
     from sqlmodel import delete
     statement = delete(RecipeItem).where(RecipeItem.variant_id == variant_id)
     await session.execute(statement)
+    await session.commit()
+    return True
+
+async def get_taxes(session: AsyncSession) -> List[Tax]:
+    statement = select(Tax).where(Tax.is_active == True)
+    result = await session.execute(statement)
+    return result.scalars().all()
+
+from ..models import TaxCreate, TaxUpdate
+
+async def create_tax(session: AsyncSession, tax: TaxCreate) -> Tax:
+    db_tax = Tax.model_validate(tax)
+    session.add(db_tax)
+    await session.commit()
+    await session.refresh(db_tax)
+    return db_tax
+
+async def update_tax(session: AsyncSession, tax_id: int, tax_data: TaxUpdate) -> Optional[Tax]:
+    db_tax = await session.get(Tax, tax_id)
+    if not db_tax:
+        return None
+    
+    update_data = tax_data.model_dump(exclude_unset=True)
+    for key, value in update_data.items():
+        setattr(db_tax, key, value)
+        
+    session.add(db_tax)
+    await session.commit()
+    await session.refresh(db_tax)
+    return db_tax
+
+async def delete_tax(session: AsyncSession, tax_id: int) -> bool:
+    db_tax = await session.get(Tax, tax_id)
+    if not db_tax:
+        return False
+    db_tax.is_active = False
+    session.add(db_tax)
     await session.commit()
     return True

@@ -1,11 +1,12 @@
 <script lang="ts">
-    import type { Product } from '$lib/api/products';
+    import type { Product, Tax } from '$lib/api/products';
     import type { Category } from '$lib/api/categories';
     import Button from '../ui/Button.svelte';
 
-    let { formData = $bindable(), categories, isUploading = $bindable(), handleImageUpload, removeImage } = $props<{
+    let { formData = $bindable(), categories, taxes = [], isUploading = $bindable(), handleImageUpload, removeImage } = $props<{
         formData: Partial<Product>;
         categories: Category[];
+        taxes?: Tax[];
         isUploading: boolean;
         handleImageUpload: (e: Event) => void;
         removeImage: () => void;
@@ -18,14 +19,25 @@
             <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Nombre</label>
             <input type="text" placeholder="Ej: Café Americano" class="input input-bordered w-full focus:input-primary" bind:value={formData.name} />
         </div>
-        <div class="form-control">
-            <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Categoría</label>
-            <select class="select select-bordered w-full focus:select-primary" bind:value={formData.category_id}>
-                <option disabled selected value={undefined}>Selecciona una categoría</option>
-                {#each categories as category}
-                    <option value={category.id}>{category.name}</option>
-                {/each}
-            </select>
+        <div class="grid grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Categoría</label>
+                <select class="select select-bordered w-full focus:select-primary" bind:value={formData.category_id}>
+                    <option disabled selected value={undefined}>Selecciona una categoría</option>
+                    {#each categories as category}
+                        <option value={category.id}>{category.name}</option>
+                    {/each}
+                </select>
+            </div>
+            <div class="form-control">
+                <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Impuesto</label>
+                <select class="select select-bordered w-full focus:select-primary" bind:value={formData.tax_id}>
+                    <option selected value={null}>Tasa Global / Por Defecto</option>
+                    {#each taxes as tax}
+                        <option value={tax.id}>{tax.name} ({tax.rate}%)</option>
+                    {/each}
+                </select>
+            </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
             <div class="form-control">

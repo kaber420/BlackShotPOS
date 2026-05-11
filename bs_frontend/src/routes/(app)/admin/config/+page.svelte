@@ -10,6 +10,7 @@
     import { toastConfig, saveToastConfig, addToast } from '$lib/toast.svelte.js';
     import Button from '$lib/components/ui/Button.svelte';
     import ProductionAreaModal from '$lib/components/ProductionAreaModal.svelte';
+    import TaxModal from '$lib/components/TaxModal.svelte';
     import { ProductService } from '$lib/api/products';
     import { goto } from '$app/navigation';
 
@@ -19,6 +20,7 @@
     // UI State
     let activeSection = $state<'hub' | 'general' | 'finance' | 'appearance' | 'bridge'>('hub');
     let isProductionModalOpen = $state(false);
+    let isTaxModalOpen = $state(false);
 
     async function handleSave() {
         isLoading = true;
@@ -212,10 +214,15 @@
                     {/if}
 
                     {#if activeSection === 'finance'}
-                        <h2 class="text-2xl font-black uppercase flex items-center gap-3">
-                            <span class="w-2 h-8 bg-emerald-500 rounded-full"></span>
-                            Finanzas e Impuestos
-                        </h2>
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-black uppercase flex items-center gap-3">
+                                <span class="w-2 h-8 bg-emerald-500 rounded-full"></span>
+                                Finanzas e Impuestos
+                            </h2>
+                            <Button variant="primary" size="sm" onclick={() => isTaxModalOpen = true}>
+                                Gestionar Tipos de Impuestos
+                            </Button>
+                        </div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                             <div class="form-control w-full">
                                 <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">Símbolo de Moneda</span></label>
@@ -390,6 +397,11 @@
 <ProductionAreaModal 
     isOpen={isProductionModalOpen} 
     onClose={() => isProductionModalOpen = false} 
+/>
+
+<TaxModal
+    isOpen={isTaxModalOpen}
+    onClose={() => isTaxModalOpen = false}
 />
 
 <style>

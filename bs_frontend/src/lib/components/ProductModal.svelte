@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { ProductService, type Product, type Measure, type ProductVariant, type ModifierGroup } from '$lib/api/products';
+    import { ProductService, type Product, type Measure, type ProductVariant, type ModifierGroup, type Tax } from '$lib/api/products';
     import { IngredientService, type Ingredient } from '$lib/api/ingredients';
     import type { Category } from '$lib/api/categories';
     import { onMount } from 'svelte';
@@ -38,6 +38,7 @@
     let availableMeasures = $state<Measure[]>([]);
     let availableIngredients = $state<Ingredient[]>([]);
     let availableModifierGroups = $state<ModifierGroup[]>([]);
+    let availableTaxes = $state<Tax[]>([]);
     let selectedVariants = $state<(Partial<ProductVariant> & { recipe?: any[] })[]>([]);
     
     let modMeasureQuantities = $state<Record<string, number>>({});
@@ -47,14 +48,16 @@
 
     async function loadInitialData() {
         try {
-            const [measures, ingredients, modGroups] = await Promise.all([
+            const [measures, ingredients, modGroups, taxes] = await Promise.all([
                 ProductService.getMeasures(),
                 IngredientService.getAll(),
-                ProductService.getModifierGroups()
+                ProductService.getModifierGroups(),
+                ProductService.getTaxes()
             ]);
             availableMeasures = measures;
             availableIngredients = ingredients;
             availableModifierGroups = modGroups;
+            availableTaxes = taxes;
         } catch (e) {
             console.error(e);
         }
@@ -307,6 +310,7 @@
                     <ProductGeneralForm
                         bind:formData
                         {categories}
+                        taxes={availableTaxes}
                         bind:isUploading
                         {handleImageUpload}
                         {removeImage}
