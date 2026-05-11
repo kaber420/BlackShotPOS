@@ -14,12 +14,17 @@
 	let isLoading = $state(false);
 
 	let cartTotal = $derived(appState.cart.reduce((acc, item) => acc + item.total_price, 0));
-	let taxTotal = $derived(cartTotal * (appState.settings?.tax_rate || 0.16));
+	let taxTotal = $derived(appState.cart.reduce((acc, item) => acc + (item.total_price * (item.tax_rate / 100)), 0));
 	let finalTotal = $derived.by(() => {
-        let activeBalance = appState.activeOrder ? appState.activeOrder.balance_due : 0;
-        let newItemsTotal = appState.cart.filter(i => !i.db_id).reduce((acc, i) => acc + i.total_price, 0);
-        let newItemsTax = newItemsTotal * (appState.settings?.tax_rate || 0.16);
-        return appState.activeOrder ? (activeBalance + newItemsTotal + newItemsTax) : (cartTotal + taxTotal);
+        if (appState.activeOrder) {
+            // Si hay una orden activa, el balance_due ya viene calculado con sus impuestos desde el backend.
+            // Pero si hay ítems NUEVOS en el carrito, debemos sumar su precio + su impuesto específico.
+            let activeBalance = appState.activeOrder.balance_due;
+            let newItemsTotal = appState.cart.filter(i => !i.db_id).reduce((acc, i) => acc + i.total_price, 0);
+            let newItemsTax = appState.cart.filter(i => !i.db_id).reduce((acc, i) => acc + (i.total_price * (i.tax_rate / 100)), 0);
+            return activeBalance + newItemsTotal + newItemsTax;
+        }
+        return cartTotal + taxTotal;
     });
 	let itemCount = $derived(appState.cart.length);
 
@@ -318,15 +323,15 @@
 			<div class="p-6 lg:p-8 border-t border-base-200 bg-base-100 pb-safe shrink-0 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.05)]">
 				<div class="flex justify-between mb-2 text-[10px] opacity-40 uppercase font-black tracking-widest">
 					<span>Subtotal</span>
-					<span class="font-mono">${cartTotal.toFixed(0)}</span>
+					<span class="font-mono">${cartTotal.toFixed(2)}</span>
 				</div>
 				<div class="flex justify-between mb-4 text-[10px] opacity-40 uppercase font-black tracking-widest">
-					<span>IVA ({appState.settings?.tax_rate ? (appState.settings.tax_rate * 100).toFixed(0) : 16}%)</span>
-					<span class="font-mono">${taxTotal.toFixed(0)}</span>
+					<span>Impuestos (IVA)</span>
+					<span class="font-mono">${taxTotal.toFixed(2)}</span>
 				</div>
 				<div class="flex justify-between mb-8 items-end border-b border-base-200 pb-4">
 					<span class="text-xs font-black opacity-60 uppercase tracking-[0.2em]">Total a Pagar</span>
-					<span class="text-4xl font-black text-primary font-mono tracking-tighter">{appState.settings?.currency_symbol}{finalTotal.toFixed(0)}</span>
+					<span class="text-4xl font-black text-primary font-mono tracking-tighter">{appState.settings?.currency_symbol}{finalTotal.toFixed(2)}</span>
 				</div>
 				
 				<div class="flex flex-col gap-3 relative mb-2">

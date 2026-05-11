@@ -255,16 +255,7 @@
     // ── Helpers de UI ─────────────────────────────────────────────────────────
 
 
-    const statusColors: Record<string, string> = {
-        connecting: 'badge-warning',
-        open: 'badge-success',
-        closed: 'badge-error',
-    };
-    const statusLabels: Record<string, string> = {
-        connecting: 'CONECTANDO',
-        open: 'EN VIVO',
-        closed: 'DESCONECTADO',
-    };
+
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
@@ -277,16 +268,7 @@
             </div>
 
             <div class="flex items-center gap-3 flex-wrap">
-                <!-- Badge de conexión -->
-                <div class="badge {statusColors[posSocket.status]} gap-2 p-4 font-bold">
-                    {#if posSocket.status === 'open'}
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                        </span>
-                    {/if}
-                    {statusLabels[posSocket.status]}
-                </div>
+
 
                 <!-- Selector de método de impresión -->
                 <div class="relative">

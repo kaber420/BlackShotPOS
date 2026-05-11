@@ -25,6 +25,7 @@ class BusinessSettings(SQLModel, table=True):
     menu_footer_text: str = Field(default="BlackShot POS", description="Texto principal del footer")
     menu_footer_tagline: str = Field(default="Disfruta de nuestra selección premium.", description="Tagline del footer")
     menu_accent_color: str = Field(default="#6366f1", description="Color de acento para la carta")
+    menu_background_url: Optional[str] = Field(default=None, description="URL de la imagen de fondo para la carta")
     
     # Social Media
     menu_facebook_url: Optional[str] = Field(default=None, description="URL de Facebook")
@@ -53,6 +54,7 @@ class BusinessSettingsUpdate(SQLModel):
     menu_footer_text: Optional[str] = None
     menu_footer_tagline: Optional[str] = None
     menu_accent_color: Optional[str] = None
+    menu_background_url: Optional[str] = None
     menu_facebook_url: Optional[str] = None
     menu_instagram_url: Optional[str] = None
     menu_youtube_url: Optional[str] = None

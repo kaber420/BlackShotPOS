@@ -20,6 +20,7 @@ export interface BusinessSettings {
     menu_footer_text: string;
     menu_footer_tagline: string;
     menu_accent_color: string;
+    menu_background_url?: string;
     menu_facebook_url?: string;
     menu_instagram_url?: string;
     menu_youtube_url?: string;

@@ -10,6 +10,7 @@
     import { toastConfig, saveToastConfig, addToast } from '$lib/toast.svelte.js';
     import Button from '$lib/components/ui/Button.svelte';
     import ProductionAreaModal from '$lib/components/ProductionAreaModal.svelte';
+    import { ProductService } from '$lib/api/products';
     import { goto } from '$app/navigation';
 
     let settings = $state<BusinessSettings>({ ...appState.settings });
@@ -29,6 +30,23 @@
             activeSection = 'hub'; // Return to hub after saving
         } catch (e) {
             addToast("Error al guardar: " + e, "error");
+        } finally {
+            isLoading = false;
+        }
+    }
+
+    async function handleBackgroundUpload(event: Event) {
+        const input = event.target as HTMLInputElement;
+        if (!input.files || input.files.length === 0) return;
+
+        isLoading = true;
+        try {
+            const file = input.files[0];
+            const response = await ProductService.uploadImage(file);
+            settings.menu_background_url = response.url;
+            addToast("Imagen de fondo subida con éxito", "success");
+        } catch (e) {
+            addToast("Error al subir imagen: " + e, "error");
         } finally {
             isLoading = false;
         }
@@ -270,6 +288,35 @@
                                 <div class="form-control w-full">
                                     <label class="label"><span class="label-text font-black text-[10px] uppercase opacity-50">URL del Logo (Opcional)</span></label>
                                     <input type="text" bind:value={settings.menu_logo_url} class="input input-bordered font-mono text-xs focus:border-primary rounded-xl" placeholder="https://ejemplo.com/logo.png" />
+                                </div>
+                                
+                                <div class="form-control w-full">
+                                    <label class="label">
+                                        <span class="label-text font-black text-[10px] uppercase opacity-50">Imagen de Fondo de la Carta</span>
+                                    </label>
+                                    <div class="flex flex-col gap-4">
+                                        {#if settings.menu_background_url}
+                                            <div class="relative w-full h-32 rounded-2xl overflow-hidden border border-base-300 bg-base-200 group">
+                                                <img src={settings.menu_background_url} alt="Background Preview" class="w-full h-full object-cover" />
+                                                <button 
+                                                    class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    onclick={() => settings.menu_background_url = ''}
+                                                >
+                                                    <span class="text-white font-black text-[10px] uppercase tracking-widest">Eliminar</span>
+                                                </button>
+                                            </div>
+                                        {/if}
+                                        <div class="flex gap-2">
+                                            <input 
+                                                type="file" 
+                                                accept="image/*" 
+                                                class="file-input file-input-bordered file-input-primary w-full rounded-xl" 
+                                                onchange={handleBackgroundUpload}
+                                                disabled={isLoading}
+                                            />
+                                        </div>
+                                        <input type="text" bind:value={settings.menu_background_url} class="input input-bordered font-mono text-[10px] focus:border-primary rounded-xl" placeholder="URL manual o subida..." />
+                                    </div>
                                 </div>
                             </div>
 

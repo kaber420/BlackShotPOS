@@ -8,7 +8,8 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from .models import Shift, ShiftStatus, CashRegister, CashMovement, CashMovementType
-from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus
+from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus, OrderItem
+from pos_core.catalog.models import ProductVariant
 
 # --- CASH REGISTER MANAGEMENT ---
 
@@ -254,7 +255,9 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
         .where(Order.shift_id == shift_id)
         .options(
             selectinload(Order.payments),
-            selectinload(Order.items)
+            selectinload(Order.items).selectinload(OrderItem.product),
+            selectinload(Order.items).selectinload(OrderItem.variant).selectinload(ProductVariant.measure),
+            selectinload(Order.items).selectinload(OrderItem.modifiers)
         )
         .order_by(Order.created_at.desc())
     )
@@ -263,6 +266,18 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
     
     orders_list = []
     for o in orders:
+        # Detalle de ítems para expansión en frontend
+        items_detail = []
+        for item in o.items:
+            items_detail.append({
+                "id": item.id,
+                "name": item.product.name,
+                "variant": item.variant.measure.name if item.variant and item.variant.measure else None,
+                "quantity": item.quantity,
+                "price": round(item.unit_price, 2),
+                "modifiers": [m.name for m in item.modifiers]
+            })
+
         orders_list.append({
             "id": o.id,
             "total": round(o.total_amount, 2),
@@ -270,16 +285,9 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "created_at": o.created_at.isoformat(),
             "type": o.type.value if hasattr(o.type, 'value') else o.type,
             "waiter_name": o.waiter_name,
-            "items_count": len(o.items) if hasattr(o, 'items') else 0
+            "items_count": len(o.items),
+            "items": items_detail
         })
-    
-    # Re-calculamos items_count de forma segura si no está cargado
-    if orders and not hasattr(orders[0], 'items'):
-        for i, o in enumerate(orders):
-            from pos_core.sales.models import OrderItem
-            item_count_stmt = select(sqlfunc.count(OrderItem.id)).where(OrderItem.order_id == o.id)
-            item_count_res = await session.execute(item_count_stmt)
-            orders_list[i]["items_count"] = item_count_res.scalar() or 0
 
     # Totales adicionales: Impuestos y Propinas
     total_tax = sum(o.tax_amount for o in orders if o.status != OrderStatus.CANCELLED)

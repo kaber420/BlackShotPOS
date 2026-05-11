@@ -98,10 +98,10 @@
     let progress = $derived(getOrderProgress(order));
     let isFinished = $derived(order.status === 'PAID' || order.status === 'DELIVERED' || order.status === 'CANCELLED');
 
-    let subtotal = $derived(calculateTotal(order));
-    let taxRate = $derived(appState.settings?.tax_rate || 0.16);
-    let taxAmount = $derived(subtotal * taxRate);
-    let finalTotal = $derived(subtotal + taxAmount);
+    let subtotal = $derived(order.subtotal ?? calculateTotal(order));
+    let taxAmount = $derived(order.tax_amount ?? (subtotal * (appState.settings?.tax_rate || 0.16)));
+    let finalTotal = $derived(order.total_amount ?? (subtotal + taxAmount));
+    let taxRate = $derived(subtotal > 0 ? (taxAmount / subtotal) : (appState.settings?.tax_rate || 0.16));
 
     let glow = $derived(
         order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : 

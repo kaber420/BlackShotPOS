@@ -5,18 +5,29 @@
     import Button from '$lib/components/ui/Button.svelte';
     import CashMovementModal from '$lib/components/accounting/CashMovementModal.svelte';
     import { toast } from '$lib/toast.svelte';
+    import { goto } from '$app/navigation';
+    import { formatDateTime } from '$lib/utils';
 
     let activeShift = $state<ShiftInfo | null>(null);
     let historicalShifts = $state<ShiftInfo[]>([]);
     let isLoading = $state(true);
     let showMovementModal = $state(false);
     let movementType = $state<'INCOME' | 'EXPENSE' | 'WITHDRAWAL'>('EXPENSE');
+    let activeShiftReport = $state<any>(null);
+    let expandedOrders = $state<Record<number, boolean>>({});
+
+    function toggleOrder(id: number) {
+        expandedOrders[id] = !expandedOrders[id];
+    }
 
     async function loadData() {
         isLoading = true;
         try {
             const res = await checkActiveShift();
             activeShift = res.shift;
+            if (activeShift) {
+                activeShiftReport = await getShiftReport(activeShift.id);
+            }
             historicalShifts = await listShifts();
         } catch (e) {
             console.error("Error loading accounting data", e);
@@ -67,6 +78,11 @@
                     🛡️ Retiro de Seguridad
                 </Button>
                 <div class="w-px h-10 bg-base-300 mx-2 hidden md:block"></div>
+                {#if activeShiftReport && activeShiftReport.orders.length > 0}
+                    <Button variant="ghost" class="font-black text-[10px] uppercase tracking-widest px-6 gap-2" onclick={() => document.getElementById('order-register')?.scrollIntoView({ behavior: 'smooth' })}>
+                        📋 Registro ({activeShiftReport.orders.length})
+                    </Button>
+                {/if}
                 <Button variant="primary" class="font-black text-[10px] uppercase tracking-widest px-8 shadow-lg shadow-primary/20" onclick={() => setShowCloseShiftModal(true)}>
                     🏁 Cerrar Turno (Corte Z)
                 </Button>
@@ -159,6 +175,105 @@
                 </table>
             </div>
         </div>
+
+        <!-- Registro de Órdenes (Table requested by user) -->
+        {#if activeShiftReport && activeShiftReport.orders.length > 0}
+            <div id="order-register" class="bg-base-100 rounded-3xl border border-base-200 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <div class="p-6 border-b border-base-200 flex justify-between items-center bg-base-200/20">
+                    <div class="flex items-center gap-3">
+                        <div class="w-1.5 h-6 bg-primary rounded-full"></div>
+                        <h3 class="font-black text-xl tracking-tight uppercase">Registro de Órdenes <span class="opacity-30">({activeShiftReport.orders.length})</span></h3>
+                    </div>
+                    <Button variant="ghost" size="sm" class="font-black text-[10px] uppercase" onclick={() => goto(`/admin/shifts/${activeShift.id}`)}>
+                        Ver Auditoría Completa ↗
+                    </Button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="table table-md">
+                        <thead class="bg-base-200/50">
+                            <tr class="text-[10px] font-black uppercase tracking-widest opacity-60">
+                                <th class="w-10"></th>
+                                <th>Ticket</th>
+                                <th>Hora</th>
+                                <th>Mesero</th>
+                                <th>Tipo</th>
+                                <th class="text-center">Items</th>
+                                <th class="text-right">Monto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {#each activeShiftReport.orders as order}
+                                <tr class="hover:bg-base-200/50 transition-colors {expandedOrders[order.id] ? 'bg-base-200/30' : ''}">
+                                    <td>
+                                        <button 
+                                            class="btn btn-ghost btn-xs btn-circle"
+                                            onclick={() => toggleOrder(order.id)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform {expandedOrders[order.id] ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                    </td>
+                                    <td class="font-black text-primary">#{order.id}</td>
+                                    <td class="font-bold opacity-60 tabular-nums">{new Date(order.created_at).toLocaleTimeString()}</td>
+                                    <td class="font-bold">{order.waiter_name || '—'}</td>
+                                    <td>
+                                        <div class="badge badge-outline font-black uppercase text-[9px] tracking-tighter">
+                                            {order.type === 'TABLE' ? 'Mesa' : 'Llevar'}
+                                        </div>
+                                    </td>
+                                    <td class="text-center font-bold">{order.items_count}</td>
+                                    <td class="text-right font-black tabular-nums">{formatCurrency(order.total)}</td>
+                                    <td>
+                                        <div class="badge badge-sm font-black text-[9px] {order.status === 'PAID' ? 'badge-success' : order.status === 'CANCELLED' ? 'badge-error' : 'badge-ghost'}">
+                                            {order.status}
+                                        </div>
+                                    </td>
+                                </tr>
+                                
+                                {#if expandedOrders[order.id]}
+                                    <tr class="bg-base-200/30">
+                                        <td colspan="8" class="p-0 border-t-0">
+                                            <div class="p-6 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                {#each order.items as item}
+                                                    <div class="flex items-center justify-between p-3 bg-base-100 rounded-2xl border border-base-content/5 shadow-sm">
+                                                        <div class="flex items-center gap-4">
+                                                            <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
+                                                                {item.quantity}x
+                                                            </div>
+                                                            <div>
+                                                                <div class="flex items-center gap-2">
+                                                                    <span class="font-black text-sm uppercase">{item.name}</span>
+                                                                    {#if item.variant}
+                                                                        <span class="badge badge-outline badge-xs font-black uppercase text-[8px] opacity-70">{item.variant}</span>
+                                                                    {/if}
+                                                                </div>
+                                                                {#if item.modifiers && item.modifiers.length > 0}
+                                                                    <div class="flex flex-wrap gap-1 mt-1">
+                                                                        {#each item.modifiers as mod}
+                                                                            <span class="text-[9px] font-bold opacity-40 uppercase">· {mod}</span>
+                                                                        {/each}
+                                                                    </div>
+                                                                {/if}
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-right">
+                                                            <span class="font-black text-sm tabular-nums">{formatCurrency(item.price)}</span>
+                                                            <div class="text-[9px] opacity-30 font-bold uppercase tracking-widest">Subtotal: {formatCurrency(item.price * item.quantity)}</div>
+                                                        </div>
+                                                    </div>
+                                                {/each}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {/if}
+                            {/each}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {/if}
     {:else}
         <!-- No Active Shift State -->
         <div class="bg-base-100 rounded-3xl border-2 border-dashed border-base-300 p-20 text-center space-y-4">
@@ -178,7 +293,10 @@
         <h2 class="text-2xl font-black tracking-tight">Historial de Turnos</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {#each historicalShifts.filter(s => s.status === 'CLOSED').slice(0, 6) as shift}
-                <div class="bg-base-100 p-6 rounded-3xl border border-base-200 hover:border-primary/30 transition-all cursor-pointer group">
+                <div 
+                    class="bg-base-100 p-6 rounded-3xl border border-base-200 hover:border-primary/30 transition-all cursor-pointer group"
+                    onclick={() => can.viewReports() ? goto(`/admin/shifts/${shift.id}`) : toast.error("No tienes permisos para ver auditorías detalladas")}
+                >
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <div class="font-black text-lg">Corte #{shift.id}</div>

@@ -8,7 +8,12 @@
 
     let report: any = $state(null);
     let loading = $state(true);
+    let expandedOrders = $state<Record<number, boolean>>({});
     const shiftId = $derived(Number(page.params.id));
+
+    function toggleOrder(id: number) {
+        expandedOrders[id] = !expandedOrders[id];
+    }
 
     onMount(async () => {
         try {
@@ -157,6 +162,7 @@
                     <table class="table table-md">
                         <thead>
                             <tr class="bg-base-200/50">
+                                <th class="w-10 print:hidden"></th>
                                 <th class="font-black uppercase text-[10px] tracking-widest">Ticket</th>
                                 <th class="font-black uppercase text-[10px] tracking-widest">Hora</th>
                                 <th class="font-black uppercase text-[10px] tracking-widest">Mesero</th>
@@ -168,7 +174,17 @@
                         </thead>
                         <tbody>
                             {#each report.orders as order}
-                                <tr class="hover:bg-base-200/50 transition-colors">
+                                <tr class="hover:bg-base-200/50 transition-colors {expandedOrders[order.id] ? 'bg-base-200/30' : ''}">
+                                    <td class="print:hidden">
+                                        <button 
+                                            class="btn btn-ghost btn-xs btn-circle"
+                                            onclick={() => toggleOrder(order.id)}
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 transition-transform {expandedOrders[order.id] ? 'rotate-180' : ''}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+                                    </td>
                                     <td class="font-black">#{order.id}</td>
                                     <td class="font-bold opacity-60">{new Date(order.created_at).toLocaleTimeString()}</td>
                                     <td class="font-bold">{order.waiter_name || '—'}</td>
@@ -185,6 +201,45 @@
                                         </div>
                                     </td>
                                 </tr>
+                                
+                                {#if expandedOrders[order.id]}
+                                    <tr class="bg-base-200/30">
+                                        <td colspan="8" class="p-0 border-t-0">
+                                            <div class="p-6 space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                                <div class="grid grid-cols-1 gap-3">
+                                                    {#each order.items as item}
+                                                        <div class="flex items-center justify-between p-3 bg-base-100 rounded-2xl border border-base-content/5 shadow-sm">
+                                                            <div class="flex items-center gap-4">
+                                                                <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center font-black text-xs">
+                                                                    {item.quantity}x
+                                                                </div>
+                                                                <div>
+                                                                    <div class="flex items-center gap-2">
+                                                                        <span class="font-black text-sm uppercase">{item.name}</span>
+                                                                        {#if item.variant}
+                                                                            <span class="badge badge-outline badge-xs font-black uppercase text-[8px] opacity-70">{item.variant}</span>
+                                                                        {/if}
+                                                                    </div>
+                                                                    {#if item.modifiers && item.modifiers.length > 0}
+                                                                        <div class="flex flex-wrap gap-1 mt-1">
+                                                                            {#each item.modifiers as mod}
+                                                                                <span class="text-[9px] font-bold opacity-40 uppercase">· {mod}</span>
+                                                                            {/each}
+                                                                        </div>
+                                                                    {/if}
+                                                                </div>
+                                                            </div>
+                                                            <div class="text-right">
+                                                                <span class="font-black text-sm tabular-nums">{formatCurrency(item.price)}</span>
+                                                                <div class="text-[9px] opacity-30 font-bold uppercase tracking-widest">Subtotal: {formatCurrency(item.price * item.quantity)}</div>
+                                                            </div>
+                                                        </div>
+                                                    {/each}
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {/if}
                             {/each}
                         </tbody>
                     </table>

@@ -41,6 +41,7 @@ class OrderRepository:
             .where(Order.id == order_id)
             .options(
                 selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.tax),
+                selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.category),
                 selectinload(Order.items).selectinload(OrderItem.modifiers),
                 selectinload(Order.items)
                 .selectinload(OrderItem.variant)
@@ -73,6 +74,7 @@ class OrderRepository:
         if include_relations:
             statement = statement.options(
                 selectinload(Order.items).selectinload(OrderItem.product),
+                selectinload(Order.items).selectinload(OrderItem.product).selectinload(Product.category),
                 selectinload(Order.items).selectinload(OrderItem.modifiers),
                 selectinload(Order.items)
                 .selectinload(OrderItem.variant)

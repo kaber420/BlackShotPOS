@@ -225,7 +225,8 @@ export function addToCart(product: any, modifiers: any[] = [], variant?: any) {
         base_price: basePrice,
         modifiers: modifiers,
         quantity: 1,
-        total_price: basePrice + modifierTotal
+        total_price: basePrice + modifierTotal,
+        tax_rate: product.tax?.rate ?? 0.0
     };
     appState.cart = [...appState.cart, item];
     persistSession();
@@ -293,6 +294,7 @@ export function loadOrderToCart(order: any) {
                 modifiers: item.modifiers || [],
                 quantity: item.quantity,
                 total_price: item.unit_price * item.quantity,
+                tax_rate: item.tax_rate ?? 0.0,
                 status: item.status
             };
         });

@@ -50,6 +50,11 @@
     let summaryTable = $state<Table | null>(null);
     let summaryOrder = $state<any>(null);
 
+    // Filters
+    let selectedLocation = $state<string | null>(null);
+    let locations = $derived<string[]>(Array.from(new Set(tables.map(t => t.location).filter(l => l && l.trim() !== ''))) as string[]);
+    let filteredTables = $derived<Table[]>(selectedLocation ? tables.filter(t => t.location === selectedLocation) : tables);
+
     onMount(async () => {
         // Inicializar Websocket
         posSocket.subscribe("tables");
@@ -201,16 +206,7 @@
                 <p class="text-lg opacity-70">Monitorea la ocupación y gestiona la asignación de mesas.</p>
             </div>
             <div class="flex items-center gap-3">
-                <!-- Badge de conexión -->
-                <div class="badge {posSocket.status === 'open' ? 'badge-success' : posSocket.status === 'connecting' ? 'badge-warning' : 'badge-error'} gap-2 p-3 font-bold opacity-80" title="Estado de conexión en tiempo real">
-                    {#if posSocket.status === 'open'}
-                        <span class="relative flex h-2 w-2">
-                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75"></span>
-                            <span class="relative inline-flex rounded-full h-2 w-2 bg-success"></span>
-                        </span>
-                    {/if}
-                    {posSocket.status === 'open' ? 'EN VIVO' : posSocket.status === 'connecting' ? 'CONECTANDO...' : 'DESCONECTADO'}
-                </div>
+
 
                 <Button 
                     variant={adminMode ? 'primary' : 'outline'}
@@ -245,6 +241,29 @@
                 </Button>
             </div>
         </div>
+
+        {#if locations.length > 0}
+            <div class="flex flex-wrap gap-2 mt-4">
+                <Button 
+                    variant={selectedLocation === null ? 'primary' : 'outline'} 
+                    size="sm" 
+                    class="rounded-full"
+                    onclick={() => selectedLocation = null}
+                >
+                    Todas
+                </Button>
+                {#each locations as loc}
+                    <Button 
+                        variant={selectedLocation === loc ? 'primary' : 'outline'} 
+                        size="sm" 
+                        class="rounded-full"
+                        onclick={() => selectedLocation = loc}
+                    >
+                        {loc}
+                    </Button>
+                {/each}
+            </div>
+        {/if}
     </header>
 
     {#if isLoading}
@@ -258,7 +277,7 @@
         </div>
     {:else}
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 2xl:grid-cols-8 gap-8">
-            {#each tables as table}
+            {#each filteredTables as table}
                 {@const order = getTableOrder(table.id)}
                 {@const readyAlert = order && order.status !== 'READY' && hasReadyItems(order)}
                 <!-- svelte-ignore a11y_click_events_have_key_events -->

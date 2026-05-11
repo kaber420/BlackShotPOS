@@ -66,7 +66,19 @@
     <title>{settings?.menu_title || 'Carta'} | BlackShot</title>
 </svelte:head>
 
-<div class="min-h-screen bg-base-100 pb-20">
+<div 
+    class="min-h-screen bg-base-100 pb-20 bg-fixed bg-cover bg-center transition-all duration-1000"
+    style="
+        background-image: {settings?.menu_background_url ? `url(${settings.menu_background_url})` : 'none'};
+        --menu-accent: {settings?.menu_accent_color || '#6366f1'};
+    "
+>
+    <!-- Overlay for readability when background image exists -->
+    {#if settings?.menu_background_url}
+        <div class="fixed inset-0 bg-base-100/60 backdrop-blur-[2px] pointer-events-none z-0"></div>
+    {/if}
+
+    <div class="relative z-10">
     <!-- Header Minimalista y Premium (Revertido a estado anterior que gustaba al usuario) -->
     <header class="pt-10 pb-6 px-4 max-w-7xl mx-auto flex flex-col items-center text-center">
         <h1 class="text-4xl md:text-5xl font-black tracking-tighter uppercase mb-2 bg-gradient-to-b from-base-content to-base-content/60 bg-clip-text text-transparent">
@@ -207,6 +219,7 @@
             {/if}
         {/if}
     </main>
+    </div>
 </div>
 
 <style>

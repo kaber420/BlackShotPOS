@@ -20,10 +20,9 @@
     let isProcessing = $state(false);
 
     // Calculation logic for totals with tax
-    let subtotal = $derived(order ? getOrderTotal(order.items) : 0);
-    let taxRate = $derived(appState.settings?.tax_rate || 0.16);
-    let taxAmount = $derived(subtotal * taxRate);
-    let totalWithTax = $derived(subtotal + taxAmount);
+    let subtotal = $derived(order?.subtotal ?? 0);
+    let taxAmount = $derived(order?.tax_amount ?? 0);
+    let totalWithTax = $derived(order?.total_amount ?? 0);
     let balanceDue = $derived(order?.balance_due ?? totalWithTax);
     let paidAmount = $derived(totalWithTax - balanceDue);
     
@@ -172,10 +171,10 @@
                 <div class="flex justify-between items-end px-1">
                     <div>
                         <span class="text-[10px] font-black opacity-30 uppercase tracking-[0.2em] block mb-1">Saldo Pendiente</span>
-                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${balanceDue.toFixed(0)}</span>
+                        <span class="text-5xl font-black text-primary font-mono tracking-tighter">${balanceDue.toFixed(2)}</span>
                         <div class="flex flex-col gap-1 mt-2 opacity-60 text-[10px] font-black uppercase tracking-widest">
-                            <span class="text-success">Pagado: ${paidAmount.toFixed(0)}</span>
-                            <span>Total Original: ${totalWithTax.toFixed(0)}</span>
+                            <span class="text-success">Pagado: ${paidAmount.toFixed(2)}</span>
+                            <span>Total Original: ${totalWithTax.toFixed(2)}</span>
                         </div>
                     </div>
 
@@ -199,7 +198,7 @@
                             <div class="divider my-0 opacity-20"></div>
                             <div class="flex flex-col items-center">
                                 <span class="text-[9px] font-bold uppercase opacity-40">Cada quien paga</span>
-                                <span class="text-xl font-black text-secondary">${amountPerPerson.toFixed(0)}</span>
+                                <span class="text-xl font-black text-secondary">${amountPerPerson.toFixed(2)}</span>
                             </div>
                             <div class="flex gap-2 mt-1">
                                 <button class="text-[8px] font-black bg-base-100 hover:bg-primary/20 px-2 py-1 rounded-md border border-base-300 transition-colors" onclick={() => { numPeople = 2; }}>50%</button>

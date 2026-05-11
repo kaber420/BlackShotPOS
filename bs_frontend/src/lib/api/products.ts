@@ -40,6 +40,12 @@ export interface ModifierGroup {
     modifiers: Modifier[];
 }
 
+export interface Tax {
+    id: number;
+    name: string;
+    rate: number;
+}
+
 export interface Product {
     id?: number;
     name: string;
@@ -56,6 +62,7 @@ export interface Product {
     recipe_markdown?: string;
     variants?: ProductVariant[];
     modifier_groups?: ModifierGroup[];
+    tax?: Tax;
 }
 
 export const ProductService = {

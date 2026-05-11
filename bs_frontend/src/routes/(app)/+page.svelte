@@ -237,13 +237,13 @@
                                                                 {getInitials(variant.measure?.name)}
                                                             </span>
                                                             <span class="text-[10px] font-black text-white">
-                                                                ${variant.price.toFixed(0)}
+                                                                ${variant.price.toFixed(2)}
                                                             </span>
                                                         </div>
                                                     {/each}
                                                 {:else}
                                                     <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-3 py-1 text-white font-black text-xs shadow-inner">
-                                                        ${prod.price?.toFixed(0) ?? '0'}
+                                                        ${prod.price?.toFixed(2) ?? '0.00'}
                                                     </div>
                                                 {/if}
                                             </div>
