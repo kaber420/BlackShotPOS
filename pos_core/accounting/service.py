@@ -55,22 +55,23 @@ async def get_all_active_shifts(session: AsyncSession) -> List[dict]:
     
     return [await enrich_shift_data(session, s) for s in shifts]
 
-async def open_shift(session: AsyncSession, initial_cash: float, register_id: int, user_id: UUID) -> Shift:
+async def open_shift(session: AsyncSession, initial_cash: float, user_id: UUID, register_id: Optional[int] = None) -> Shift:
     # Verificar si el usuario ya tiene un turno abierto
     active_user = await get_active_shift(session, user_id=user_id)
     if active_user:
         raise HTTPException(status_code=400, detail="User already has an open shift.")
 
-    # Verificar si la caja ya tiene un turno abierto por alguien más
-    stmt = select(Shift).where(Shift.register_id == register_id).where(Shift.status == ShiftStatus.OPEN)
-    active_reg = await session.execute(stmt)
-    if active_reg.scalars().first():
-        raise HTTPException(status_code=400, detail="This register is already in use by another shift.")
+    # Si se proporciona una caja física, verificar que no esté ocupada
+    if register_id:
+        stmt = select(Shift).where(Shift.register_id == register_id).where(Shift.status == ShiftStatus.OPEN)
+        active_reg = await session.execute(stmt)
+        if active_reg.scalars().first():
+            raise HTTPException(status_code=400, detail="This register is already in use by another shift.")
 
-    # Verificar que la caja exista
-    register = await session.get(CashRegister, register_id)
-    if not register:
-        raise HTTPException(status_code=404, detail="Cash register not found")
+        # Verificar que la caja exista
+        register = await session.get(CashRegister, register_id)
+        if not register:
+            raise HTTPException(status_code=404, detail="Cash register not found")
 
     shift = Shift(
         initial_cash=initial_cash,
@@ -280,6 +281,14 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             item_count_res = await session.execute(item_count_stmt)
             orders_list[i]["items_count"] = item_count_res.scalar() or 0
 
+    # Totales adicionales: Impuestos y Propinas
+    total_tax = sum(o.tax_amount for o in orders if o.status != OrderStatus.CANCELLED)
+    
+    pay_stmt = select(Payment).join(Order).where(Order.shift_id == shift_id)
+    pay_res = await session.execute(pay_stmt)
+    all_payments = pay_res.scalars().all()
+    total_tips = sum(p.tip_amount for p in all_payments)
+
     # Construir respuesta estructurada como espera el frontend
     return {
         "shift": {
@@ -303,7 +312,9 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "cash": round(totals["cash_sales"], 2),
             "card": round(totals["card_sales"], 2),
             "transfer": round(totals["transfer_sales"], 2),
-            "total": round(totals["cash_sales"] + totals["card_sales"] + totals["transfer_sales"], 2)
+            "total": round(totals["cash_sales"] + totals["card_sales"] + totals["transfer_sales"], 2),
+            "tax_total": round(total_tax, 2),
+            "tips_total": round(total_tips, 2)
         },
         "orders": orders_list,
         "movements": movements_data

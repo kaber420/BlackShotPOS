@@ -56,12 +56,51 @@ async def on_payment_received(payload: dict, metadata: dict):
 @on_event("sales.order_cancelled")
 async def on_order_cancelled(payload: dict, metadata: dict):
     """
-    Maneja la cancelación de órdenes. Por ahora solo registra el evento, 
-    pero podría extenderse para revertir saldos si los pagos se anulan automáticamente.
+    Maneja la cancelación de órdenes revirtiendo los totales del turno si había pagos.
     """
     order_id = payload.get("order_id")
-    shift_id = payload.get("shift_id")
-    reason = payload.get("reason")
     
-    logger.info(f"🚫 Orden {order_id} (Turno {shift_id}) cancelada por: {reason}")
-    # TODO: Implementar lógica de reversión de pagos si el negocio lo requiere.
+    async with async_session_maker() as session:
+        try:
+            from pos_core.sales.models import Order, Payment
+            from sqlmodel import select
+            
+            # Buscamos la orden y sus pagos
+            stmt = select(Order).where(Order.id == order_id)
+            res = await session.execute(stmt)
+            order = res.scalar_one_or_none()
+            
+            if not order or not order.shift_id:
+                return
+
+            pay_stmt = select(Payment).where(Payment.order_id == order_id)
+            pay_res = await session.execute(pay_stmt)
+            payments = pay_res.scalars().all()
+            
+            if not payments:
+                return
+
+            logger.info(f"🚫 Revirtiendo {len(payments)} pagos para orden cancelada {order_id}")
+            
+            for p in payments:
+                shift_stmt = update(Shift).where(Shift.id == order.shift_id)
+                if p.method == PaymentMethod.CASH:
+                    shift_stmt = shift_stmt.values(expected_cash=Shift.expected_cash - p.amount)
+                elif p.method == PaymentMethod.CARD:
+                    shift_stmt = shift_stmt.values(expected_card=Shift.expected_card - p.amount)
+                elif p.method == PaymentMethod.TRANSFER:
+                    shift_stmt = shift_stmt.values(expected_transfer=Shift.expected_transfer - p.amount)
+                
+                await session.execute(shift_stmt)
+            
+            await session.commit()
+            logger.info(f"✅ Totales de turno {order.shift_id} revertidos con éxito.")
+            
+            # Broadcast UI
+            try:
+                from pos_core.events.service import trigger_broadcast
+                await trigger_broadcast("accounting", db=session)
+            except: pass
+
+        except Exception as e:
+            logger.error(f"❌ Error revirtiendo totales por cancelación: {e}", exc_info=True)

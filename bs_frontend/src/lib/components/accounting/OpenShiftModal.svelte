@@ -26,7 +26,7 @@
     });
 
     async function handleOpen() {
-        if (!selectedRegisterId) return;
+        // En este modelo, el register_id es opcional (Caja por Usuario)
         isOpening = true;
         try {
             const shift = await openShift(initialCash, selectedRegisterId);
@@ -72,6 +72,12 @@
                                 <span class="text-xs opacity-60">ID: #{reg.id}</span>
                             </button>
                         {/each}
+                        {#if registers.length === 0}
+                            <div class="col-span-full p-6 bg-base-200/50 rounded-2xl border-2 border-dashed border-base-300 flex flex-col items-center justify-center text-center">
+                                <span class="text-xs font-black uppercase tracking-widest opacity-40 mb-1">Caja por Usuario</span>
+                                <p class="text-xs font-medium opacity-60">No hay cajas físicas registradas. Tu turno será personal.</p>
+                            </div>
+                        {/if}
                     </div>
                 {/if}
             </div>
@@ -116,7 +122,7 @@
                 size="lg" 
                 class="btn-block h-16 text-xl font-black rounded-2xl shadow-xl shadow-primary/20" 
                 onclick={handleOpen} 
-                disabled={!selectedRegisterId || initialCash < 0}
+                disabled={initialCash < 0}
                 isLoading={isOpening}
             >
                 Abrir Turno Ahora

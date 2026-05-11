@@ -16,9 +16,16 @@ class CashMovementType(str, Enum):
     EXPENSE = "EXPENSE"       # Pago a proveedor, gasto operativo
     WITHDRAWAL = "WITHDRAWAL" # Retiro parcial de seguridad (Corte Parcial)
 
+class CashMovementCategory(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(unique=True)
+    type: CashMovementType
+    description: Optional[str] = None
+
 class CashMovement(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     shift_id: int = Field(foreign_key="shift.id")
+    category_id: Optional[int] = Field(default=None, foreign_key="cashmovementcategory.id")
     amount: float
     type: CashMovementType
     reason: str

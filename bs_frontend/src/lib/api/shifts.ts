@@ -31,7 +31,7 @@ export async function getRegisters() {
     return await fetchApi<CashRegister[]>('/api/v1/pos/sales/shifts/registers');
 }
 
-export async function openShift(initialCash: number, registerId: number) {
+export async function openShift(initialCash: number, registerId: number | null = null) {
     return await fetchApi<ShiftInfo>('/api/v1/pos/sales/shifts/open', {
         method: 'POST',
         body: JSON.stringify({ 

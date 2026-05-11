@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..models import Order, OrderItem, OrderStatus
 from ..repository import order_repo, item_repo
 from pos_core.events.service import trigger_iot_broadcast
+from pos_core.accounting.service import get_active_shift
+from pos_core.exceptions import InvalidOrderStateError
 
 
 async def add_item_to_order(
@@ -16,6 +18,11 @@ async def add_item_to_order(
     product_variant_id: Optional[int] = None,
     modifier_ids: Optional[List[int]] = None,
 ) -> OrderItem:
+    # 1. Validar que haya un turno abierto para operar
+    active_shift = await get_active_shift(session)
+    if not active_shift:
+        raise InvalidOrderStateError("No se pueden añadir productos a la orden sin un turno abierto.")
+
     from pos_core.catalog.models import Product, ProductVariant, Modifier, Tax
     from sqlalchemy.orm import selectinload
     from sqlalchemy import select

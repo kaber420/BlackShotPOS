@@ -45,7 +45,7 @@ async def seed():
 
         # 1.6 Crear Áreas de Producción
         print("Creando áreas de producción...")
-        from pos_core.catalog.models import ProductionArea
+        from pos_core.kitchen.models import ProductionArea
         area_general = ProductionArea(name="General", description="Estación principal / Punto de venta", printer_ip="192.168.1.102")
         area_bar = ProductionArea(name="Barra", description="Estación de bebidas calientes y frías", printer_ip="192.168.1.100")
         area_kitchen = ProductionArea(name="Cocina", description="Estación de repostería y alimentos", printer_ip="192.168.1.101")

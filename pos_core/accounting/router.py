@@ -23,7 +23,7 @@ class CreateRegisterRequest(BaseModel):
 
 class OpenShiftRequest(BaseModel):
     initial_cash: float
-    register_id: int
+    register_id: Optional[int] = None
 
 class CloseShiftRequest(BaseModel):
     actual_cash: float
@@ -64,7 +64,7 @@ async def api_open_shift(
     user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
 ):
     """Abre un nuevo turno de caja en una caja específica."""
-    shift = await open_shift(session, req.initial_cash, req.register_id, user.id)
+    shift = await open_shift(session, req.initial_cash, user.id, req.register_id)
     return shift
 
 @router.post("/{shift_id}/close")
