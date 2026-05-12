@@ -1,0 +1,263 @@
+:root {
+    --bg-dark: #0a0b0d;
+    --sidebar-bg: #14161a;
+    --accent: #00d2ff;
+    --accent-glow: rgba(0, 210, 255, 0.3);
+    --danger: #ff4d4d;
+    --text-main: #e0e0e0;
+    --text-dim: #888;
+    --border: rgba(255, 255, 255, 0.1);
+    --glass: rgba(255, 255, 255, 0.03);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Outfit', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+}
+
+.studio-container {
+    display: flex;
+    height: 100vh;
+}
+
+/* Sidebar Styling */
+.sidebar {
+    width: 320px;
+    background: var(--sidebar-bg);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    z-index: 10;
+}
+
+.logo-area {
+    margin-bottom: 40px;
+}
+
+.logo-area h1 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+.logo-area h1 span {
+    color: var(--accent);
+    font-weight: 300;
+}
+
+.group {
+    margin-bottom: 32px;
+}
+
+.group h2 {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+}
+
+/* Mockup Grid */
+.mockup-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.mockup-btn {
+    background: var(--glass);
+    border: 1px solid var(--border);
+    padding: 12px;
+    border-radius: 8px;
+    color: var(--text-main);
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.mockup-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.mockup-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-glow);
+    box-shadow: 0 0 15px var(--accent-glow);
+}
+
+/* Controls */
+.control-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.control-item label {
+    display: block;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+    color: var(--text-dim);
+}
+
+.action-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--glass);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.action-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.action-btn.danger {
+    background: rgba(255, 77, 77, 0.1);
+    border-color: rgba(255, 77, 77, 0.3);
+    color: var(--danger);
+}
+
+.action-btn.danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* Telemetry Log */
+.telemetry-log {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    margin-top: 20px;
+}
+
+.telemetry-log h3 {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+}
+
+.log-area {
+    flex-grow: 1;
+    background: #000;
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    line-height: 1.4;
+    overflow-y: auto;
+    border: 1px solid var(--border);
+}
+
+.log-entry.system { color: #888; }
+.log-entry.device { color: var(--accent); }
+.log-entry.error { color: var(--danger); }
+
+/* Main Visualizer */
+.visualizer {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    background-image: 
+        radial-gradient(circle at 50% 50%, #1a1c21 0%, #0a0b0d 100%);
+    position: relative;
+}
+
+.visualizer-header {
+    height: 64px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    background: rgba(10, 11, 13, 0.8);
+    backdrop-filter: blur(10px);
+}
+
+.viewport-container {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+}
+
+.mockup-overlay {
+    position: relative;
+    width: 600px;
+    height: 600px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    transition: background-image 0.5s ease;
+}
+
+/* SDL Placeholder */
+.sdl-window-placeholder {
+    position: absolute;
+    border: 2px solid var(--accent);
+    background: rgba(0, 210, 255, 0.05);
+    box-shadow: inset 0 0 40px var(--accent-glow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.scanline {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        to bottom,
+        transparent 50%,
+        rgba(255, 255, 255, 0.02) 50%
+    );
+    background-size: 100% 4px;
+}
+
+.reflection {
+    position: absolute;
+    top: 5%;
+    left: 10%;
+    width: 80%;
+    height: 40%;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 100%
+    );
+    pointer-events: none;
+}
+
+.label-hint {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--accent);
+    opacity: 0.6;
+}
+
+.visualizer-footer {
+    height: 40px;
+    background: var(--sidebar-bg);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    font-size: 0.7rem;
+    color: var(--text-dim);
+}

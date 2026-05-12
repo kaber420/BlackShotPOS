@@ -14,7 +14,7 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 *   **Backend (POS & Central):**
     *   **Entorno:** Python 3 (uso obligatorio de `.venv`)
     *   **Framework:** FastAPI (Python)
-    *   **Base de Datos:** SQLite (Local para POS, Central para Central Core)
+    *   **Base de Datos:** PostgreSQL para el POS (usando `asyncpg`) y SQLite para el Central Core.
     *   **ORM:** SQLModel (sobre SQLAlchemy)
     *   **Comunicación:** SSE (Server-Sent Events) para actualizaciones en tiempo real y HTTP/REST para sincronización de datos.
 

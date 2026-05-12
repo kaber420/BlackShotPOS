@@ -1,17 +1,31 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.database import get_session
-from .models import Table
+from .models import Table, Reservation, ReservationStatus
 from . import service
 from typing import List, Optional
 from pos_core.events.service import trigger_standard_broadcasts
 import asyncio
+from datetime import datetime
+from uuid import UUID
+from pydantic import BaseModel
 
 router = APIRouter()
+
+class ReservationCreate(BaseModel):
+    customer_name: str
+    reservation_time: datetime
+    table_id: Optional[int] = None
+    pax: int = 2
+    customer_phone: Optional[str] = None
+    customer_id: Optional[UUID] = None
+    notes: Optional[str] = None
 
 @router.get("/", response_model=List[Table])
 async def list_tables(include_inactive: bool = False, db: AsyncSession = Depends(get_session)):
     """Estado actual de todas las mesas."""
+    # Actualizar estados basados en reservaciones próximas
+    await service.check_upcoming_reservations(db)
     return await service.get_tables(db, include_inactive)
 
 @router.post("/", response_model=Table)
@@ -65,5 +79,66 @@ async def vacate_table(table_id: int, db: AsyncSession = Depends(get_session)):
     res = await vacate_table_service(db, table_id)
     if not res:
         raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    asyncio.create_task(trigger_standard_broadcasts())
+    return res
+
+# --- Reservations ---
+
+@router.get("/reservations", response_model=List[Reservation])
+async def list_reservations(
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    status: Optional[ReservationStatus] = None,
+    db: AsyncSession = Depends(get_session)
+):
+    """Lista las reservaciones filtradas por fecha y estado."""
+    return await service.get_reservations(db, start_date, end_date, status)
+
+@router.post("/reservations", response_model=Reservation)
+async def create_reservation(
+    data: ReservationCreate,
+    db: AsyncSession = Depends(get_session)
+):
+    """Crea una nueva reservación."""
+    try:
+        res = await service.create_reservation(
+            db,
+            customer_name=data.customer_name,
+            reservation_time=data.reservation_time,
+            table_id=data.table_id,
+            pax=data.pax,
+            customer_phone=data.customer_phone,
+            customer_id=data.customer_id,
+            notes=data.notes
+        )
+        asyncio.create_task(trigger_standard_broadcasts())
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@router.patch("/reservations/{reservation_id}/status", response_model=Reservation)
+async def update_reservation_status(
+    reservation_id: int,
+    status: ReservationStatus,
+    db: AsyncSession = Depends(get_session)
+):
+    """Actualiza el estado de una reservación."""
+    res = await service.update_reservation_status(db, reservation_id, status)
+    if not res:
+        raise HTTPException(status_code=404, detail="Reservación no encontrada")
+    asyncio.create_task(trigger_standard_broadcasts())
+    return res
+
+@router.post("/reservations/{reservation_id}/check-in")
+async def check_in_reservation(
+    reservation_id: int,
+    waiter_uuid: Optional[str] = None,
+    waiter_name: Optional[str] = None,
+    db: AsyncSession = Depends(get_session)
+):
+    """Realiza el check-in de una reservación."""
+    res = await service.check_in_reservation(db, reservation_id, waiter_uuid, waiter_name)
+    if not res:
+        raise HTTPException(status_code=404, detail="Reservación no encontrada o ya procesada")
     asyncio.create_task(trigger_standard_broadcasts())
     return res

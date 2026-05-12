@@ -17,7 +17,7 @@ def setup_environment():
         else:
             print("[setup] Error: .env.example no encontrado. Creando .env básico...")
             with open(env_path, "w") as f:
-                f.write('DATABASE_URL="sqlite+aiosqlite:///./pos_database.db"\n')
+                f.write('DATABASE_URL="postgresql+asyncpg://usuario:contraseña@localhost:5432/blackshot_db"\n')
 
     # 2. Verify and populate tokens
     _ensure_secure_tokens(env_path)

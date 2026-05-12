@@ -6,7 +6,6 @@ from pos_core.database import get_session
 from typing import Any, Optional
 from .manager import pos_broadcaster, iot_broadcaster
 from .registry import get_provider, list_registered_topics
-from .iot_registry import get_iot_mapper
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 
@@ -46,7 +45,6 @@ async def get_initial_snapshot(topic: str, db: AsyncSession) -> Optional[Any]:
 async def trigger_broadcast(topic: str, data: Any = None, db: Optional[AsyncSession] = None):
     """
     Despacha actualizaciones de un tópico POS. Solo consulta la BD si no se proveen datos.
-    Implementa Dual-Dispatch: Si el cambio afecta a una mesa, notifica también al canal IoT.
     """
     # 1. Obtener los datos si no se proveyeron
     result = data
@@ -72,21 +70,6 @@ async def trigger_broadcast(topic: str, data: Any = None, db: Optional[AsyncSess
     # 2. Despacho POS (Web)
     if topic in pos_broadcaster.active_connections and pos_broadcaster.active_connections[topic]:
         await pos_broadcaster.broadcast(topic, result)
-
-    # 3. Despacho IoT (Dual-Dispatch)
-    await _map_and_dispatch_iot(topic, result)
-
-
-async def _map_and_dispatch_iot(topic: str, data: Any):
-    """
-    Despacha notificaciones a IoT usando el mapeador registrado para el tópico.
-    """
-    mapper = get_iot_mapper(topic)
-    if mapper:
-        try:
-            await mapper(topic, data)
-        except Exception as e:
-            logger.error(f"❌ Error en mapeador IoT para '{topic}': {e}", exc_info=True)
 
 
 async def trigger_standard_broadcasts():

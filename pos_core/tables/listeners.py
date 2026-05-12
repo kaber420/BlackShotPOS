@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from pos_core.events.bus import on_event
+from pos_core.events.bus import on_event, event_bus
 from pos_core.database import async_session_maker
 from .models import Table
 from .service import vacate_table_service
@@ -26,9 +26,12 @@ async def on_order_created(payload: dict, metadata: dict):
                 await session.commit()
                 logger.info(f"📍 Mesa {db_table.number} marcada como OCUPADA por orden {payload.get('order_id')}")
                 
-                # Opcional: Disparar broadcast de UI para actualizar el mapa de mesas
-                from pos_core.events.service import trigger_broadcast
-                await trigger_broadcast("tables", db=session)
+                # Emitir evento de cambio de estado manualmente ya que no usamos el servicio aquí
+                await event_bus.publish("tables.status_changed", {
+                    "table_id": table_id,
+                    "number": db_table.number,
+                    "new_status": "Occupied"
+                })
         except Exception as e:
             logger.error(f"❌ Error al ocupar mesa {table_id} vía evento: {e}")
 
@@ -46,9 +49,6 @@ async def on_order_status_changed(payload: dict, metadata: dict):
             try:
                 await vacate_table_service(session, table_id)
                 logger.info(f"📍 Mesa {table_id} LIBERADA por cancelación de orden {payload.get('order_id')}")
-                
-                from pos_core.events.service import trigger_broadcast
-                await trigger_broadcast("tables", db=session)
             except Exception as e:
                 logger.error(f"❌ Error al liberar mesa {table_id} por cancelación: {e}")
 
@@ -63,9 +63,6 @@ async def on_order_deleted(payload: dict, metadata: dict):
             try:
                 await vacate_table_service(session, table_id)
                 logger.info(f"📍 Mesa {table_id} LIBERADA por eliminación de orden")
-                
-                from pos_core.events.service import trigger_broadcast
-                await trigger_broadcast("tables", db=session)
             except Exception as e:
                 logger.error(f"❌ Error al liberar mesa {table_id} por eliminación: {e}")
 
@@ -82,9 +79,6 @@ async def on_payment_received(payload: dict, metadata: dict):
             try:
                 await vacate_table_service(session, table_id)
                 logger.info(f"📍 Mesa {table_id} LIBERADA vía evento de pago (vacate_table=True)")
-                
-                from pos_core.events.service import trigger_broadcast
-                await trigger_broadcast("tables", db=session)
             except Exception as e:
                 logger.error(f"❌ Error al liberar mesa {table_id} por pago: {e}")
 
@@ -120,7 +114,10 @@ async def on_order_transferred(payload: dict, metadata: dict):
             await session.commit()
             logger.info(f"📍 Transferencia de mesa completada: {old_table_id} -> {new_table_id}")
             
-            from pos_core.events.service import trigger_broadcast
-            await trigger_broadcast("tables", db=session)
+            # Notificar cambios de estado
+            if old_table_id:
+                await event_bus.publish("tables.status_changed", {"table_id": old_table_id, "new_status": "Free"})
+            if new_table_id:
+                await event_bus.publish("tables.status_changed", {"table_id": new_table_id, "new_status": "Occupied"})
         except Exception as e:
             logger.error(f"❌ Error en transferencia de mesa vía evento: {e}")

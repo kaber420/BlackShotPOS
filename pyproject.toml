@@ -23,7 +23,6 @@ dependencies = [
     "sse-starlette",
     "python-escpos",
     "sqlmodel",
-    "aiosqlite",
     "websockets",
     "fastapi-users[sqlalchemy]>=12.1.2",
     "passlib[argon2]",

@@ -1,0 +1,29 @@
+# Compilación
+build/
+bin/
+obj/
+
+# LVGL (Si decides usarlo como submódulo)
+# Si prefieres dejarlo fuera pero no como submódulo, descomenta la siguiente línea:
+# lvgl/
+
+# IDEs y Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de depuración y temporales
+*.log
+*.tmp
+
+# Credenciales (por si acaso creas un archivo de secretos)
+src/secrets.h
+secrets.json
+.env
+lvgl/
+_deps/

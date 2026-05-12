@@ -9,6 +9,7 @@ from pos_core.sales.services.order_lifecycle_service import get_orders
 from pos_core.sales.schemas import OrderRead
 from pos_core.sales.models import OrderStatus
 from .service import update_device_last_seen, update_device_health
+from pos_core.events.bus import event_bus
 
 logger = logging.getLogger(__name__)
 
@@ -70,17 +71,16 @@ async def handle_iot_session(websocket: WebSocket, db: AsyncSession, device: any
                 await _handle_sync_orders(websocket, db, table_id)
 
             elif action == "call_waiter":
-                await trigger_broadcast("dashboard_stats")
+                await event_bus.publish("iot.waiter_requested", {"table_id": table_id, "device_id": device_id})
                 await websocket.send_json({"event": "msg", "data": {"message": "Mesero en camino"}})
 
             elif action == "request_bill":
-                await trigger_broadcast("dashboard_stats") 
+                await event_bus.publish("iot.bill_requested", {"table_id": table_id, "device_id": device_id})
                 await websocket.send_json({"event": "msg", "data": {"message": "Solicitando cuenta..."}})
 
             elif action == "clear_table":
                 from pos_core.tables.service import vacate_table_service
                 await vacate_table_service(db, table_id)
-                await trigger_broadcast("tables")
                 logger.info(f"🧹 Mesa {table_id} liberada desde TablePad")
 
     except WebSocketDisconnect:

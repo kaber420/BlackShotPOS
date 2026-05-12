@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackshot IoT Studio | Digital Twin Lab</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="studio-container">
+        <!-- Sidebar: Herramientas de Ingeniería -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon"></div>
+                <h1>Blackshot <span>IoT Studio</span></h1>
+            </div>
+
+            <nav class="tool-groups">
+                <div class="group">
+                    <h2>Mockup Selector</h2>
+                    <div class="mockup-grid">
+                        <button class="mockup-btn active" data-mockup="napkin">
+                            <span class="label">Napkin Holder</span>
+                        </button>
+                        <button class="mockup-btn" data-mockup="robot">
+                            <span class="label">Desktop Robot</span>
+                        </button>
+                        <button class="mockup-btn" data-mockup="kiosk">
+                            <span class="label">Service Kiosk</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="group">
+                    <h2>Engineering Panel</h2>
+                    <div class="control-list">
+                        <div class="control-item">
+                            <label>Network Resilience</label>
+                            <button id="btn-kill-net" class="action-btn danger">Force Service Offline</button>
+                        </div>
+                        <div class="control-item">
+                            <label>Sync Latency</label>
+                            <input type="range" min="0" max="5000" value="0" id="latency-range">
+                            <span class="val">0ms</span>
+                        </div>
+                        <div class="control-item">
+                            <label>Quick Actions</label>
+                            <button id="btn-rebrand" class="action-btn">Remote Rebrand</button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="telemetry-log">
+                <h3>System Telemetry</h3>
+                <div id="log-content" class="log-area">
+                    <div class="log-entry system">Studio Bridge started.</div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Visualizer Area -->
+        <main class="visualizer">
+            <header class="visualizer-header">
+                <div class="device-status">
+                    <span class="status-dot online"></span>
+                    <span id="device-label">Napkin Holder - Prototype X1</span>
+                </div>
+                <div class="view-controls">
+                    <button id="btn-align">Auto-Align Window</button>
+                </div>
+            </header>
+
+            <div class="viewport-container" id="viewport">
+                <!-- El mockup se carga aquí como fondo -->
+                <div class="mockup-overlay" id="mockup-view">
+                    <!-- Área de la pantalla del dispositivo -->
+                    <div id="sdl-container" class="sdl-window-placeholder">
+                        <div class="scanline"></div>
+                        <div class="reflection"></div>
+                        <div class="label-hint">Simulator Overlay Area</div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="visualizer-footer">
+                <div class="coords">
+                    X: <span id="val-x">0</span> | Y: <span id="val-y">0</span> | Zoom: 1.0x
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

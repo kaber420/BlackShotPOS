@@ -12,6 +12,21 @@ export interface Table {
     is_active: boolean;
 }
 
+export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+
+export interface Reservation {
+    id: number;
+    customer_name: string;
+    customer_phone?: string;
+    customer_id?: string;
+    table_id?: number;
+    pax: number;
+    reservation_time: string;
+    status: ReservationStatus;
+    notes?: string;
+    created_at: string;
+}
+
 export const TableService = {
     getAll: (includeInactive: boolean = false) => {
         const url = includeInactive ? '/api/v1/pos/tables?include_inactive=true' : '/api/v1/pos/tables';
@@ -49,4 +64,34 @@ export const TableService = {
         fetchApi<{detail: string}>(`/api/v1/pos/tables/${id}`, {
             method: 'DELETE'
         })
+};
+
+export const ReservationService = {
+    list: (startDate?: string, endDate?: string, status?: ReservationStatus) => {
+        const params = new URLSearchParams();
+        if (startDate) params.append('start_date', startDate);
+        if (endDate) params.append('end_date', endDate);
+        if (status) params.append('status', status);
+        return fetchApi<Reservation[]>(`/api/v1/pos/tables/reservations?${params.toString()}`);
+    },
+
+    create: (data: Partial<Reservation>) => 
+        fetchApi<Reservation>('/api/v1/pos/tables/reservations', {
+            method: 'POST',
+            body: JSON.stringify(data)
+        }),
+
+    updateStatus: (id: number, status: ReservationStatus) =>
+        fetchApi<Reservation>(`/api/v1/pos/tables/reservations/${id}/status?status=${status}`, {
+            method: 'PATCH'
+        }),
+
+    checkIn: (id: number, waiterUuid?: string, waiterName?: string) => {
+        const params = new URLSearchParams();
+        if (waiterUuid) params.append('waiter_uuid', waiterUuid);
+        if (waiterName) params.append('waiter_name', waiterName);
+        return fetchApi<any>(`/api/v1/pos/tables/reservations/${id}/check-in?${params.toString()}`, {
+            method: 'POST'
+        });
+    }
 };

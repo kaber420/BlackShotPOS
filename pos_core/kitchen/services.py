@@ -105,6 +105,7 @@ async def update_ticket_status(
             "ticket_id": ticket.id,
             "order_id": ticket.order_id,
             "item_id": ticket.item_id,
+            "table_id": ticket.table_id,
             "cook_name": cook_name
         }, actor_uuid=cook_uuid)
     elif new_status == KitchenStatus.READY:
@@ -115,6 +116,7 @@ async def update_ticket_status(
             "ticket_id": ticket.id,
             "order_id": ticket.order_id,
             "item_id": ticket.item_id,
+            "table_id": ticket.table_id,
             "product_name": ticket.product_name
         })
     elif new_status == KitchenStatus.DELIVERED:

@@ -3,25 +3,9 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from .models import KitchenTicket, KitchenStatus, KitchenTicketRead
 from pos_core.events import topic_provider
-from pos_core.events.iot_registry import iot_mapper
 from typing import List, Dict, Any
 
-# Mapeos de estados amigables para dispositivos IoT (TablePads)
-IOT_STATUS_STRINGS = {
-    KitchenStatus.PENDING: "EN COLA",
-    KitchenStatus.PREPARING: "PREPARANDO",
-    KitchenStatus.READY: "LISTO",
-    KitchenStatus.DELIVERED: "ENTREGADO",
-    KitchenStatus.CANCELLED: "CANCELADO",
-}
 
-IOT_STATUS_PROGRESS = {
-    KitchenStatus.PENDING: 0,
-    KitchenStatus.PREPARING: 50,
-    KitchenStatus.READY: 100,
-    KitchenStatus.DELIVERED: 100,
-    KitchenStatus.CANCELLED: 0,
-}
 
 @topic_provider("kitchen_orders")
 async def provide_kitchen_orders(db: AsyncSession) -> List[Dict[str, Any]]:
@@ -134,29 +118,4 @@ async def provide_recent_orders(db: AsyncSession):
             
     return sorted(data, key=lambda x: x["created_at"], reverse=True)
 
-@iot_mapper("kitchen_orders")
-async def map_kitchen_to_iot(topic: str, data: Any):
-    """Mapea actualizaciones de cocina a dispositivos IoT."""
-    from pos_core.events.service import trigger_iot_broadcast
-    
-    if topic == "kitchen_orders":
-        for order in data:
-            table_id = order.get("table_id")
-            if not table_id:
-                continue
-            
-            # El KDS sintético ya tiene el progreso calculado o el estado directo
-            status_raw = order.get("items", [{}])[0].get("status") # Usamos el primer item como referencia
-            status_str = IOT_STATUS_STRINGS.get(status_raw, str(status_raw))
-            progress = IOT_STATUS_PROGRESS.get(status_raw, 0)
-            
-            await trigger_iot_broadcast(
-                table_id, 
-                "order_update", 
-                "", 
-                data={
-                    "order_id": order.get("id"),
-                    "status": status_str,
-                    "progress": progress
-                }
-            )
+

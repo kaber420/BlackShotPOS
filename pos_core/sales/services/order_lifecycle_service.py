@@ -131,7 +131,7 @@ async def update_order_status(
     )
 
     if new_status == OrderStatus.CANCELLED:
-        await event_bus.publish("sales.order_cancelled", {"order_id": order_id}, actor_uuid=actor_uuid)
+        await event_bus.publish("sales.order_cancelled", {"order_id": order_id, "table_id": order.table_id}, actor_uuid=actor_uuid)
     elif new_status == OrderStatus.DELIVERED:
         await event_bus.publish("sales.order_delivered", {"order_id": order_id, "table_id": order.table_id}, actor_uuid=actor_uuid)
 

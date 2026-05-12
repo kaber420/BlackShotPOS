@@ -1,0 +1,7 @@
+Starting Native IoT Session...
+Connecting to: ws://192.168.99.254:8400/api/v1/pos/ws/iot?token=test-token-123
+🚀 Connected to Blackshot POS Service
+🚀 Remote Sync: Blackshot Coffee 1
+IoT Event: [config] Nueva Orden
+IoT Event: [config] Nueva Orden
+IoT Event: [config] Nueva Orden

@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Por defecto usamos SQLite con aiosqlite para facilidad de inicio
-# Se puede cambiar por postgresql+asyncpg://user:pass@host/dbname en .env
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./pos_database.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# check_same_thread es necesario solo para SQLite
-connect_args = {"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL no está configurada en el entorno (.env)")
+
+if "postgresql" not in DATABASE_URL:
+    raise RuntimeError("Blackshot POS ahora requiere PostgreSQL. Verifica tu DATABASE_URL.")
 
 db_echo_env = os.getenv("DB_ECHO", "False").lower()
 is_db_echo = db_echo_env in ("true", "1", "t", "yes")
@@ -19,18 +20,11 @@ is_db_echo = db_echo_env in ("true", "1", "t", "yes")
 # Configuración optimizada para PostgreSQL
 engine_params = {
     "echo": is_db_echo,
+    "pool_size": 20,
+    "max_overflow": 10,
+    "pool_recycle": 3600,
+    "pool_pre_ping": True,
 }
-
-if "postgresql" in DATABASE_URL:
-    engine_params.update({
-        "pool_size": 20,
-        "max_overflow": 10,
-        "pool_recycle": 3600,
-        "pool_pre_ping": True,
-    })
-else:
-    # Para SQLite
-    engine_params["connect_args"] = connect_args
 
 engine = create_async_engine(DATABASE_URL, **engine_params)
 
@@ -45,7 +39,7 @@ async def init_db():
         from pos_core.catalog.models import Category, Product, RecipeItem, Measure, ProductVariant
         from pos_core.kitchen.models import KitchenTicket, ProductionArea
         from pos_core.inventory.models import Ingredient
-        from pos_core.tables.models import Table
+        from pos_core.tables.models import Table, Reservation
         from pos_core.sales.models import Order, OrderItem, Payment
         from pos_core.accounting.models import Shift, CashRegister, CashMovement
         from pos_core.audit.models import AuditLog
