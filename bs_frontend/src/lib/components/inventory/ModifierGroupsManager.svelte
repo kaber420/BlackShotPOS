@@ -4,13 +4,14 @@
     import Button from '$lib/components/ui/Button.svelte';
     import ModifierGroupModal from './ModifierGroupModal.svelte';
     import ModifierModal from './ModifierModal.svelte';
-    import { onMount } from 'svelte';
+    import { untrack } from 'svelte';
 
-    let { isOpen, onClose } = $props<{ isOpen: boolean, onClose: () => void }>();
+    type Props = { isOpen: boolean, onClose: () => void };
+    let { isOpen, onClose } = $props<Props>();
 
     let modifierGroups = $state<ModifierGroup[]>([]);
     let ingredients = $state<Ingredient[]>([]);
-    let isLoading = $state(true);
+    let isLoading = $state(false);
     let groupSearch = $state('');
 
     // Modal state for internal actions
@@ -39,21 +40,29 @@
         }
     }
 
-    onMount(() => {
-        if (isOpen) loadData();
-    });
+    let isDeleting = $state(false);
 
     $effect(() => {
-        if (isOpen) loadData();
+        if (isOpen && !isDeleting) {
+            untrack(() => loadData());
+        }
     });
 
     async function handleDeleteGroup(id: number) {
-        if (!confirm('¿Eliminar este grupo y sus opciones?')) return;
+        console.log("CRITICAL: Calling handleDeleteGroup with ID:", id);
+        if (!window.confirm('¿ELIMINAR GRUPO?')) return;
+        
+        isDeleting = true;
         try {
-            await ProductService.deleteModifierGroup(id);
-            modifierGroups = modifierGroups.filter(g => g.id !== id);
+            const result = await ProductService.deleteModifierGroup(id);
+            console.log("Delete result:", result);
+            await loadData();
+            alert('Grupo eliminado con éxito');
         } catch (e: any) {
-            alert('Error: ' + e.message);
+            console.error("FAIL:", e);
+            alert('ERROR CRITICO: ' + (e.message || 'Error desconocido'));
+        } finally {
+            isDeleting = false;
         }
     }
 
@@ -111,7 +120,7 @@
 
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6 bg-base-200/30">
-                {#if isLoading}
+                {#if isLoading && modifierGroups.length === 0}
                     <div class="flex flex-col items-center justify-center py-20 gap-4">
                         <span class="loading loading-ring loading-lg text-secondary"></span>
                         <span class="text-xs font-black opacity-40 uppercase tracking-widest">Cargando grupos...</span>
@@ -161,8 +170,15 @@
                                             variant="ghost" 
                                             circle 
                                             size="sm" 
-                                            class="hover:bg-error/10 hover:text-error"
-                                            onclick={() => handleDeleteGroup(group.id!)}
+                                            class="text-error hover:bg-error/10"
+                                            onclick={() => { 
+                                                if (group.id) {
+                                                    handleDeleteGroup(group.id);
+                                                } else {
+                                                    alert('Error: ID no encontrado');
+                                                }
+                                            }}
+                                            title="Eliminar Grupo"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                         </Button>
