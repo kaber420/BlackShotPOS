@@ -128,4 +128,9 @@ export const IngredientService = {
 			method: 'POST',
 			body: JSON.stringify(adjustment)
 		}),
+
+	getAll: async () => {
+		const res = await IngredientService.getIngredients({ limit: 1000 });
+		return res.items;
+	}
 };

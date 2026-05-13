@@ -173,6 +173,12 @@ export const ProductService = {
             body: JSON.stringify(group)
         }),
 
+    updateModifierGroup: (id: number, group: Partial<ModifierGroup>) =>
+        fetchApi<ModifierGroup>(`/api/v1/pos/catalog/modifier-groups/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(group)
+        }),
+
     deleteModifierGroup: (id: number) =>
         fetchApi<{detail: string}>(`/api/v1/pos/catalog/modifier-groups/${id}`, {
             method: 'DELETE'

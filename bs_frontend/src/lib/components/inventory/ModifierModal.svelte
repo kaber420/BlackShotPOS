@@ -14,6 +14,7 @@
 
 	let { isOpen, groupId, ingredients, onClose, onSave } = $props<Props>();
 
+	let dialogElement = $state<HTMLDialogElement>();
 	let modifierForm = $state<Partial<Modifier>>({ 
 		name: '', 
 		extra_price: 0, 
@@ -27,26 +28,26 @@
 
 	$effect(() => {
 		if (isOpen && groupId) {
+			console.log("Abriendo modal de modificador para grupo:", groupId);
 			showAdvancedModifier = false;
 			const firstIng = ingredients[0];
-			modifierForm = { 
-				name: '', 
-				extra_price: 0, 
-				ingredient_id: firstIng?.id, 
-				input_quantity: 0, 
-				input_unit: firstIng ? (UNIT_OPTIONS as any)[firstIng.measure_type][0].id : 'ml' 
-			};
-			const modal = document.getElementById('modal_modificador') as HTMLDialogElement;
-			if (modal && !modal.open) modal.showModal();
+			
+			modifierForm.name = '';
+			modifierForm.extra_price = 0;
+			modifierForm.ingredient_id = firstIng?.id;
+			modifierForm.input_quantity = 0;
+			modifierForm.input_unit = firstIng ? (UNIT_OPTIONS as any)[firstIng.measure_type][0].id : 'ml';
+			
+			dialogElement?.showModal();
 		} else if (!isOpen) {
-			const modal = document.getElementById('modal_modificador') as HTMLDialogElement;
-			if (modal && modal.open) modal.close();
+			dialogElement?.close();
 		}
 	});
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (!groupId) return;
+		console.log("Guardando modificador:", modifierForm);
 		try {
 			isSubmitting = true;
 			await ProductService.createModifier({
@@ -56,35 +57,63 @@
 			onSave();
 			onClose();
 		} catch (e: any) {
-			alert('Error: ' + e.message);
+			console.error("Error al guardar modificador:", e);
+			alert('Error: ' + (e.message || e));
 		} finally {
 			isSubmitting = false;
 		}
 	}
 
+	let ingredientSearch = $state('');
+	const filteredIngredients = $derived(
+		ingredients.filter(i => i.name.toLowerCase().includes(ingredientSearch.toLowerCase()))
+	);
+
 	const selectedIngredient = $derived(ingredients.find(i => i.id === modifierForm.ingredient_id));
 </script>
 
-<dialog id="modal_modificador" class="modal">
-	<div class="modal-box rounded-3xl p-8">
-		<h3 class="font-black text-2xl mb-6 tracking-tighter">Añadir Opción</h3>
+<dialog bind:this={dialogElement} id="modal_modificador" class="modal z-[70]">
+	<div class="modal-box rounded-3xl p-8 border border-base-content/5 shadow-2xl">
+		<h3 class="font-black text-2xl mb-6 tracking-tighter uppercase flex items-center gap-2">
+			<span class="w-2 h-6 bg-secondary rounded-full"></span>
+			Añadir Opción al Grupo
+		</h3>
+		
 		<form onsubmit={handleSubmit} class="space-y-4">
 			<div class="form-control">
-				<label class="label p-0 mb-1" for="m_name"><span class="label-text text-[10px] uppercase font-black opacity-40">Nombre de la Opción (ej. Soya)</span></label>
-				<input type="text" id="m_name" bind:value={modifierForm.name} class="input input-bordered rounded-xl font-bold" required />
+				<label class="label p-0 mb-1" for="m_name"><span class="label-text text-[10px] uppercase font-black opacity-40">Nombre de la Opción (ej. Soya, Deslactosada)</span></label>
+				<input type="text" id="m_name" bind:value={modifierForm.name} class="input input-bordered focus:input-secondary rounded-xl font-bold" required />
 			</div>
+
 			<div class="form-control">
 				<label class="label p-0 mb-1" for="m_ing"><span class="label-text text-[10px] uppercase font-black opacity-40">Vincular al Inventario (Insumo)</span></label>
-				<select 
-					bind:value={modifierForm.ingredient_id} 
-					class="select select-bordered rounded-xl font-bold"
-					onchange={() => {
-						if (selectedIngredient) modifierForm.input_unit = selectedIngredient.unit;
-					}}
-				>
-					<option value={undefined}>No descontar inventario</option>
-					{#each ingredients as ing}<option value={ing.id}>{ing.name}</option>{/each}
-				</select>
+				
+				<div class="flex flex-col gap-2">
+					<div class="relative">
+						<input 
+							type="text" 
+							bind:value={ingredientSearch}
+							placeholder="🔍 Filtrar insumos..." 
+							class="input input-sm input-ghost w-full focus:bg-base-200 rounded-lg text-xs font-bold"
+						/>
+					</div>
+					
+					<select 
+						bind:value={modifierForm.ingredient_id} 
+						class="select select-bordered rounded-xl font-bold"
+						onchange={() => {
+							if (selectedIngredient) {
+								modifierForm.input_unit = selectedIngredient.unit;
+								if (!modifierForm.name) modifierForm.name = selectedIngredient.name;
+							}
+						}}
+					>
+						<option value={undefined}>No descontar inventario</option>
+						{#each filteredIngredients as ing}
+							<option value={ing.id}>{ing.name} ({ing.current_stock} {ing.unit})</option>
+						{/each}
+					</select>
+				</div>
 			</div>
 
 			<div class="form-control">
@@ -134,5 +163,5 @@
 			</div>
 		</form>
 	</div>
-	<form method="dialog" class="modal-backdrop bg-black/40" onsubmit={(e) => { e.preventDefault(); onClose(); }}><button onclick={onClose}>close</button></form>
+	<form method="dialog" class="modal-backdrop bg-black/60 backdrop-blur-sm" onsubmit={(e) => { e.preventDefault(); onClose(); }}><button onclick={onClose}>close</button></form>
 </dialog>

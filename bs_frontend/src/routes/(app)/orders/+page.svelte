@@ -229,35 +229,10 @@
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
-    <!-- ── Header ──────────────────────────────────────────────────────────── -->
-    <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div class="flex flex-col gap-1">
-            <h1 class="text-4xl font-extrabold tracking-tight">Órdenes Recientes</h1>
-            <p class="text-lg opacity-70">Seguimiento en tiempo real del estado de cada platillo.</p>
-        </div>
-
-
-    </header>
-
-    <!-- ── Filtros y Búsqueda ────────────────────────────────────────────────── -->
-    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div class="flex flex-col md:flex-row gap-4 w-full md:w-auto items-center">
-            <!-- Barra de Búsqueda -->
-            <div class="relative w-full md:w-80 group">
-                <div class="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-20 group-focus-within:opacity-100 group-focus-within:text-primary transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                </div>
-                <input 
-                    type="text" 
-                    bind:value={searchQuery}
-                    placeholder="Buscar por # o mesa..." 
-                    class="input input-lg w-full pl-14 bg-base-100 border-2 border-base-200 rounded-[1.5rem] font-bold focus:border-primary/50 transition-all shadow-sm"
-                />
-            </div>
-
-            <!-- Dropdown de Filtro (ESTILO INVENTARIO) -->
+    <!-- ── Toolbar unificada estilo POS ────────────────────────────────────────── -->
+    <div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200">
+        <!-- Dropdown de Filtro Original (Reintegrado en Barra) -->
+        <div class="flex items-center gap-2 flex-1">
             <div class="dropdown dropdown-bottom">
                 <div tabindex="0" role="button" class="btn btn-lg bg-base-100 border-2 border-base-200 px-6 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-[1.5rem] shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -304,6 +279,42 @@
                 </div>
             </div>
         </div>
+
+        <!-- Search Input -->
+        <div class="relative w-full md:w-48 lg:w-64 shrink-0 mx-2 hidden md:block">
+            <input 
+                type="text" 
+                placeholder="Buscar por # o mesa..." 
+                bind:value={searchQuery}
+                class="input input-sm w-full rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
+            />
+        </div>
+
+        <!-- Compact Live Status -->
+        <div class="flex items-center gap-2 pl-4 border-l border-base-200">
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-warning/10 text-warning border border-warning/20" title="Órdenes pendientes">
+                <span class="text-xs font-black">⏳</span>
+                <span class="text-sm font-black font-mono">{pendingOrders.length}</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20" title="Órdenes en cocina">
+                <span class="text-xs font-black">🍳</span>
+                <span class="text-sm font-black font-mono">{preparingOrders.length}</span>
+            </div>
+            <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success/10 text-success border border-success/20" title="Órdenes listas">
+                <span class="text-xs font-black">✅</span>
+                <span class="text-sm font-black font-mono">{readyOrders.length}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Search Input -->
+    <div class="md:hidden w-full relative">
+        <input 
+            type="text" 
+            placeholder="Buscar por # o mesa..." 
+            bind:value={searchQuery}
+            class="input input-md w-full rounded-xl bg-base-200/40 backdrop-blur-md shadow-sm border border-base-200 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+        />
     </div>
 
     <!-- ── Contenido ───────────────────────────────────────────────────────── -->
