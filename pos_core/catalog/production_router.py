@@ -4,7 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from pos_core.database import get_session
 from pos_core.kitchen.models import ProductionArea, ProductionAreaCreate, ProductionAreaUpdate, ProductionAreaRead
-from pos_core.auth.dependencies import require_role
+from pos_core.auth.dependencies import require_role, require_permission
+from pos_core.roles import Permission
 
 router = APIRouter()
 
@@ -26,7 +27,7 @@ async def create_production_area(
 @router.get("/", response_model=List[ProductionAreaRead])
 async def list_production_areas(
     session: AsyncSession = Depends(get_session),
-    user=Depends(require_role("admin"))
+    user=Depends(require_permission(Permission.VIEW_KITCHEN))
 ):
     """Lista todas las áreas de producción configuradas."""
     statement = select(ProductionArea)

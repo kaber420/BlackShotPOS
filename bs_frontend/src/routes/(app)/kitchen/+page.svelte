@@ -3,6 +3,7 @@
     import { OrderService, OrderStatus } from '$lib/api/orders';
     import { KitchenService } from '$lib/api/kitchen';
     import { TableService, type Table } from '$lib/api/tables';
+    import { ProductionAreaService, type ProductionArea } from '$lib/api/production_areas';
     import { appState } from '$lib/app_state.svelte';
     import { marked } from 'marked';
     import {
@@ -21,12 +22,51 @@
     let tables = $state<Table[]>([]);
     let isLoading = $state(true);
 
+    // ── Estado de Áreas de Producción ─────────────────────────────────────────
+    let productionAreas = $state<ProductionArea[]>([]);
+    let selectedAreaId = $state<number | null>(null);
+
+    // Cargar áreas
+    async function loadAreas() {
+        try {
+            productionAreas = await ProductionAreaService.getAll();
+        } catch (e) {
+            console.error("Error cargando áreas:", e);
+        }
+    }
+
+    // Persistencia del área seleccionada
+    onMount(() => {
+        const saved = localStorage.getItem('bs_kds_area_id');
+        if (saved && saved !== "null") selectedAreaId = parseInt(saved);
+    });
+
+    $effect(() => {
+        if (selectedAreaId !== null) {
+            localStorage.setItem('bs_kds_area_id', selectedAreaId.toString());
+        } else {
+            localStorage.setItem('bs_kds_area_id', "null");
+        }
+    });
+
+    // ── Filtrado de Órdenes e Ítems ──────────────────────────────────────────
+    let filteredOrders = $derived.by(() => {
+        if (selectedAreaId === null) return orders;
+
+        return orders
+            .map(order => {
+                // Filtrar items que pertenecen al área seleccionada
+                const itemsForArea = (order.items || []).filter(item => item.production_area_id === selectedAreaId);
+                if (itemsForArea.length === 0) return null;
+                
+                // Retornar una copia de la orden solo con los items de esa área
+                return { ...order, items: itemsForArea };
+            })
+            .filter(o => o !== null) as any[];
+    });
+
     // ── Estado de impresión ──────────────────────────────────────────────────
-    let printMethods = $state<PrintMethodInfo[]>([]);
-    let selectedMethod = $state<PrintMethod>('download');
     let printingOrderId = $state<number | null>(null);
-    let showMethodPicker = $state(false);
-    let printError = $state<string | null>(null);
 
     // ── Modal de receta ────────────────────────────────────────────────
     let recipeModal = $state<{ orderId: number; itemId: number; name: string; markdown: string } | null>(null);
@@ -132,11 +172,8 @@
 
     // ── WebSocket Connection ─────────────────────────────────────────────────
     onMount(async () => {
-        // Cargar mesas y configurar impresión (no bloquean el KDS)
+        loadAreas();
         TableService.getAll().then(t => (tables = t)).catch(console.error);
-
-        printMethods = getAvailableMethods();
-        selectedMethod = getRecommendedMethod();
 
         posSocket.subscribe("kitchen_orders");
         
@@ -144,18 +181,12 @@
         if (posSocket.kitchenOrders.length === 0) {
             isLoading = true;
             try {
-                // Obtenemos órdenes de cocina (solo pendientes/preparando)
-                const data = await OrderService.getAll(OrderStatus.PENDING); // Tendríamos que filtrar o usar un endpoint específico
-                // En realidad OrderService.getAll con status PENDING es lo que usa la cocina
-                // Pero el socket usa service.get_kitchen_orders(db) que incluye PENDING y PREPARING.
-                // Vamos a usar una carga genérica si es necesario o confiar en el fix del socket.
-                
-                // Con el fix en el backend (envío de initial_data en cada subscribe), 
-                // el socket debería poblarse casi instantáneamente al llamar a subscribe.
+                // En realidad esperamos al socket, pero isLoading da feedback visual
             } catch (e) {
                 console.error("Error en carga inicial KDS:", e);
             } finally {
-                isLoading = false;
+                // No quitamos isLoading hasta que el socket responda o pase un timeout
+                setTimeout(() => (isLoading = false), 1000);
             }
         } else {
             isLoading = false;
@@ -227,153 +258,98 @@
         
         try {
             await OrderService.updateStatus(order.id, OrderStatus.CANCELLED);
-        } catch (e) {
+        } catch (e: any) {
             alert(`Error al anular orden: ${e}`);
         }
     }
     // ── Acciones de impresión ─────────────────────────────────────────────────
     async function handlePrintComanda(orderId: number) {
-        printError = null;
         printingOrderId = orderId;
         try {
-            await printComanda(orderId, selectedMethod);
+            await printComanda(orderId, 'browser');
         } catch (e: any) {
-            printError = e?.message ?? 'Error al imprimir';
+            console.error('Error al imprimir:', e);
         } finally {
             printingOrderId = null;
         }
     }
 
-    function togglePreferredMethod(methodId: PrintMethod) {
-        import('$lib/printer').then(m => {
-            m.savePreferredMethod(methodId);
-            selectedMethod = methodId;
-            showMethodPicker = false;
-        });
-    }
-
     // ── Helpers de UI ─────────────────────────────────────────────────────────
-
-
+    let pendingCount = $derived(filteredOrders.filter(o => o.status === 'PENDING').length);
+    let preparingCount = $derived(filteredOrders.filter(o => o.status === 'PREPARING').length);
 
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
-    <!-- ── Header ──────────────────────────────────────────────────────────── -->
-    <header class="flex flex-col gap-3">
-        <div class="flex justify-between items-center flex-wrap gap-4">
-            <div>
-                <h1 class="text-4xl font-extrabold tracking-tight">Cocina (KDS)</h1>
-                <p class="text-lg opacity-70">Control de comandas y tiempos de preparación.</p>
+    <!-- ── Toolbar unificada estilo POS ────────────────────────────────────────── -->
+    <div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200 shrink-0">
+        <div class="flex items-center gap-4 flex-1 px-2">
+            <h1 class="text-xl font-black tracking-tight uppercase opacity-80">Cocina (KDS)</h1>
+            
+            <div class="h-6 w-[1px] bg-base-300 mx-2 hidden md:block"></div>
+
+            <!-- Selector de Área -->
+            <div class="flex items-center gap-2">
+                <select 
+                    bind:value={selectedAreaId}
+                    class="select select-bordered select-sm font-bold bg-base-200 border-none focus:ring-0 text-xs uppercase"
+                >
+                    <option value={null}>🌎 TODAS LAS ÁREAS</option>
+                    {#each productionAreas as area}
+                        <option value={area.id}>📍 {area.name.toUpperCase()}</option>
+                    {/each}
+                </select>
             </div>
 
-            <div class="flex items-center gap-3 flex-wrap">
+            <div class="h-6 w-[1px] bg-base-300 mx-2 hidden md:block"></div>
 
-
-                <!-- Selector de método de impresión -->
-                <div class="relative">
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => (showMethodPicker = !showMethodPicker)}
-                        title="Cambiar método de impresión"
-                        id="print-method-btn"
-                    >
-                        <span class="flex items-center gap-2">
-                            🖨️
-                            {printMethods.find(m => m.id === selectedMethod)?.label ?? 'Impresión'}
-                            <svg class="h-3 w-3 opacity-60" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                            </svg>
-                        </span>
-                    </Button>
-
-                    {#if showMethodPicker}
-                        <div
-                            class="absolute right-0 top-full mt-2 z-50 card bg-base-200 shadow-2xl border border-base-300 w-72"
-                            onclick={(e) => e.stopPropagation()}
-                            onkeydown={(e) => e.stopPropagation()}
-                            role="dialog"
-                            aria-label="Selector de método de impresión"
-                            tabindex="-1"
-                        >
-                            <div class="card-body p-4 gap-3">
-                                <h3 class="font-bold text-sm uppercase tracking-wider opacity-60">Método de impresión</h3>
-                                {#each printMethods as method}
-                                    <div
-                                        class="flex items-start gap-3 p-3 rounded-xl text-left transition-colors group cursor-pointer
-                                            {selectedMethod === method.id ? 'bg-primary/20 border border-primary/40' : 'hover:bg-base-300'}
-                                            {!method.available ? 'opacity-30 cursor-not-allowed' : ''}"
-                                        role="button"
-                                        tabindex="0"
-                                        onclick={() => { if(method.available) { selectedMethod = method.id; showMethodPicker = false; } }}
-                                        onkeydown={(e) => { if (e.key === 'Enter' && method.available) { selectedMethod = method.id; showMethodPicker = false; } }}
-                                        id="print-method-{method.id}"
-                                    >
-                                        <span class="text-xl">{method.icon}</span>
-                                        <div class="flex-1">
-                                            <p class="font-semibold text-sm">{method.label}</p>
-                                            <p class="text-xs opacity-60">{method.description}</p>
-                                            
-                                            {#if selectedMethod === method.id}
-                                                <p class="text-[10px] text-primary font-bold mt-1 uppercase tracking-tighter">Seleccionado</p>
-                                            {:else if method.available}
-                                                <button 
-                                                    class="text-[10px] text-accent font-bold mt-1 uppercase tracking-tighter hover:underline hidden group-hover:block"
-                                                    onclick={(e) => { e.stopPropagation(); togglePreferredMethod(method.id); }}
-                                                >
-                                                    Fijar como favorito
-                                                </button>
-                                            {/if}
-                                        </div>
-                                    </div>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
+            <!-- Stats Compactas -->
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-warning/10 text-warning border border-warning/20">
+                    <span class="text-xs font-black">⏳</span>
+                    <span class="text-sm font-black font-mono">{pendingCount}</span>
+                    <span class="text-[10px] font-bold uppercase opacity-60 hidden sm:inline">Pendientes</span>
                 </div>
-
-                <!-- Botón reconexión manual -->
-                <Button
-                    variant="ghost"
-                    circle
-                    size="sm"
-                    onclick={() => posSocket.connect()}
-                    aria-label="Reconectar WebSocket"
-                    title="Reconectar"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                </Button>
+                <div class="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                    <span class="text-xs font-black">🍳</span>
+                    <span class="text-sm font-black font-mono">{preparingCount}</span>
+                    <span class="text-[10px] font-bold uppercase opacity-60 hidden sm:inline">Preparando</span>
+                </div>
             </div>
         </div>
 
-        <!-- Error de impresión -->
-        {#if printError}
-            <div class="alert alert-error">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div class="flex items-center gap-2">
+            <!-- Botón reconexión manual -->
+            <Button
+                variant="ghost"
+                circle
+                size="sm"
+                onclick={() => posSocket.connect()}
+                aria-label="Reconectar WebSocket"
+                title="Reconectar"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                <span>Error de impresión: {printError}</span>
-                <Button variant="ghost" size="sm" onclick={() => (printError = null)}>✕</Button>
-            </div>
-        {/if}
-    </header>
+            </Button>
+        </div>
+    </div>
 
     <!-- ── Contenido principal ─────────────────────────────────────────────── -->
     {#if isLoading}
         <div class="flex justify-center py-20">
             <span class="loading loading-spinner loading-lg text-primary"></span>
         </div>
-    {:else if orders.length === 0}
+    {:else if filteredOrders.length === 0}
         <div class="flex flex-col items-center justify-center py-20 bg-base-200 rounded-2xl border-2 border-dashed border-base-300">
-            <p class="text-2xl font-bold opacity-20 italic">No hay comandas activas</p>
+            <p class="text-2xl font-bold opacity-20 italic">
+                {selectedAreaId ? "No hay comandas para esta área" : "No hay comandas activas"}
+            </p>
             <p class="text-sm opacity-10 mt-2">Los pedidos aparecerán aquí automáticamente.</p>
         </div>
     {:else}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {#each orders as order (order.id)}
+            {#each filteredOrders as order (order.id)}
                 <OrderCard
                     {order}
                     view="kitchen"
@@ -391,16 +367,6 @@
         </div>
     {/if}
 </div>
-
-<!-- Cerrar el picker al hacer click fuera -->
-{#if showMethodPicker}
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <!-- svelte-ignore a11y_click_events_have_key_events -->
-    <div
-        class="fixed inset-0 z-40"
-        onclick={() => (showMethodPicker = false)}
-    ></div>
-{/if}
 
 <!-- ── Modal de Receta ──────────────────────────────────────────── -->
 {#if recipeModal}

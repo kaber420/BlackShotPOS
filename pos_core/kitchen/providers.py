@@ -44,6 +44,7 @@ async def provide_kitchen_orders(db: AsyncSession) -> List[Dict[str, Any]]:
         orders_map[t.order_id]["items"].append({
             "id": t.item_id,
             "kitchen_ticket_id": t.id,
+            "production_area_id": t.production_area_id,
             "product": {
                 "name": t.product_name
             },
