@@ -13,6 +13,7 @@
 	import ModifierGroupsManager from '$lib/components/inventory/ModifierGroupsManager.svelte';
 	import InventoryGrid from '$lib/components/inventory/InventoryGrid.svelte';
 	import InventoryList from '$lib/components/inventory/InventoryList.svelte';
+	import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
 	let ingredients = $state<Ingredient[]>([]);
 	let totalIngredients = $state(0);
@@ -81,9 +82,22 @@
 		}
 	}
 
+	let viewModeInitialized = false;
+
 	onMount(() => {
+		const savedViewMode = localStorage.getItem('pos_inventory_view_mode');
+		if (savedViewMode === 'grid' || savedViewMode === 'list') {
+			viewMode = savedViewMode;
+		}
+		viewModeInitialized = true;
 		loadCategories();
 		posSocket.subscribe('inventory');
+	});
+
+	$effect(() => {
+		if (viewModeInitialized) {
+			localStorage.setItem('pos_inventory_view_mode', viewMode);
+		}
 	});
 
 	// Debounce effect para searchInput -> searchQuery
@@ -120,27 +134,25 @@
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
-    <!-- ── Toolbar unificada estilo POS ────────────────────────────────────────── -->
-    <div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200">
-        <!-- Center: Search Input -->
-        <div class="relative w-full md:w-48 lg:w-96 shrink-0 mx-2 hidden md:block">
-            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+    <Toolbar title="Inventario">
+        {#snippet left()}
+            <!-- Search Input -->
+            <div class="relative w-full md:w-48 lg:w-80 shrink-0 hidden md:block">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input 
+                    type="text" 
+                    bind:value={searchInput}
+                    placeholder="Buscar materiales..." 
+                    class="input input-sm w-full pl-10 rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
+                />
             </div>
-            <input 
-                type="text" 
-                bind:value={searchInput}
-                placeholder="Buscar materiales..." 
-                class="input input-sm w-full pl-10 rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
-            />
-        </div>
 
-        <!-- Right: Filters & Actions -->
-        <div class="flex items-center gap-2 pl-4 border-l border-base-200">
             <!-- Filtros Dropdown -->
-            <div class="dropdown dropdown-bottom dropdown-end">
+            <div class="dropdown dropdown-bottom">
                 <div tabindex="0" role="button" class="btn btn-sm bg-base-100 border-2 border-base-200 px-4 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-xl shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -174,11 +186,11 @@
                             {/each}
                         </div>
                     </div>
-                    <div class="p-1">
-                        <button class="btn btn-xs btn-ghost w-full font-black text-primary text-[9px] uppercase tracking-tighter" onclick={() => isCategoryModalOpen = true}>⚙️ Categorías</button>
-                    </div>
                 </div>
             </div>
+        {/snippet}
+
+        {#snippet right()}
 
             <!-- View Mode Toggle -->
             <div class="flex items-center gap-1 bg-base-200 p-1 rounded-xl">
@@ -190,15 +202,21 @@
                 </button>
             </div>
 
-            <Button 
-                variant="outline" 
-                size="sm" 
-                class="rounded-xl font-black gap-1.5 px-4" 
-                onclick={() => isGroupsManagerOpen = true}
-            >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
-                Grupos
-            </Button>
+
+            <!-- More Actions Dropdown -->
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-sm btn-circle btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                </div>
+                <div tabindex="0" class="dropdown-content z-[60] card card-compact w-52 p-2 shadow-2xl bg-base-100 border border-base-200 mt-2 rounded-2xl">
+                    <button class="flex items-center gap-3 p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm text-left" onclick={() => isCategoryModalOpen = true}>
+                        <span>📁</span> Categorías
+                    </button>
+                    <button class="flex items-center gap-3 p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm text-left" onclick={() => isGroupsManagerOpen = true}>
+                        <span>🔧</span> Grupos
+                    </button>
+                </div>
+            </div>
 
             <Button 
                 variant="primary" 
@@ -209,8 +227,8 @@
                 <span class="text-lg leading-none">+</span>
                 Insumo
             </Button>
-        </div>
-    </div>
+        {/snippet}
+    </Toolbar>
 
     <!-- Mobile Search -->
     <div class="md:hidden w-full relative">

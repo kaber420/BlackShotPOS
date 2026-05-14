@@ -15,6 +15,7 @@
     } from '$lib/printer';
     import Button from '$lib/components/ui/Button.svelte';
     import OrderCard from '$lib/components/OrderCard.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
     import { posSocket } from '$lib/pos_socket.svelte';
 
     // ── Estado de la aplicación ──────────────────────────────────────────────
@@ -177,16 +178,18 @@
 
         posSocket.subscribe("kitchen_orders");
         
-        // Si no tenemos datos, forzamos una carga inicial via REST
+        // Carga inicial proactiva (REST) para evitar el retraso del handshake del socket
         if (posSocket.kitchenOrders.length === 0) {
             isLoading = true;
             try {
-                // En realidad esperamos al socket, pero isLoading da feedback visual
+                const initialOrders = await KitchenService.getGroupedOrders();
+                if (initialOrders) {
+                    posSocket.kitchenOrders = initialOrders;
+                }
             } catch (e) {
                 console.error("Error en carga inicial KDS:", e);
             } finally {
-                // No quitamos isLoading hasta que el socket responda o pase un timeout
-                setTimeout(() => (isLoading = false), 1000);
+                isLoading = false;
             }
         } else {
             isLoading = false;
@@ -281,18 +284,13 @@
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
-    <!-- ── Toolbar unificada estilo POS ────────────────────────────────────────── -->
-    <div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200 shrink-0">
-        <div class="flex items-center gap-4 flex-1 px-2">
-            <h1 class="text-xl font-black tracking-tight uppercase opacity-80">Cocina (KDS)</h1>
-            
-            <div class="h-6 w-[1px] bg-base-300 mx-2 hidden md:block"></div>
-
+    <Toolbar title="Cocina (KDS)">
+        {#snippet left()}
             <!-- Selector de Área -->
             <div class="flex items-center gap-2">
                 <select 
                     bind:value={selectedAreaId}
-                    class="select select-bordered select-sm font-bold bg-base-200 border-none focus:ring-0 text-xs uppercase"
+                    class="select select-bordered select-sm font-bold bg-base-100 border-2 border-base-200 focus:ring-0 text-xs uppercase rounded-xl shadow-sm hover:border-primary/30 transition-all"
                 >
                     <option value={null}>🌎 TODAS LAS ÁREAS</option>
                     {#each productionAreas as area}
@@ -316,9 +314,9 @@
                     <span class="text-[10px] font-bold uppercase opacity-60 hidden sm:inline">Preparando</span>
                 </div>
             </div>
-        </div>
+        {/snippet}
 
-        <div class="flex items-center gap-2">
+        {#snippet right()}
             <!-- Botón reconexión manual -->
             <Button
                 variant="ghost"
@@ -332,8 +330,8 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
             </Button>
-        </div>
-    </div>
+        {/snippet}
+    </Toolbar>
 
     <!-- ── Contenido principal ─────────────────────────────────────────────── -->
     {#if isLoading}

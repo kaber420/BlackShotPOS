@@ -95,6 +95,13 @@ async def deliver_order(
 
 
 
+@router.get("/orders")
+async def get_kitchen_orders(session: AsyncSession = Depends(get_session)):
+    """Obtiene las comandas agrupadas (formato KDS) de forma proactiva via REST."""
+    from .providers import provide_kitchen_orders
+    return await provide_kitchen_orders(session)
+
+
 @router.get("/production-areas", response_model=List[ProductionAreaRead])
 async def get_production_areas(session: AsyncSession = Depends(get_session)):
     from sqlalchemy import select

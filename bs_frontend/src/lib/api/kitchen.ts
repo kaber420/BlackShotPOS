@@ -19,6 +19,10 @@ export const KitchenService = {
     getActiveTickets: () => 
         fetchApi<KitchenTicket[]>('/api/v1/pos/kitchen/tickets'),
 
+    /** Obtiene las comandas agrupadas (formato KDS) de forma proactiva. */
+    getGroupedOrders: () =>
+        fetchApi<any[]>('/api/v1/pos/kitchen/orders'),
+
     /** Marca un ticket como 'En preparación'. */
     startPreparing: (ticketId: number, cookUuid: string, cookName: string) =>
         fetchApi<{status: string}>(`/api/v1/pos/kitchen/tickets/${ticketId}/prepare?cook_uuid=${cookUuid}&cook_name=${cookName}`, {

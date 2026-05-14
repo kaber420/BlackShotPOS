@@ -9,6 +9,7 @@
     import ReservationManager from '$lib/components/ReservationManager.svelte';
     import { setActiveTable, loadOrderToCart, appState } from '$lib/app_state.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
     import { posSocket } from '$lib/pos_socket.svelte';
     
     let now = $state(new Date());
@@ -239,12 +240,21 @@
 
     <!-- Área Principal del Salón -->
     <div class="flex-1 p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full min-h-0 overflow-y-auto elegant-scroll">
-        <!-- ── Toolbar unificada estilo POS ────────────────────────────────────────── -->
-        <div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200">
-            <!-- Dropdown de Ubicación -->
-            <div class="flex items-center gap-2 flex-1">
+        <Toolbar title="Mesas">
+            {#snippet left()}
+                <!-- Search Input -->
+                <div class="relative w-full md:w-48 lg:w-64 shrink-0 hidden md:block">
+                    <input 
+                        type="text" 
+                        placeholder="Buscar mesa o zona..." 
+                        bind:value={searchQuery}
+                        class="input input-sm w-full rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
+                    />
+                </div>
+
+                <!-- Dropdown de Ubicación -->
                 <div class="dropdown dropdown-bottom">
-                    <div tabindex="0" role="button" class="btn btn-lg bg-base-100 border-2 border-base-200 px-6 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-[1.5rem] shadow-sm">
+                    <div tabindex="0" role="button" class="btn btn-sm bg-base-100 border-2 border-base-200 px-4 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-xl shadow-sm">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -270,29 +280,18 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            {/snippet}
 
-            <!-- Search Input -->
-            <div class="relative w-full md:w-48 lg:w-64 shrink-0 mx-2 hidden md:block">
-                <input 
-                    type="text" 
-                    placeholder="Buscar mesa o zona..." 
-                    bind:value={searchQuery}
-                    class="input input-sm w-full rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
-                />
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex items-center gap-2 pl-4 border-l border-base-200">
+            {#snippet right()}
                 <Button 
                     variant={showReservations ? 'primary' : 'outline'}
-                    size="md"
-                    class="gap-2" 
+                    size="sm"
+                    class="gap-2 rounded-xl" 
                     onclick={() => showReservations = !showReservations}
                 >
                     <svelte:fragment slot="icon">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" />
                         </svg>
                     </svelte:fragment>
                     Reservas
@@ -300,8 +299,8 @@
 
                 <Button 
                     variant={adminMode ? 'primary' : 'outline'}
-                    size="md"
-                    class="gap-2" 
+                    size="sm"
+                    class="gap-2 rounded-xl" 
                     onclick={() => { adminMode = !adminMode; }}
                 >
                     <svelte:fragment slot="icon">
@@ -309,27 +308,27 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                         </svg>
                     </svelte:fragment>
-                    {adminMode ? 'Salir Configuración' : 'Configurar Salón'}
+                    {adminMode ? 'Salir Config.' : 'Configurar'}
                 </Button>
 
                 {#if adminMode}
-                    <Button variant="primary" size="md" class="gap-2" onclick={openCreateModal}>
+                    <Button variant="primary" size="sm" class="gap-2 rounded-xl" onclick={openCreateModal}>
                         <svelte:fragment slot="icon">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
                         </svelte:fragment>
-                        Nueva Mesa
+                        Mesa
                     </Button>
                 {/if}
 
-                <Button variant="ghost" circle size="md" onclick={() => refreshTables(true)} aria-label="Actualizar mesas">
+                <Button variant="ghost" circle size="sm" onclick={() => refreshTables(true)} aria-label="Actualizar mesas">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
                 </Button>
-            </div>
-        </div>
+            {/snippet}
+        </Toolbar>
 
         <!-- Mobile Search Input -->
         <div class="md:hidden w-full relative">

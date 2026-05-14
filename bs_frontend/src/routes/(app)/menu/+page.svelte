@@ -13,6 +13,7 @@
     import Button from '$lib/components/ui/Button.svelte';
     import ProductGrid from '$lib/components/menu/ProductGrid.svelte';
     import ProductList from '$lib/components/menu/ProductList.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
     let products = $state<Product[]>([]);
     let categories = $state<Category[]>([]);
@@ -87,17 +88,27 @@
         }
     }
 
-    onMount(loadData);
+    let viewModeInitialized = false;
+
+    onMount(() => {
+        const savedViewMode = localStorage.getItem('pos_menu_view_mode');
+        if (savedViewMode === 'grid' || savedViewMode === 'list') {
+            viewMode = savedViewMode;
+        }
+        viewModeInitialized = true;
+        loadData();
+    });
+
+    $effect(() => {
+        if (viewModeInitialized) {
+            localStorage.setItem('pos_menu_view_mode', viewMode);
+        }
+    });
 </script>
 
 <div class="p-6 md:p-8 lg:p-10 flex flex-col gap-8 w-full flex-1 min-h-0 overflow-y-auto">
-    <!-- ── Toolbar unificada estilo POS ────────────────────────────────────────── -->
-    <div class="flex items-center justify-between bg-base-100 shadow-sm p-2 rounded-xl border border-base-200 shrink-0 gap-4">
-        <div class="flex items-center gap-4 flex-1 px-2">
-            <h1 class="text-xl font-black tracking-tight uppercase opacity-80 shrink-0">Menú</h1>
-            
-            <div class="h-6 w-[1px] bg-base-300 mx-2 hidden lg:block"></div>
-
+    <Toolbar title="Menú">
+        {#snippet left()}
             <!-- Search Compacto -->
             <div class="relative w-full max-w-xs group hidden sm:block">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -109,13 +120,13 @@
                     type="text" 
                     bind:value={searchQuery}
                     placeholder="Buscar producto..." 
-                    class="input input-sm w-full pl-9 bg-base-200/50 border-none rounded-xl font-bold focus:ring-2 focus:ring-primary/20 transition-all shadow-inner"
+                    class="input input-sm w-full pl-9 rounded-xl bg-base-200/40 backdrop-blur-md border border-base-300 focus:ring-2 focus:ring-primary/20 transition-all font-bold text-sm"
                 />
             </div>
 
             <!-- Category Filter Dropdown -->
             <div class="dropdown dropdown-bottom">
-                <div tabindex="0" role="button" class="btn btn-sm bg-base-200/50 border-none px-4 font-bold flex items-center gap-2 hover:bg-base-300 transition-all rounded-xl">
+                <div tabindex="0" role="button" class="btn btn-sm bg-base-100 border-2 border-base-200 px-4 font-black flex items-center gap-2 hover:border-primary/30 transition-all rounded-xl shadow-sm">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                     Categorías
                     {#if selectedCategoryIds.length > 0}
@@ -142,19 +153,12 @@
                             <div class="p-4 text-center opacity-40 text-xs italic">No hay categorías</div>
                         {/each}
                     </div>
-                    <div class="p-2 mt-2 border-t border-base-200">
-                        <button 
-                            class="btn btn-sm btn-ghost w-full justify-center gap-2 font-black text-primary text-[10px] uppercase tracking-widest"
-                            onclick={() => isCategoryModalOpen = true}
-                        >
-                            ⚙️ Gestionar Categorías
-                        </button>
-                    </div>
+
                 </div>
             </div>
-        </div>
+        {/snippet}
 
-        <div class="flex items-center gap-2 pr-2">
+        {#snippet right()}
             <!-- View Mode Toggle -->
             <div class="flex items-center bg-base-200 p-1 rounded-xl gap-1 mr-2 hidden md:flex">
                 <button 
@@ -177,19 +181,33 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
                 </div>
                 <div tabindex="0" class="dropdown-content z-[60] card card-compact w-52 p-2 shadow-2xl bg-base-100 border border-base-200 mt-2 rounded-2xl">
-                    <button class="flex items-center gap-3 p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm text-left" onclick={() => isComboModalOpen = true}>
-                        <span>📦</span> Armar Combo
-                    </button>
                     <button class="flex items-center gap-3 p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm text-left" onclick={() => isMeasureModalOpen = true}>
-                        <span>📏</span> Tallas / Medidas
+                        <span>📏</span> Medidas
+                    </button>
+                    <button class="flex items-center gap-3 p-3 rounded-xl hover:bg-base-200 transition-colors font-bold text-sm text-left" onclick={() => isCategoryModalOpen = true}>
+                        <span>📁</span> Categorías
                     </button>
                 </div>
             </div>
 
+            <Button variant="ghost" size="sm" class="rounded-xl px-4 font-black text-xs shrink-0 border border-base-200" onclick={() => isComboModalOpen = true}>
+                + COMBO
+            </Button>
+
             <Button variant="primary" size="sm" class="rounded-xl px-4 font-black text-xs shrink-0" onclick={openCreateModal}>
                 + PRODUCTO
             </Button>
-        </div>
+        {/snippet}
+    </Toolbar>
+ 
+    <!-- Mobile Search -->
+    <div class="md:hidden w-full relative">
+        <input 
+            type="text" 
+            bind:value={searchQuery}
+            placeholder="Buscar producto..." 
+            class="input input-md w-full pl-10 rounded-xl bg-base-100 border-2 border-base-200 focus:ring-2 focus:ring-primary/20 transition-all font-bold"
+        />
     </div>
 
     {#if errorMessage}
