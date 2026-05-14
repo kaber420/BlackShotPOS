@@ -29,6 +29,7 @@ dependencies = [
     "python-jose[cryptography]",
     "nats-py",
     "asyncpg",
+    "slowapi",
 ]
 
 [project.optional-dependencies]

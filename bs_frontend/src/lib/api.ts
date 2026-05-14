@@ -1,6 +1,7 @@
+import { PUBLIC_API_URL } from '$env/static/public';
+
 /**
  * Cliente base para hacer peticiones al backend FastAPI
- * Ya que Vite hace proxy a /api, no necesitamos poner domain
  */
 
 // Cliente base para hacer peticiones al backend FastAPI (usando Credentials: include para Cookies)
@@ -17,10 +18,11 @@ const getAuthHeaders = (isFormData: boolean = false) => {
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
 	// Asegurar que endpoint empiece con /
 	const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+	const url = `${PUBLIC_API_URL}${path}`;
 	const isFormData = options.body instanceof FormData;
 
 	try {
-		const response = await fetch(path, {
+		const response = await fetch(url, {
 			...options,
 			credentials: 'include',
 			headers: {

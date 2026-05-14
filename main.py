@@ -4,6 +4,14 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from pos_core.security import SecurityHeadersMiddleware, limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.middleware import SlowAPIMiddleware
 from pos_core.database import init_db
 from pos_core.setup import setup_environment
 from pos_core.inventory.router import router as inventory_router
@@ -47,13 +55,38 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configuración de CORS
+# Rate Limiting Global
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# --- MIDDLEWARES ---
+# El orden es importante. Se ejecutan en orden inverso de declaración.
+# Es decir, el último en añadirse envuelve a los anteriores.
+
+# 4. Rate Limiting (Más interno)
+app.add_middleware(SlowAPIMiddleware)
+
+# 3. Cabeceras de Seguridad
+app.add_middleware(SecurityHeadersMiddleware)
+
+# 2. Configuración de CORS
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000")
+allowed_origins = [o.strip() for o in allowed_origins_str.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción deberíamos restringir esto
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+# 1. Trusted Hosts (Más externo, rechaza ataques de Host Header primero)
+allowed_hosts_str = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+allowed_hosts = [h.strip() for h in allowed_hosts_str.split(",") if h.strip()]
+
+app.add_middleware(
+    TrustedHostMiddleware, allowed_hosts=allowed_hosts
 )
 
 # Asegurar que el directorio de datos existe antes de montar

@@ -4,7 +4,7 @@ import uvicorn
 import argparse
 import subprocess
 from dotenv import load_dotenv
-from .setup import setup_environment, rotate_tokens
+from .setup import setup_environment, rotate_tokens, check_and_prompt_ip
 
 def start():
     """Extensión de CLI para Blackshot POS"""
@@ -38,6 +38,9 @@ def start():
 
     # Si no se especifica comando, por defecto es 'run'
     if args.command is None or args.command == "run":
+        # Verificamos la IP local para ofrecer añadirla al .env
+        check_and_prompt_ip()
+
         host = getattr(args, "host", None) or os.getenv("HOST", "127.0.0.1")
         
         # Medida de seguridad: No usar puertos "fantasmas"
@@ -67,6 +70,9 @@ def start():
 
         host = getattr(args, "host", None) or os.getenv("HOST", "127.0.0.1")
         port = getattr(args, "port", None) or int(env_port)
+
+        # Verificamos la IP local para ofrecer añadirla al .env
+        check_and_prompt_ip()
 
         print(f"\n🚀 Iniciando servidor de Blackshot POS (Sincronizado) en {host}:{port}...")
         uvicorn.run("main:app", host=host, port=port, reload=True)

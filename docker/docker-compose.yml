@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: blackshot_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: blackshot_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blackshot_password}
+      POSTGRES_DB: blackshot_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blackshot_user -d blackshot_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+    image: ${DOCKER_USER:-blackshot}/pos-backend:latest
+    container_name: blackshot_backend
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://blackshot_user:${POSTGRES_PASSWORD:-blackshot_password}@db:5432/blackshot_db
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend_data:/app/data
+
+  sync_agent:
+    build:
+      context: ..
+      dockerfile: docker/backend/Dockerfile
+    image: ${DOCKER_USER:-blackshot}/pos-backend:latest
+    container_name: blackshot_sync_agent
+    restart: always
+    env_file:
+      - ../.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://blackshot_user:${POSTGRES_PASSWORD:-blackshot_password}@db:5432/blackshot_db
+    command: ["python", "-m", "bs_sync.agent"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - backend_data:/app/data
+
+  frontend:
+    build:
+      context: ../bs_frontend
+      dockerfile: ../docker/frontend/Dockerfile
+    image: ${DOCKER_USER:-blackshot}/pos-frontend:latest
+    container_name: blackshot_frontend
+    restart: always
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
+  backend_data:
