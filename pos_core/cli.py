@@ -4,7 +4,7 @@ import uvicorn
 import argparse
 import subprocess
 from dotenv import load_dotenv
-from .setup import setup_environment, rotate_tokens, check_and_prompt_ip
+from .setup import setup_environment, rotate_tokens, check_and_prompt_ip, manage_systemd_services
 
 def start():
     """Extensión de CLI para Blackshot POS"""
@@ -24,6 +24,12 @@ def start():
     sync_parser = subparsers.add_parser("sync", help="Inicia el Agente de Sincronización y el servidor")
     sync_parser.add_argument("--host", type=str, help="Host para el servidor")
     sync_parser.add_argument("--port", type=int, help="Puerto para el servidor")
+    
+    # Comandos de gestión de servicios (Top-level)
+    for cmd in ["install", "uninstall", "start", "stop", "restart", "status"]:
+        p = subparsers.add_parser(cmd, help=f"{cmd.capitalize()} servicios de sistema")
+        p.add_argument("target", nargs="?", default="all", choices=["core", "sync", "all"], 
+                     help="Módulo objetivo (default: all)")
 
     # Parse arguments
     args = parser.parse_args()
@@ -88,6 +94,11 @@ def start():
             return
 
         rotate_tokens()
+
+    elif args.command in ["install", "uninstall", "start", "stop", "restart", "status"]:
+        # Mapeamos 'core' a 'pos' internamente para el servicio blackshot-pos
+        internal_name = "pos" if args.target == "core" else args.target
+        manage_systemd_services(args.command, internal_name)
 
 if __name__ == "__main__":
     start()

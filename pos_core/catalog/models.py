@@ -211,6 +211,7 @@ class ProductBase(SQLModel):
     image_url: Optional[str] = None
     stock: Optional[int] = 0
     is_active: bool = Field(default=True, index=True)
+    requires_preparation: bool = Field(default=True, description="Indica si el producto debe pasar por el flujo de preparación en cocina.")
     category_id: Optional[int] = Field(default=None, foreign_key="category.id", index=True)
     protein: float = Field(default=0.0)
     calories: float = Field(default=0.0)
@@ -243,6 +244,7 @@ class ProductUpdate(SQLModel):
     calories: Optional[float] = None
     carbs: Optional[float] = None
     fats: Optional[float] = None
+    requires_preparation: Optional[bool] = None
     tax_id: Optional[int] = None
     modifier_groups: Optional[List[dict]] = None
 

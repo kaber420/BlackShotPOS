@@ -54,6 +54,7 @@ export interface Product {
     image_url?: string;
     stock: number;
     is_active: boolean;
+    requires_preparation: boolean;
     category_id?: number;
     protein?: number;
     calories?: number;

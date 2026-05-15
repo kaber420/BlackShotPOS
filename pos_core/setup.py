@@ -2,6 +2,9 @@ import os
 import secrets
 import shutil
 import socket
+import sys
+import subprocess
+import getpass
 
 def setup_environment():
     """
@@ -168,3 +171,99 @@ def _update_env_file(env_path, updates):
 
     with open(env_path, "w") as f:
         f.writelines(new_lines)
+
+def manage_systemd_services(action, service_name="all"):
+    """
+    Manages systemd services for Blackshot POS and Sync Agent.
+    """
+    user = getpass.getuser()
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    # Assume blackshot is in the same bin directory as python
+    blackshot_bin = os.path.join(os.path.dirname(sys.executable), "blackshot")
+    
+    if not os.path.exists(blackshot_bin):
+        # Fallback if not found in bin
+        blackshot_bin = f"{sys.executable} -m pos_core.cli"
+
+    services = {
+        "pos": {
+            "name": "blackshot-pos.service",
+            "description": "Blackshot POS Service",
+            "exec": f"{blackshot_bin} run",
+            "after": "network.target"
+        },
+        "sync": {
+            "name": "blackshot-sync.service",
+            "description": "Blackshot Sync Agent Service",
+            "exec": f"{blackshot_bin} sync",
+            "after": "network.target blackshot-pos.service"
+        }
+    }
+
+    selected_services = []
+    if service_name == "all":
+        selected_services = ["pos", "sync"]
+    elif service_name in services:
+        selected_services = [service_name]
+    else:
+        print(f"❌ Servicio desconocido: {service_name}")
+        return
+
+    if action == "install":
+        for s_key in selected_services:
+            s = services[s_key]
+            content = f"""[Unit]
+Description={s['description']}
+After={s['after']}
+
+[Service]
+User={user}
+WorkingDirectory={root_dir}
+ExecStart={s['exec']}
+EnvironmentFile={root_dir}/.env
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+"""
+            temp_file = f"/tmp/{s['name']}"
+            with open(temp_file, "w") as f:
+                f.write(content)
+            
+            print(f"📦 Instalando {s['name']}...")
+            try:
+                subprocess.run(["sudo", "mv", temp_file, f"/etc/systemd/system/{s['name']}"], check=True)
+                subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
+                subprocess.run(["sudo", "systemctl", "enable", s['name']], check=True)
+                print(f"✅ {s['name']} instalado y habilitado.")
+            except subprocess.CalledProcessError:
+                print(f"❌ Error al instalar {s['name']}. ¿Tienes permisos de sudo?")
+    
+    elif action == "uninstall":
+        for s_key in selected_services:
+            s_name = services[s_key]["name"]
+            print(f"🗑️ Desinstalando {s_name}...")
+            try:
+                subprocess.run(["sudo", "systemctl", "stop", s_name], check=False)
+                subprocess.run(["sudo", "systemctl", "disable", s_name], check=False)
+                subprocess.run(["sudo", "rm", f"/etc/systemd/system/{s_name}"], check=True)
+                subprocess.run(["sudo", "systemctl", "daemon-reload"], check=True)
+                print(f"✅ {s_name} eliminado.")
+            except subprocess.CalledProcessError:
+                print(f"❌ Error al eliminar {s_name}.")
+
+    elif action in ["start", "stop", "restart", "status", "enable", "disable"]:
+        for s_key in selected_services:
+            s_name = services[s_key]["name"]
+            print(f"⚙️ Ejecutando {action} para {s_name}...")
+            try:
+                # status es el único que no necesita sudo para ver, pero mejor ser consistentes
+                cmd = ["sudo", "systemctl", action, s_name]
+                if action == "status":
+                    # Status sin sudo para evitar el prompt si solo queremos ver
+                    subprocess.run(["systemctl", action, s_name])
+                else:
+                    subprocess.run(cmd, check=True)
+            except subprocess.CalledProcessError:
+                print(f"❌ Falló {action} para {s_name}.")

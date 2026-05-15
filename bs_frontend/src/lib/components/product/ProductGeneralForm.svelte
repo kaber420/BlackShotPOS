@@ -86,9 +86,15 @@
             <label class="label font-bold text-xs uppercase tracking-widest opacity-60">Descripción</label>
             <textarea class="textarea textarea-bordered h-28 focus:textarea-primary" placeholder="Descripción del producto..." bind:value={formData.description}></textarea>
         </div>
-        <label class="label cursor-pointer justify-start gap-4">
-            <span class="label-text font-bold">¿Producto Activo?</span>
-            <input type="checkbox" class="toggle toggle-primary" bind:checked={formData.is_active} />
-        </label>
+        <div class="flex flex-wrap gap-6 items-center">
+            <label class="label cursor-pointer justify-start gap-4">
+                <span class="label-text font-bold">¿Producto Activo?</span>
+                <input type="checkbox" class="toggle toggle-primary" bind:checked={formData.is_active} />
+            </label>
+            <label class="label cursor-pointer justify-start gap-4">
+                <span class="label-text font-bold">¿Requiere Preparación en Cocina?</span>
+                <input type="checkbox" class="toggle toggle-secondary" bind:checked={formData.requires_preparation} />
+            </label>
+        </div>
     </div>
 </div>

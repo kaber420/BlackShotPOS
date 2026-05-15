@@ -35,7 +35,7 @@ async def provide_kitchen_orders(db: AsyncSession) -> List[Dict[str, Any]]:
                 "type": t.order_type,
                 "waiter_name": t.waiter_name,
                 "external_reference": t.external_reference,
-                "status": "PREPARING", # Estado sintético para la UI
+                "status": "PENDING", # Se actualizará abajo
                 "created_at": t.received_at.isoformat(),
                 "items": []
             }
@@ -52,8 +52,17 @@ async def provide_kitchen_orders(db: AsyncSession) -> List[Dict[str, Any]]:
             "modifiers": [{"name": m.strip()} for m in t.modifiers_text.split(",")] if t.modifiers_text else [],
             "status": t.status,
             "quantity": 1, # El KDS trata cada ticket como una unidad
-            "unit_price": 0 # No relevante para cocina
         })
+        
+        # SINTESIS DE ESTADO DE LA ORDEN: Si algún item de esta área está PREPARING, la orden está PREPARING.
+        # Si no, se queda como PENDING (o lo que tuviera).
+        if t.status == KitchenStatus.PREPARING:
+            orders_map[t.order_id]["status"] = "PREPARING"
+        elif orders_map[t.order_id]["status"] != "PREPARING" and t.status == KitchenStatus.READY:
+             # Si no hay nada preparando pero hay algo listo, podríamos decir READY? 
+             # No, mejor PENDING hasta que TODO esté listo. 
+             # Pero en el KDS, lo normal es ver PENDING (gris/amarillo) y PREPARING (azul).
+             pass
         
     # Retornamos como lista ordenada por la fecha del primer ticket de cada orden
     sorted_orders = sorted(orders_map.values(), key=lambda x: x["created_at"])
@@ -101,21 +110,19 @@ async def provide_recent_orders(db: AsyncSession):
                 status_str = s.value if hasattr(s, "value") else str(s)
                 item_statuses.append(status_str)
         
-        # SINTESIS DE ESTADO DE LA ORDEN PARA LA UI
+        # SINTESIS DE ESTADO DE LA ORDEN PARA LA UI (Meseros)
         if any(s == "PREPARING" for s in item_statuses):
             order_dict["status"] = "PREPARING"
-        elif all(s in ["READY", "DELIVERED", "PAID"] for s in item_statuses) and item_statuses:
+        elif all(s in ["READY", "DELIVERED", "PAID", "CANCELLED"] for s in item_statuses) and item_statuses:
             if any(s == "READY" for s in item_statuses):
                 order_dict["status"] = "READY"
-            elif all(s == "DELIVERED" for s in item_statuses):
+            elif all(s in ["DELIVERED", "CANCELLED"] for s in item_statuses):
                 order_dict["status"] = "DELIVERED"
+        else:
+            # Si hay al menos un PENDING y nada PREPARING, la orden es PENDING
+            order_dict["status"] = "PENDING"
         
-        # FILTRO DE VISIBILIDAD: Desaparece si está PAGADA y ENTREGADA
-        is_paid = o.status == OrderStatus.PAID
-        is_all_delivered = all(s == "DELIVERED" for s in item_statuses) if item_statuses else True
-        
-        if not (is_paid and is_all_delivered):
-            data.append(order_dict)
+        data.append(order_dict)
             
     return sorted(data, key=lambda x: x["created_at"], reverse=True)
 

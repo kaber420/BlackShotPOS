@@ -55,6 +55,11 @@ async def create_tickets_for_order(
             mods = item["modifiers"]
             modifiers_text = ", ".join([f"+ {m.get('name', 'Mod')}" for m in mods])
 
+        # Determinar estado inicial: Si no requiere preparación, nace como READY
+        initial_status = KitchenStatus.PENDING
+        if product and not getattr(product, "requires_preparation", True):
+            initial_status = KitchenStatus.READY
+
         ticket = KitchenTicket(
             order_id=order_id,
             item_id=item_id,
@@ -66,9 +71,8 @@ async def create_tickets_for_order(
             variant_name=item.get("variant_name"),
             modifiers_text=modifiers_text,
             production_area_id=production_area_id,
-            status=KitchenStatus.PENDING,
+            status=initial_status,
             received_at=datetime.now(timezone.utc).replace(tzinfo=None)
-
         )
         await kitchen_repo.save(session, ticket)
     
