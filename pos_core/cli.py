@@ -4,7 +4,7 @@ import uvicorn
 import argparse
 import subprocess
 from dotenv import load_dotenv
-from .setup import setup_environment, rotate_tokens, check_and_prompt_ip, manage_systemd_services
+from .setup import setup_environment, rotate_tokens, check_and_prompt_ip, manage_systemd_services, verify_db_connection
 
 def start():
     """Extensión de CLI para Blackshot POS"""
@@ -42,8 +42,48 @@ def start():
     if root_dir not in sys.path:
         sys.path.insert(0, root_dir)
 
+    # Verificamos la IP local para ofrecer añadirla al .env
+    check_and_prompt_ip()
+
+    def _check_db_or_prompt():
+        is_ok, error = verify_db_connection()
+        if not is_ok:
+            print(f"\n❌ ERROR DE CONEXIÓN A BASE DE DATOS:")
+            print(f"Detalle: {error}")
+            
+            root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+            docker_compose_path = os.path.join(root_dir, "docker", "docker-compose.yml")
+            
+            if os.path.exists(docker_compose_path):
+                print(f"\n💡 Se detectó una configuración de Docker.")
+                try:
+                    confirm = input("¿Deseas intentar levantar el contenedor de base de datos automáticamente? (s/N): ")
+                    if confirm.lower() == 's':
+                        print("🚀 Levantando base de datos (Postgres)...")
+                        subprocess.run(["docker", "compose", "-f", docker_compose_path, "up", "-d", "db"], check=True)
+                        print("⏳ Esperando a que la base de datos esté lista...")
+                        import time
+                        time.sleep(5)
+                        
+                        # Re-verify
+                        is_ok, error = verify_db_connection()
+                        if is_ok:
+                            print("✅ Conexión establecida exitosamente.")
+                            return True
+                        else:
+                            print(f"❌ Aún no se pudo conectar: {error}")
+                            print("Es posible que la DB esté tardando en iniciar. Intenta correr el comando de nuevo en un momento.")
+                            sys.exit(1)
+                except (KeyboardInterrupt, EOFError):
+                    print("\nOperación cancelada.")
+            
+            print("\nVerifica que tu base de datos esté activa y que la URL en el .env sea correcta.")
+            sys.exit(1)
+        return True
+
     # Si no se especifica comando, por defecto es 'run'
     if args.command is None or args.command == "run":
+        _check_db_or_prompt()
         # Verificamos la IP local para ofrecer añadirla al .env
         check_and_prompt_ip()
 
@@ -63,6 +103,7 @@ def start():
         uvicorn.run("main:app", host=host, port=port, reload=True)
 
     elif args.command == "sync":
+        _check_db_or_prompt()
         # Lanzar el agente en segundo plano
         print("\n🔄 Iniciando Agente de Sincronización en segundo plano...")
         subprocess.Popen([sys.executable, "-m", "bs_sync.agent"], cwd=root_dir)

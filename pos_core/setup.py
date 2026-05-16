@@ -5,6 +5,8 @@ import socket
 import sys
 import subprocess
 import getpass
+import time
+from urllib.parse import urlparse
 
 def setup_environment():
     """
@@ -53,7 +55,14 @@ def get_local_ip():
         return None
 
 def check_and_prompt_ip(env_path=".env"):
-    """Revisa si la IP local está permitida en CORS y Hosts; si no, pregunta al usuario."""
+    """
+    Revisa si la IP local está permitida en CORS y Hosts; si no, ofrece configurarla.
+    Permite autorizar la IP local, agregar manuales o mantener acceso restringido.
+    """
+    # Si no hay TTY (ej. ejecutando como servicio), no preguntamos
+    if not sys.stdin.isatty():
+        return
+
     local_ip = get_local_ip()
     if not local_ip or local_ip == "127.0.0.1":
         return
@@ -61,52 +70,120 @@ def check_and_prompt_ip(env_path=".env"):
     if not os.path.exists(env_path):
         return
 
+    # Leer configuración actual directamente del archivo para evitar inconsistencias de entorno
+    current_hosts = ""
+    current_origins = ""
+    current_bind_host = "127.0.0.1"
+    current_frontend_port = "80"
+    current_api_port = "8000"
+
     with open(env_path, "r") as f:
-        lines = f.readlines()
+        for line in f:
+            if line.startswith("ALLOWED_HOSTS="):
+                current_hosts = line.split("=", 1)[1].strip().strip('"').strip("'")
+            if line.startswith("ALLOWED_ORIGINS="):
+                current_origins = line.split("=", 1)[1].strip().strip('"').strip("'")
+            if line.startswith("HOST="):
+                current_bind_host = line.split("=", 1)[1].strip().strip('"').strip("'")
+            if line.startswith("FRONTEND_PORT="):
+                current_frontend_port = line.split("=", 1)[1].strip().strip('"').strip("'")
+            if line.startswith("PORT="):
+                current_api_port = line.split("=", 1)[1].strip().strip('"').strip("'")
 
-    allowed_hosts = ""
-    allowed_origins = ""
+    # Valores por defecto si están vacíos
+    if not current_hosts: current_hosts = "localhost,127.0.0.1"
+    if not current_origins: current_origins = "http://localhost:5173,http://localhost:8000"
 
-    for line in lines:
-        if line.startswith("ALLOWED_HOSTS="):
-            allowed_hosts = line.split("=", 1)[1].strip().strip('"').strip("'")
-        if line.startswith("ALLOWED_ORIGINS="):
-            allowed_origins = line.split("=", 1)[1].strip().strip('"').strip("'")
-
-    needs_update = False
-    if local_ip not in allowed_hosts:
-        needs_update = True
-    if f"http://{local_ip}" not in allowed_origins:
-        needs_update = True
-
-    if needs_update:
-        print(f"\n📡 [Auto-Descubrimiento] Se ha detectado tu IP local actual: {local_ip}")
-        print("Esta IP no parece estar permitida en tu configuración de seguridad (.env).")
+    # Verificar si la configuración es completa (Whitelist + Binding)
+    is_ip_authorized = local_ip in current_hosts and f"http://{local_ip}" in current_origins
+    is_fully_configured = is_ip_authorized and current_bind_host == local_ip
+    
+    if not is_fully_configured:
+        print(f"\n📡 [Configuración de Red] IP local detectada: {local_ip}")
+        
+        if is_ip_authorized and current_bind_host != local_ip:
+            print(f"⚠️  Tu IP está en la Whitelist, pero el servidor solo escucha en {current_bind_host}.")
+            print(f"Para que otros dispositivos entren, el servidor debe escuchar en {local_ip}.")
+        else:
+            print("Esta IP no está autorizada para acceso externo en la configuración actual.")
+        
         try:
-            confirm = input("¿Deseas autorizar esta IP para que otras tablets/dispositivos puedan conectarse? (s/N): ")
-            if confirm.lower() == 's':
-                new_hosts = f"{allowed_hosts},{local_ip}" if allowed_hosts else local_ip
-                new_origins = f"{allowed_origins},http://{local_ip}:5173,http://{local_ip}:8000" if allowed_origins else f"http://{local_ip}:5173,http://{local_ip}:8000"
+            print("\nOpciones:")
+            print(f" [s] Autorizar IP local y activar Binding Estricto ({local_ip})")
+            print(" [m] Agregar IPs o Dominios manualmente")
+            print(" [n] Mantener solo acceso local (localhost)")
+            
+            choice = input("\nSelecciona una opción [s/m/n] (Enter para omitir): ").lower()
+            
+            updates = {}
+            if choice == 's':
+                new_hosts = f"{current_hosts},{local_ip}" if local_ip not in current_hosts else current_hosts
+                new_origins = current_origins
+                for p in [current_frontend_port, current_api_port]:
+                    if p in ["80", "443"]:
+                        o = f"http://{local_ip}" if p == "80" else f"https://{local_ip}"
+                    else:
+                        o = f"http://{local_ip}:{p}"
+                    if o not in new_origins:
+                        new_origins += f",{o}"
                 
                 updates = {
                     "ALLOWED_HOSTS": new_hosts,
-                    "ALLOWED_ORIGINS": new_origins
+                    "ALLOWED_ORIGINS": new_origins,
+                    "HOST": local_ip
                 }
-                _update_env_file(env_path, updates)
-                print(f"✅ IP {local_ip} agregada exitosamente.")
+                print(f"✅ Configuración actualizada: El servidor ahora escuchará en {local_ip}")
+            
+            elif choice == 'm':
+                manual_input = input("Ingresa las IPs o dominios (ej: 192.168.1.10, mi-pos.local): ")
+                extra_values = [v.strip() for v in manual_input.split(",") if v.strip()]
                 
-                # Update current environment variable so main.py sees it without a restart
-                os.environ["ALLOWED_HOSTS"] = new_hosts
-                os.environ["ALLOWED_ORIGINS"] = new_origins
+                new_hosts = current_hosts
+                new_origins = current_origins
+                
+                for val in extra_values:
+                    if val not in new_hosts:
+                        new_hosts += f",{val}"
+                    base_origin = f"http://{val}" if not val.startswith("http") else val
+                    if ":" not in val and not val.startswith("http"):
+                        for p in [current_frontend_port, current_api_port]:
+                            if p in ["80", "443"]:
+                                o = f"http://{val}" if p == "80" else f"https://{val}"
+                            else:
+                                o = f"http://{val}:{p}"
+                            if o not in new_origins:
+                                new_origins += f",{o}"
+                    elif base_origin not in new_origins:
+                        new_origins += f",{base_origin}"
+                
+                updates = {
+                    "ALLOWED_HOSTS": new_hosts,
+                    "ALLOWED_ORIGINS": new_origins,
+                    "HOST": local_ip
+                }
+                print(f"✅ Configuración manual aplicada.")
+            
+            elif choice == 'n':
+                print("🔒 Seguridad mantenida: Acceso restringido a localhost.")
+                return
+
+            if updates:
+                _update_env_file(env_path, updates)
+                for k, v in updates.items():
+                    os.environ[k] = v
+                    
         except (KeyboardInterrupt, EOFError):
-            print("\nOmitido.")
+            print("\nConfiguración omitida.")
+    else:
+        # Ya está configurado correctamente, solo informamos
+        print(f"🚀 Red: Configuración estricta activa para {local_ip} (Whitelist + Binding)")
 
 def _ensure_secure_tokens(env_path):
     """Checks for empty or missing tokens and populates them."""
     with open(env_path, "r") as f:
         lines = f.readlines()
 
-    keys_to_ensure = ["JWT_SECRET", "ALLOWED_ORIGINS", "ALLOWED_HOSTS", "PUBLIC_API_URL"]
+    keys_to_ensure = ["JWT_SECRET", "ALLOWED_ORIGINS", "ALLOWED_HOSTS", "PUBLIC_API_URL", "HOST", "PORT", "FRONTEND_PORT"]
     current_values = {}
     
     for line in lines:
@@ -137,6 +214,18 @@ def _ensure_secure_tokens(env_path):
             if key not in current_values or not current_values[key]:
                 updates[key] = "http://localhost:8000"
                 print(f"[setup] 🔗 Configurando URL de API pública por defecto")
+        elif key == "HOST":
+            if key not in current_values or not current_values[key]:
+                updates[key] = "127.0.0.1"
+                print(f"[setup] 📍 Configurando Host de escucha por defecto (localhost)")
+        elif key == "PORT":
+            if key not in current_values or not current_values[key]:
+                updates[key] = "8000"
+                print(f"[setup] 🔌 Configurando Puerto por defecto (8000)")
+        elif key == "FRONTEND_PORT":
+            if key not in current_values or not current_values[key]:
+                updates[key] = "80"
+                print(f"[setup] 🖥️ Configurando Puerto de Frontend por defecto (80)")
 
     if updates:
         _update_env_file(env_path, updates)
@@ -267,3 +356,29 @@ WantedBy=multi-user.target
                     subprocess.run(cmd, check=True)
             except subprocess.CalledProcessError:
                 print(f"❌ Falló {action} para {s_name}.")
+
+def verify_db_connection(database_url=None):
+    """
+    Verifica si el host de la base de datos es alcanzable por red.
+    """
+    if not database_url:
+        database_url = os.getenv("DATABASE_URL")
+    
+    if not database_url:
+        return False, "DATABASE_URL no está configurada en el entorno."
+
+    try:
+        # Limpiar el esquema para urlparse
+        clean_url = database_url.replace("postgresql+asyncpg://", "http://").replace("postgresql://", "http://")
+        parsed = urlparse(clean_url)
+        
+        host = parsed.hostname or "localhost"
+        port = parsed.port or 5432
+        
+        # Intento de conexión por socket
+        with socket.create_connection((host, port), timeout=2):
+            return True, None
+    except (socket.timeout, ConnectionRefusedError, socket.gaierror) as e:
+        return False, f"No se pudo conectar a {host}:{port} ({type(e).__name__})"
+    except Exception as e:
+        return False, f"Error inesperado al verificar DB: {str(e)}"
