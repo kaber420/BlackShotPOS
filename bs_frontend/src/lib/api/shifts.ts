@@ -15,12 +15,42 @@ export interface ShiftInfo {
     actual_transfer: number | null;
     difference_cash: number | null;
     notes: string | null;
+    // Enriched fields (solo presentes en turno activo)
+    withdrawals?: number;
+    expenses?: number;
+    incomes?: number;
+    movements?: Array<{
+        id: number;
+        amount: number;
+        type: 'INCOME' | 'EXPENSE' | 'WITHDRAWAL';
+        reason: string;
+        category_id: number | null;
+        category_name: string | null;
+        actor_name: string | null;
+        timestamp: string;
+    }>;
+    // Campos del listado histórico (list_shifts)
+    sales?: {
+        cash: number;
+        card: number;
+        transfer: number;
+        total: number;
+    };
+    tips_total?: number;
+    duration_minutes?: number | null;
 }
 
 export interface CashRegister {
     id: number;
     name: string;
     is_active: boolean;
+}
+
+export interface MovementCategory {
+    id: number;
+    name: string;
+    type: 'INCOME' | 'EXPENSE' | 'WITHDRAWAL';
+    description: string | null;
 }
 
 export async function checkActiveShift() {
@@ -53,10 +83,15 @@ export async function closeShift(shiftId: number, data: {
     });
 }
 
+export async function getMovementCategories() {
+    return await fetchApi<MovementCategory[]>('/api/v1/pos/sales/shifts/movement-categories');
+}
+
 export async function addCashMovement(shiftId: number, data: {
     amount: number,
-    type: 'INCOME' | 'EXPENSE',
-    reason: string
+    type: 'INCOME' | 'EXPENSE' | 'WITHDRAWAL',
+    reason: string,
+    category_id?: number | null
 }) {
     return await fetchApi<any>(`/api/v1/pos/sales/shifts/${shiftId}/movement`, {
         method: 'POST',

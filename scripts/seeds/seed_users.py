@@ -31,6 +31,7 @@ async def main():
         user_create = UserCreate(
             email=email,
             password=password,
+            username="admin",
             organization_id="default",
             custom_metadata={"role": role, "permissions": {}}
         )

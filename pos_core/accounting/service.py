@@ -1,4 +1,5 @@
 from typing import Optional, List
+from collections import defaultdict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import func as sqlfunc
 from sqlalchemy.orm import selectinload
@@ -7,7 +8,8 @@ from fastapi import HTTPException
 from datetime import datetime, timezone
 from uuid import UUID
 
-from .models import Shift, ShiftStatus, CashRegister, CashMovement, CashMovementType
+from .models import Shift, ShiftStatus, CashRegister, CashMovement, CashMovementType, CashMovementCategory
+from pos_core.auth.models import User
 from pos_core.sales.models import Order, Payment, PaymentMethod, OrderStatus, OrderItem
 from pos_core.catalog.models import ProductVariant
 
@@ -42,11 +44,49 @@ async def enrich_shift_data(session: AsyncSession, shift: Shift) -> dict:
     data["expected_card"] = round(shift.expected_card, 2)
     data["expected_transfer"] = round(shift.expected_transfer, 2)
     
-    # Estos siguen siendo informativos y podrían optimizarse luego si se desea
     totals = await calculate_shift_totals(session, shift.id)
     data["withdrawals"] = round(totals["withdrawals"], 2)
     data["expenses"] = round(totals["expenses"], 2)
     data["incomes"] = round(totals["incomes"], 2)
+
+    # Cargar movimientos del turno para la tabla del frontend
+    mov_stmt = (
+        select(CashMovement)
+        .where(CashMovement.shift_id == shift.id)
+        .order_by(CashMovement.timestamp.desc())
+    )
+    mov_res = await session.execute(mov_stmt)
+    movements = mov_res.scalars().all()
+
+    # Resolver nombres de categorías en batch
+    cat_ids = {m.category_id for m in movements if m.category_id}
+    cat_map: dict[int, str] = {}
+    if cat_ids:
+        cat_stmt = select(CashMovementCategory).where(CashMovementCategory.id.in_(cat_ids))
+        cat_res = await session.execute(cat_stmt)
+        cat_map = {c.id: c.name for c in cat_res.scalars().all()}
+
+    # Resolver nombres de actores en batch
+    user_ids = {m.user_id for m in movements if m.user_id}
+    user_map: dict[UUID, str] = {}
+    if user_ids:
+        user_stmt = select(User).where(User.id.in_(user_ids))
+        user_res = await session.execute(user_stmt)
+        user_map = {u.id: u.username for u in user_res.scalars().all()}
+
+    data["movements"] = [
+        {
+            "id": m.id,
+            "amount": m.amount,
+            "type": m.type,
+            "reason": m.reason,
+            "category_id": m.category_id,
+            "category_name": cat_map.get(m.category_id) if m.category_id else None,
+            "actor_name": user_map.get(m.user_id, "Sistema"),
+            "timestamp": m.timestamp.isoformat()
+        } for m in movements
+    ]
+
     return data
 
 async def get_all_active_shifts(session: AsyncSession) -> List[dict]:
@@ -120,18 +160,29 @@ async def add_cash_movement(
     amount: float, 
     type: CashMovementType, 
     reason: str, 
-    user_id: UUID
+    user_id: UUID,
+    category_id: Optional[int] = None
 ) -> CashMovement:
+    if amount <= 0:
+        raise HTTPException(status_code=422, detail="Amount must be greater than zero")
+
     shift = await session.get(Shift, shift_id)
     if not shift or shift.status == ShiftStatus.CLOSED:
         raise HTTPException(status_code=400, detail="Active shift required for movements")
+
+    # Validar que la categoría exista si se proporciona
+    if category_id is not None:
+        cat = await session.get(CashMovementCategory, category_id)
+        if not cat:
+            raise HTTPException(status_code=404, detail="Movement category not found")
 
     movement = CashMovement(
         shift_id=shift_id,
         amount=amount,
         type=type,
         reason=reason,
-        user_id=user_id
+        user_id=user_id,
+        category_id=category_id
     )
     session.add(movement)
     
@@ -236,17 +287,49 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
     totals = await calculate_shift_totals(session, shift_id)
     
     # Movimientos detallados
-    mov_stmt = select(CashMovement).where(CashMovement.shift_id == shift_id)
+    mov_stmt = select(CashMovement).where(CashMovement.shift_id == shift_id).order_by(CashMovement.timestamp.desc())
     mov_res = await session.execute(mov_stmt)
     movements = mov_res.scalars().all()
+
+    # Resolver categorías y actores en batch
+    cat_ids = {m.category_id for m in movements if m.category_id}
+    cat_map: dict[int, str] = {}
+    if cat_ids:
+        cat_stmt = select(CashMovementCategory).where(CashMovementCategory.id.in_(cat_ids))
+        cat_res = await session.execute(cat_stmt)
+        cat_map = {c.id: c.name for c in cat_res.scalars().all()}
+
+    user_ids = {m.user_id for m in movements if m.user_id}
+    user_map: dict[UUID, str] = {}
+    if user_ids:
+        user_stmt = select(User).where(User.id.in_(user_ids))
+        user_res = await session.execute(user_stmt)
+        user_map = {u.id: u.username for u in user_res.scalars().all()}
+
     movements_data = [
         {
             "id": m.id,
             "amount": m.amount,
             "type": m.type,
             "reason": m.reason,
+            "category_id": m.category_id,
+            "category_name": cat_map.get(m.category_id) if m.category_id else None,
+            "actor_name": user_map.get(m.user_id, "Sistema"),
             "timestamp": m.timestamp.isoformat()
         } for m in movements
+    ]
+
+    # Desglose de gastos por categoría
+    expense_by_category: dict[str, dict] = defaultdict(lambda: {"total": 0.0, "count": 0})
+    for m in movements:
+        if m.type in (CashMovementType.EXPENSE, CashMovementType.WITHDRAWAL):
+            cat_name = cat_map.get(m.category_id, "Sin categoría") if m.category_id else "Sin categoría"
+            expense_by_category[cat_name]["total"] += m.amount
+            expense_by_category[cat_name]["count"] += 1
+
+    expense_summary = [
+        {"category": k, "total": round(v["total"], 2), "count": v["count"]}
+        for k, v in sorted(expense_by_category.items(), key=lambda x: -x[1]["total"])
     ]
 
     # Órdenes del turno - Detalladas para la tabla del frontend
@@ -325,5 +408,34 @@ async def get_shift_report(session: AsyncSession, shift_id: int) -> dict:
             "tips_total": round(total_tips, 2)
         },
         "orders": orders_list,
-        "movements": movements_data
+        "movements": movements_data,
+        "expense_summary": expense_summary
     }
+
+# --- MOVEMENT CATEGORIES ---
+
+async def get_movement_categories(session: AsyncSession) -> List[CashMovementCategory]:
+    """Lista todas las categorías de movimiento ordenadas por tipo y nombre."""
+    stmt = select(CashMovementCategory).order_by(CashMovementCategory.type, CashMovementCategory.name)
+    result = await session.execute(stmt)
+    return result.scalars().all()
+
+async def create_movement_category(
+    session: AsyncSession, 
+    name: str, 
+    type: CashMovementType, 
+    description: Optional[str] = None
+) -> CashMovementCategory:
+    """Crea una nueva categoría de movimiento."""
+    # Verificar unicidad del nombre
+    existing = await session.execute(
+        select(CashMovementCategory).where(CashMovementCategory.name == name)
+    )
+    if existing.scalars().first():
+        raise HTTPException(status_code=409, detail=f"Category '{name}' already exists")
+
+    cat = CashMovementCategory(name=name, type=type, description=description)
+    session.add(cat)
+    await session.commit()
+    await session.refresh(cat)
+    return cat

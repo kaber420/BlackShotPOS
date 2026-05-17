@@ -128,6 +128,19 @@ app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/api/users", tags=["Users"])
 
 
+@app.get("/api/sync/status")
+async def get_sync_status():
+    import json
+    status_file = "data/sync_status.json"
+    if os.path.exists(status_file):
+        try:
+            with open(status_file, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            return {"status": "offline", "error": f"Error leyendo estado: {str(e)}", "last_ping_at": None}
+    return {"status": "offline", "error": "Agente de sincronización no iniciado", "last_ping_at": None}
+
+
 @app.get("/")
 async def root():
     return {

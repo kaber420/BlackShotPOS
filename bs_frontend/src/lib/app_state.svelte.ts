@@ -126,7 +126,7 @@ export async function initAuth(): Promise<boolean> {
 
         appState.isLoggedIn  = true;
         appState.userUuid    = data.id;
-        appState.userName    = data.email.split('@')[0];
+        appState.userName    = data.username;
         
         const metadata = data.custom_metadata || {};
         appState.userRole    = metadata.role || 'waiter';

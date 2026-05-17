@@ -53,7 +53,7 @@ async def create_new_order(
         order_in.table_id,
         order_in.external_reference,
         waiter_uuid=str(user.id),
-        waiter_name=user.email,
+        waiter_name=user.username,
     )
     asyncio.create_task(trigger_standard_broadcasts())
     return order
@@ -118,7 +118,7 @@ async def update_status(
         order_id,
         status,
         actor_uuid=str(user.id),
-        actor_name=user.email,
+        actor_name=user.username,
     )
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
@@ -141,7 +141,7 @@ async def update_item_status(
         item_id,
         status,
         actor_uuid=str(user.id),
-        actor_name=user.email,
+        actor_name=user.username,
     )
     if not item:
         raise HTTPException(status_code=404, detail="OrderItem not found")
@@ -165,7 +165,7 @@ async def split_order(
             original_order_id=order_id,
             items_to_split=split_in.items,
             actor_uuid=str(user.id),
-            actor_name=user.email
+            actor_name=user.username
         )
         asyncio.create_task(trigger_standard_broadcasts())
         # Cargar relaciones completas para la respuesta
@@ -248,7 +248,7 @@ async def transfer_order(
             order_id,
             transfer_in.new_table_id,
             actor_uuid=str(user.id),
-            actor_name=user.email,
+            actor_name=user.username,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -153,6 +153,94 @@
         </div>
 
         <!-- Lista de Órdenes -->
+        {#if report.expense_summary && report.expense_summary.length > 0}
+            {@const totalExpenses = report.expense_summary.reduce((sum, e) => sum + e.total, 0)}
+            <div class="card bg-base-100 border border-base-content/5 shadow-xl overflow-hidden">
+                <div class="card-body p-8">
+                    <h3 class="font-black uppercase tracking-widest text-xs opacity-50 mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-error rounded-full"></span>
+                        Desglose de Gastos por Categoría
+                    </h3>
+                    <div class="flex items-baseline gap-3 mb-6">
+                        <span class="text-3xl font-black text-error tabular-nums">{formatCurrency(totalExpenses)}</span>
+                        <span class="text-xs font-bold uppercase tracking-widest opacity-40">Total egresos</span>
+                    </div>
+                    <div class="space-y-4">
+                        {#each report.expense_summary as item}
+                            {@const pct = totalExpenses > 0 ? (item.total / totalExpenses) * 100 : 0}
+                            <div class="space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-black text-sm">{item.category}</span>
+                                        <span class="badge badge-ghost badge-sm font-bold text-[9px]">{item.count} mov.</span>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-[10px] font-black uppercase tracking-widest opacity-40">{pct.toFixed(0)}%</span>
+                                        <span class="font-black tabular-nums text-error">{formatCurrency(item.total)}</span>
+                                    </div>
+                                </div>
+                                <div class="w-full bg-base-200 rounded-full h-2.5 overflow-hidden">
+                                    <div 
+                                        class="bg-error/70 h-2.5 rounded-full transition-all duration-700"
+                                        style="width: {pct}%"
+                                    ></div>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            </div>
+        {/if}
+
+        <!-- Movimientos de Caja -->
+        {#if report.movements && report.movements.length > 0}
+            <div class="card bg-base-100 border border-base-content/5 shadow-xl overflow-hidden">
+                <div class="card-body p-8">
+                    <h3 class="font-black uppercase tracking-widest text-xs opacity-50 mb-6 flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-warning rounded-full"></span>
+                        Movimientos de Caja ({report.movements.length})
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="table table-md">
+                            <thead>
+                                <tr class="bg-base-200/50">
+                                    <th class="font-black uppercase text-[10px] tracking-widest">Hora</th>
+                                    <th class="font-black uppercase text-[10px] tracking-widest">Concepto</th>
+                                    <th class="font-black uppercase text-[10px] tracking-widest">Categoría</th>
+                                    <th class="font-black uppercase text-[10px] tracking-widest">Registrado por</th>
+                                    <th class="font-black uppercase text-[10px] tracking-widest">Tipo</th>
+                                    <th class="font-black uppercase text-[10px] tracking-widest text-right">Monto</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each report.movements as mov}
+                                    <tr class="hover:bg-base-200/50 transition-colors">
+                                        <td class="font-bold opacity-50 tabular-nums">{new Date(mov.timestamp).toLocaleTimeString()}</td>
+                                        <td class="font-black">{mov.reason}</td>
+                                        <td>
+                                            {#if mov.category_name}
+                                                <span class="badge badge-ghost font-bold text-[10px] uppercase">{mov.category_name}</span>
+                                            {:else}
+                                                <span class="opacity-20 text-xs">—</span>
+                                            {/if}
+                                        </td>
+                                        <td class="font-bold opacity-60">{mov.actor_name || '—'}</td>
+                                        <td>
+                                            <span class="badge {mov.type === 'INCOME' ? 'badge-success' : mov.type === 'WITHDRAWAL' ? 'badge-info' : 'badge-error'} font-black text-[10px] uppercase">
+                                                {mov.type === 'INCOME' ? 'Entrada' : mov.type === 'WITHDRAWAL' ? 'Retiro' : 'Salida'}
+                                            </span>
+                                        </td>
+                                        <td class="text-right font-black tabular-nums {mov.type === 'INCOME' ? 'text-success' : 'text-error'}">
+                                            {mov.type === 'INCOME' ? '+' : '-'}{formatCurrency(mov.amount)}
+                                        </td>
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {/if}
         <div class="card bg-base-100 border border-base-content/5 shadow-2xl overflow-hidden print:shadow-none print:border-none">
             <div class="card-body p-8">
                 <div class="flex items-center justify-between mb-6">

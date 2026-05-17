@@ -30,6 +30,7 @@ dependencies = [
     "nats-py",
     "asyncpg",
     "slowapi",
+    "nkeys",
 ]
 
 [project.optional-dependencies]

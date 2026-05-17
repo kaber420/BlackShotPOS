@@ -161,6 +161,29 @@ async def seed():
         session.add_all([r1, r2, r3, r4, r5, r6, r7, r8, r9])
         await session.commit()
 
+        # 7. Crear categorías de movimientos de caja (Caja Chica)
+        print("Creando categorías de movimientos de caja...")
+        from pos_core.accounting.models import CashMovementCategory, CashMovementType
+
+        DEFAULT_CATEGORIES = [
+            # Gastos
+            {"name": "Compra de Insumos",     "type": CashMovementType.EXPENSE,    "description": "Compras de materia prima e ingredientes"},
+            {"name": "Limpieza",              "type": CashMovementType.EXPENSE,    "description": "Productos y servicios de limpieza"},
+            {"name": "Mantenimiento",         "type": CashMovementType.EXPENSE,    "description": "Reparaciones y mantenimiento de equipo"},
+            {"name": "Propinas / Personal",   "type": CashMovementType.EXPENSE,    "description": "Pagos directos a empleados"},
+            {"name": "Servicios",             "type": CashMovementType.EXPENSE,    "description": "Agua, luz, gas, internet"},
+            {"name": "Varios / Emergencias",  "type": CashMovementType.EXPENSE,    "description": "Gastos no categorizados"},
+            # Retiros
+            {"name": "Retiro Parcial",        "type": CashMovementType.WITHDRAWAL, "description": "Retiro de seguridad del efectivo en caja"},
+            # Ingresos
+            {"name": "Fondo Extra",           "type": CashMovementType.INCOME,     "description": "Adición de efectivo al fondo de caja"},
+            {"name": "Corrección",            "type": CashMovementType.INCOME,     "description": "Ajuste por error en conteo previo"},
+        ]
+
+        for cat_data in DEFAULT_CATEGORIES:
+            session.add(CashMovementCategory(**cat_data))
+        await session.commit()
+
         print("--- Sembrado de Datos COMPLETADO ---")
 
 if __name__ == "__main__":

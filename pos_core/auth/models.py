@@ -9,6 +9,7 @@ class BridgeUser:
     """Usuario simulado para peticiones que vienen desde el Bridge (Central Management)"""
     id: UUID = field(default_factory=uuid4)
     email: str = "central@blackshot.app"
+    username: str = "central"
     is_active: bool = True
     is_superuser: bool = True
     is_verified: bool = True
@@ -23,6 +24,7 @@ class User(SQLModel, table=True):
     # --- CAMPOS FastAPI Users ---
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     email: str = Field(unique=True, index=True, nullable=False)
+    username: str = Field(nullable=False, index=True, description="Nombre de usuario o alias para UI")
     hashed_password: str = Field(nullable=False)
     is_active: bool = Field(default=True, nullable=False)
     is_superuser: bool = Field(default=False, nullable=False)

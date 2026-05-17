@@ -10,7 +10,7 @@ from pos_core.roles import Permission
 from .service import (
     open_shift, close_shift, get_active_shift, get_shift_report, list_shifts,
     get_cash_registers, create_cash_register, add_cash_movement, get_all_active_shifts,
-    enrich_shift_data
+    enrich_shift_data, get_movement_categories, create_movement_category
 )
 from .models import CashMovementType
 
@@ -35,6 +35,31 @@ class CashMovementRequest(BaseModel):
     amount: float
     type: CashMovementType
     reason: str
+    category_id: Optional[int] = None
+
+class CreateMovementCategoryRequest(BaseModel):
+    name: str
+    type: CashMovementType
+    description: Optional[str] = None
+
+# --- MOVEMENT CATEGORIES ---
+
+@router.get("/movement-categories")
+async def api_get_movement_categories(
+    session: AsyncSession = Depends(get_session),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
+):
+    """Lista todas las categorías de movimiento disponibles."""
+    return await get_movement_categories(session)
+
+@router.post("/movement-categories")
+async def api_create_movement_category(
+    req: CreateMovementCategoryRequest,
+    session: AsyncSession = Depends(get_session),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
+):
+    """Crea una nueva categoría de movimiento."""
+    return await create_movement_category(session, req.name, req.type, req.description)
 
 # --- REGISTERS ---
 
@@ -99,7 +124,8 @@ async def api_add_movement(
         req.amount,
         req.type,
         req.reason,
-        user.id
+        user.id,
+        req.category_id
     )
 
 @router.get("/active")

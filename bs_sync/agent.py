@@ -19,6 +19,33 @@ logging.getLogger("nats").setLevel(logging.CRITICAL)
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 logger = logging.getLogger("nats-agent")
 
+def update_sync_status(status: str, last_ping_at: str = None, error: str = None):
+    try:
+        os.makedirs("data", exist_ok=True)
+        status_file = "data/sync_status.json"
+        
+        # Leer existente para preservar last_ping_at si no se provee
+        data = {"status": "offline", "last_ping_at": None, "error": None}
+        if os.path.exists(status_file):
+            try:
+                with open(status_file, "r") as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+                
+        data["status"] = status
+        if last_ping_at:
+            data["last_ping_at"] = last_ping_at
+        if error is not None:
+            data["error"] = error
+        else:
+            data["error"] = None
+            
+        with open(status_file, "w") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        logger.error(f"⚠️ Error al actualizar archivo de estado de sincronización: {e}")
+
 async def get_config(session):
     """Obtiene la configuración activa de la base de datos."""
     statement = select(BusinessSettings).where(BusinessSettings.id == 1)
@@ -39,9 +66,11 @@ async def ping_loop(get_js_func):
                     _, current_branch_id = await get_config(session)
                 
                 topic = f"branches.{current_branch_id}.ping"
-                payload = json.dumps({"status": "online", "timestamp": datetime.utcnow().isoformat()})
+                now_str = datetime.utcnow().isoformat()
+                payload = json.dumps({"status": "online", "timestamp": now_str})
                 await js.publish(topic, payload.encode())
                 logger.debug(f"💓 Ping enviado a {topic}")
+                update_sync_status("online", last_ping_at=now_str)
         except Exception as e:
             logger.error(f"⚠️ Error al enviar ping: {e}")
         
@@ -52,6 +81,7 @@ async def run_agent():
     print(f"📡 BLACKSHOT POS - SYNC AGENT")
     print("="*50)
     logger.info("Iniciando Agente de Sincronización...")
+    update_sync_status("offline", error="Iniciando agente...")
     
     # Obtener configuración inicial
     async with async_session_maker() as session:
@@ -71,13 +101,38 @@ async def run_agent():
         while True:
             try:
                 if not nc or not nc.is_connected:
-                    nc = await nats.connect(nats_url)
+                    connect_opts = {
+                        "servers": [nats_url],
+                        "connect_timeout": 10
+                    }
+                    
+                    seed = os.getenv("NATS_NKEY_SEED")
+                    if seed:
+                        try:
+                            import nkeys
+                            kp = nkeys.from_seed(seed.encode())
+                            async def signature_cb(nonce):
+                                return kp.sign(nonce)
+                            connect_opts["nkey"] = kp.public_key.decode()
+                            connect_opts["signature_cb"] = signature_cb
+                            logger.info("🔑 Autenticación NKEY habilitada para la conexión.")
+                        except Exception as nkey_err:
+                            logger.error(f"❌ Error al inicializar NKEY: {nkey_err}")
+                            
+                    if nats_url.startswith("tls://") or nats_url.startswith("ssl://"):
+                        import ssl
+                        connect_opts["tls"] = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+                        logger.info("🔒 TLS/SSL activado para la conexión.")
+                        
+                    nc = await nats.connect(**connect_opts)
                     js = nc.jetstream()
                     logger.info(f"✅ Conexión establecida con NATS en {nats_url}")
+                    update_sync_status("online")
 
                 await drain_queue(js)
             except Exception as e:
                 logger.error(f"❌ Error en el Agente (¿NATS caído?): {e}")
+                update_sync_status("offline", error=str(e))
                 nc = None # Forzar reconexión
                 js = None
             
@@ -85,6 +140,7 @@ async def run_agent():
     except asyncio.CancelledError:
         ping_task.cancel()
         logger.info("👋 Agente de sincronización detenido correctamente.")
+        update_sync_status("offline", error="Agente detenido")
 
 async def drain_queue(js):
     async with async_session_maker() as session:

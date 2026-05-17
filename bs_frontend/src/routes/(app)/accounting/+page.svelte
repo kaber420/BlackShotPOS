@@ -106,10 +106,18 @@
                 </div>
                 <h3 class="text-xs font-black opacity-40 uppercase tracking-widest mb-1">Efectivo en Caja</h3>
                 <div class="text-4xl font-black text-primary tracking-tighter">{formatCurrency(activeShift.expected_cash)}</div>
-                <div class="mt-4 flex items-center gap-2 text-xs font-bold opacity-60">
+                <div class="mt-4 flex flex-wrap items-center gap-2 text-xs font-bold opacity-60">
                     <span>Fondo: {formatCurrency(activeShift.initial_cash)}</span>
                     <span>•</span>
-                    <span>Ventas: {formatCurrency(activeShift.expected_cash - activeShift.initial_cash)}</span>
+                    <span>Ventas: {formatCurrency(activeShiftReport?.sales?.cash ?? 0)}</span>
+                    {#if (activeShift.expenses ?? 0) > 0}
+                        <span>•</span>
+                        <span class="text-error">Gastos: -{formatCurrency(activeShift.expenses ?? 0)}</span>
+                    {/if}
+                    {#if (activeShift.withdrawals ?? 0) > 0}
+                        <span>•</span>
+                        <span class="text-info">Retiros: -{formatCurrency(activeShift.withdrawals ?? 0)}</span>
+                    {/if}
                 </div>
             </div>
 
@@ -129,7 +137,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                 </div>
                 <h3 class="text-xs font-black opacity-40 uppercase tracking-widest mb-1">Venta Total Bruta</h3>
-                <div class="text-4xl font-black text-accent tracking-tighter">{formatCurrency(activeShift.expected_cash + activeShift.expected_card + activeShift.expected_transfer - activeShift.initial_cash)}</div>
+                <div class="text-4xl font-black text-accent tracking-tighter">{formatCurrency(activeShiftReport?.sales?.total ?? 0)}</div>
                 <div class="mt-4 text-xs font-bold opacity-60 uppercase tracking-widest">Sin incluir fondo inicial</div>
             </div>
         </div>
@@ -146,6 +154,8 @@
                         <tr class="text-xs font-black uppercase tracking-widest">
                             <th>Hora</th>
                             <th>Concepto</th>
+                            <th>Categoría</th>
+                            <th>Registrado por</th>
                             <th>Tipo</th>
                             <th class="text-right">Monto</th>
                         </tr>
@@ -157,8 +167,18 @@
                                     <td class="font-bold opacity-50">{new Date(mov.timestamp).toLocaleTimeString()}</td>
                                     <td class="font-black">{mov.reason}</td>
                                     <td>
-                                        <span class="badge {mov.type === 'INCOME' ? 'badge-success' : 'badge-error'} font-black text-[10px] uppercase">
-                                            {mov.type === 'INCOME' ? 'Entrada' : 'Salida'}
+                                        {#if mov.category_name}
+                                            <span class="badge badge-ghost font-bold text-[10px] uppercase">{mov.category_name}</span>
+                                        {:else}
+                                            <span class="opacity-20 text-xs">—</span>
+                                        {/if}
+                                    </td>
+                                    <td class="font-bold opacity-60 text-sm">
+                                        {mov.actor_name || '—'}
+                                    </td>
+                                    <td>
+                                        <span class="badge {mov.type === 'INCOME' ? 'badge-success' : mov.type === 'WITHDRAWAL' ? 'badge-info' : 'badge-error'} font-black text-[10px] uppercase">
+                                            {mov.type === 'INCOME' ? 'Entrada' : mov.type === 'WITHDRAWAL' ? 'Retiro' : 'Salida'}
                                         </span>
                                     </td>
                                     <td class="text-right font-black {mov.type === 'INCOME' ? 'text-success' : 'text-error'}">
@@ -168,7 +188,7 @@
                             {/each}
                         {:else}
                             <tr>
-                                <td colspan="4" class="text-center py-12 opacity-30 font-bold uppercase tracking-widest">No hay movimientos manuales registrados</td>
+                                <td colspan="6" class="text-center py-12 opacity-30 font-bold uppercase tracking-widest">No hay movimientos manuales registrados</td>
                             </tr>
                         {/if}
                     </tbody>
@@ -307,7 +327,7 @@
                     <div class="space-y-2">
                         <div class="flex justify-between text-sm">
                             <span class="opacity-50 font-bold">Venta Total:</span>
-                            <span class="font-black">{formatCurrency((shift.actual_cash || 0) + (shift.actual_card || 0) + (shift.actual_transfer || 0) - shift.initial_cash)}</span>
+                            <span class="font-black">{formatCurrency(shift.sales?.total ?? 0)}</span>
                         </div>
                         <div class="flex justify-between text-sm">
                             <span class="opacity-50 font-bold">Diferencia:</span>

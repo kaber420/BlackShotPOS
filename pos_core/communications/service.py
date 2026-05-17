@@ -63,7 +63,7 @@ async def create_voice_message(
     await db.refresh(new_message)
     
     # 3. Notificación vía PubSub (Broadcast)
-    sender_name = user.email.split("@")[0].capitalize()
+    sender_name = user.username.capitalize()
     audio_url = f"/api/v1/pos/communications/audio/{file_name}"
     
     broadcast_data = {
@@ -103,7 +103,7 @@ async def get_intercom_history(db: AsyncSession, limit: int = 50) -> List[dict]:
     
     history = []
     for msg in messages:
-        sender_name = msg.sender.email.split("@")[0].capitalize() if msg.sender else "Sistema"
+        sender_name = msg.sender.username.capitalize() if msg.sender else "Sistema"
         area_ids = [area.id for area in msg.target_areas]
         area_names = [area.name for area in msg.target_areas]
         

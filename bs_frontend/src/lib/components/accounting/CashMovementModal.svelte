@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { addCashMovement } from '$lib/api/shifts';
+    import { onMount } from 'svelte';
+    import { addCashMovement, getMovementCategories, type MovementCategory } from '$lib/api/shifts';
     import Button from '$lib/components/ui/Button.svelte';
     import { toast } from '$lib/toast.svelte';
 
@@ -16,6 +17,33 @@
     let type = $state<'INCOME' | 'EXPENSE' | 'WITHDRAWAL'>(initialType);
     let reason = $state('');
     let isSubmitting = $state(false);
+    let selectedCategoryId = $state<number | null>(null);
+    let categories = $state<MovementCategory[]>([]);
+    let loadingCategories = $state(true);
+
+    let filteredCategories = $derived(
+        categories.filter(c => c.type === type)
+    );
+
+    // Reset category selection when type changes
+    $effect(() => {
+        type;
+        selectedCategoryId = null;
+    });
+
+    onMount(async () => {
+        try {
+            categories = await getMovementCategories();
+        } catch (e) {
+            console.error('Error loading categories:', e);
+        } finally {
+            loadingCategories = false;
+        }
+    });
+
+    function selectType(newType: 'INCOME' | 'EXPENSE' | 'WITHDRAWAL') {
+        type = newType;
+    }
 
     async function handleSubmit() {
         if (amount <= 0 || !reason) {
@@ -24,7 +52,7 @@
         }
         isSubmitting = true;
         try {
-            await addCashMovement(shiftId, { amount, type, reason });
+            await addCashMovement(shiftId, { amount, type, reason, category_id: selectedCategoryId });
             toast.success(type === 'WITHDRAWAL' ? "Retiro registrado" : "Movimiento registrado");
             onSuccess?.();
             onClose?.();
@@ -52,26 +80,49 @@
         </h3>
 
         <div class="space-y-6">
+            <!-- Type Selector -->
             <div class="flex p-1 bg-base-200 rounded-2xl gap-1">
                 <button 
                     class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all {type === 'EXPENSE' ? 'bg-error text-white shadow-lg' : 'opacity-50 hover:bg-base-300'}"
-                    onclick={() => type = 'EXPENSE'}
+                    onclick={() => selectType('EXPENSE')}
                 >
                     Gasto
                 </button>
                 <button 
                     class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all {type === 'WITHDRAWAL' ? 'bg-info text-white shadow-lg' : 'opacity-50 hover:bg-base-300'}"
-                    onclick={() => type = 'WITHDRAWAL'}
+                    onclick={() => selectType('WITHDRAWAL')}
                 >
                     Retiro Seg.
                 </button>
                 <button 
                     class="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all {type === 'INCOME' ? 'bg-success text-white shadow-lg' : 'opacity-50 hover:bg-base-300'}"
-                    onclick={() => type = 'INCOME'}
+                    onclick={() => selectType('INCOME')}
                 >
                     Ingreso
                 </button>
             </div>
+
+            <!-- Category Selector -->
+            {#if !loadingCategories && filteredCategories.length > 0}
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-black text-xs uppercase tracking-widest opacity-60">Categoría</span>
+                    </label>
+                    <div class="flex flex-wrap gap-2">
+                        {#each filteredCategories as cat}
+                            <button 
+                                class="btn btn-sm rounded-xl font-bold text-xs transition-all {selectedCategoryId === cat.id 
+                                    ? (type === 'EXPENSE' ? 'bg-error/15 border-error/40 text-error' : type === 'WITHDRAWAL' ? 'bg-info/15 border-info/40 text-info' : 'bg-success/15 border-success/40 text-success')
+                                    : 'btn-ghost opacity-60 hover:opacity-100'}"
+                                onclick={() => selectedCategoryId = selectedCategoryId === cat.id ? null : cat.id}
+                                title={cat.description || ''}
+                            >
+                                {cat.name}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+            {/if}
 
             <div class="space-y-4">
                 <div class="form-control">
@@ -104,7 +155,7 @@
         <div class="modal-action mt-10 grid grid-cols-2 gap-3">
             <Button variant="ghost" size="lg" class="font-black uppercase tracking-widest text-[11px]" onclick={onClose}>Cancelar</Button>
             <Button 
-                variant={type === 'INCOME' ? 'success' : type === 'WITHDRAWAL' ? 'info' : 'danger'} 
+                variant={type === 'INCOME' ? 'success' : type === 'WITHDRAWAL' ? 'primary' : 'danger'} 
                 size="lg"
                 class="font-black uppercase tracking-widest text-[11px]" 
                 onclick={handleSubmit}
