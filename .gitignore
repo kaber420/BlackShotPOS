@@ -68,3 +68,9 @@ bs_frontend/src/lib/mockups/orders_waiter_4styles.html
 # Proyectos a ignorar
 # =========================
 saas_core/
+
+# =========================
+# Docker y Compilaciones
+# =========================
+*.tar.gz
+*.tar

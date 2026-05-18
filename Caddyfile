@@ -1,0 +1,36 @@
+# Caddyfile - Configuración de Producción para BlackShotPOS (Host Nativo)
+# Corre en el puerto 80 por defecto sirviendo estáticos y ruteando la API
+
+:80 {
+    # 1. Directorio donde se guardan los archivos estáticos compilados de SvelteKit
+    # Se usa ruta relativa para facilitar el transporte. Corre Caddy desde la raíz del proyecto.
+    root * ./bs_frontend/build
+    
+    # 2. Habilitar servidor de archivos
+    file_server
+    
+    # 3. SPA Fallback: SvelteKit maneja el enrutamiento en el cliente.
+    # Si la ruta no existe físicamente, redirige al index.html de forma transparente.
+    try_files {path} {path}/ /index.html
+
+    # 4. Proxy Reverso para la API y los WebSockets
+    # Caddy detecta la cabecera 'Upgrade: websocket' de forma automática y mantiene el túnel abierto.
+    reverse_proxy /api* 127.0.0.1:8000
+    
+    # 5. Cabeceras de Seguridad Extremas para Producción
+    header {
+        # Evita ataques de inyección de código y restringe la carga de recursos externos
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' ws: wss: http: https:;"
+        # Previene que el POS sea cargado dentro de un iframe (mitiga Clickjacking)
+        X-Frame-Options "DENY"
+        # Fuerza al navegador a respetar los MIME types declarados
+        X-Content-Type-Options "nosniff"
+        # Controla la información de procedencia enviada en las cabeceras HTTP
+        Referrer-Policy "strict-origin-when-cross-origin"
+        # Desactiva hardware del cliente innecesario para el POS
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    }
+
+    # Opcional: Compresión dinámica para optimizar velocidad en redes locales lentas/WiFi
+    encode gzip zstd
+}

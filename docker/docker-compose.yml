@@ -7,10 +7,19 @@ services:
       POSTGRES_USER: blackshot_user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-blackshot_password}
       POSTGRES_DB: blackshot_db
+    # Mapeo restringido únicamente a localhost (127.0.0.1)
+    # Esto permite conexiones locales desde el host (SBC) pero previene exposición externa
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql
+    
+    # Políticas de seguridad extrema (Hardening)
+    read_only: true
+    tmpfs:
+      - /run/postgresql:uid=70,gid=70 # Requerido para sockets de conexión (usuario postgres)
+      - /tmp:uid=70,gid=70           # Espacio temporal para operaciones del motor de BD
+
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U blackshot_user -d blackshot_db"]
       interval: 5s
@@ -29,12 +38,20 @@ services:
     environment:
       - DATABASE_URL=postgresql+asyncpg://blackshot_user:${POSTGRES_PASSWORD:-blackshot_password}@db:5432/blackshot_db
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - backend_data:/app/data
+    
+    # Políticas de seguridad extrema (Hardening)
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001     # Directorio temporal de lectura/escritura en RAM
+      - /app/data:uid=10001,gid=10001 # Permite almacenar archivos de datos locales en memoria RAM
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
   sync_agent:
     build:
@@ -51,8 +68,16 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - backend_data:/app/data
+    
+    # Políticas de seguridad extrema (Hardening)
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001
+      - /app/data:uid=10001,gid=10001 # Permite almacenar el estado de sincronización en memoria de forma segura
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
   frontend:
     build:
@@ -62,10 +87,22 @@ services:
     container_name: blackshot_frontend
     restart: always
     ports:
-      - "${FRONTEND_PORT:-80}:80"
+      # El frontend escucha internamente en 8080 dentro del contenedor
+      - "${FRONTEND_PORT:-80}:8080"
     depends_on:
       - backend
+    
+    # Políticas de seguridad extrema (Hardening)
+    user: "101:101"                  # Corre bajo el usuario no-root oficial de Nginx (nginx: 101)
+    read_only: true                  # Sistema de archivos raíz inmutable
+    tmpfs:
+      - /var/cache/nginx:uid=101,gid=101
+      - /var/run:uid=101,gid=101
+      - /tmp:uid=101,gid=101
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   postgres_data:
-  backend_data:
