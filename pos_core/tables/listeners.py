@@ -121,3 +121,19 @@ async def on_order_transferred(payload: dict, metadata: dict):
                 await event_bus.publish("tables.status_changed", {"table_id": new_table_id, "new_status": "Occupied"})
         except Exception as e:
             logger.error(f"❌ Error en transferencia de mesa vía evento: {e}")
+
+@on_event("iot.clear_table_requested")
+async def on_iot_clear_table_requested(payload: dict, metadata: dict):
+    """
+    Cuando un dispositivo IoT (ej. TablePad) solicita limpiar/liberar una mesa.
+    """
+    table_id = payload.get("table_id")
+    device_id = payload.get("device_id")
+    
+    if table_id:
+        async with async_session_maker() as session:
+            try:
+                await vacate_table_service(session, table_id)
+                logger.info(f"📍 Mesa {table_id} LIBERADA vía solicitud IoT del dispositivo {device_id}")
+            except Exception as e:
+                logger.error(f"❌ Error al liberar mesa {table_id} vía IoT: {e}")

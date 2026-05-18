@@ -193,7 +193,7 @@ export const OrderService = {
         }),
 
     cancelWithReason: (orderId: number, reason: string) =>
-        fetchApi<{ status: string }>(`/api/v1/pos/system/audit/orders/${orderId}/cancel`, {
+        fetchApi<{ status: string }>(`/api/v1/pos/sales/orders/${orderId}/cancel`, {
             method: 'POST',
             body: JSON.stringify({ reason })
         }),

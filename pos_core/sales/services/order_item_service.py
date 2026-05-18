@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Order, OrderItem, OrderStatus
 from ..repository import order_repo, item_repo
-from pos_core.events.service import trigger_iot_broadcast
 from pos_core.accounting.service import get_active_shift
 from pos_core.exceptions import InvalidOrderStateError
 

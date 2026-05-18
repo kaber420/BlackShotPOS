@@ -6,17 +6,11 @@ from pydantic import BaseModel
 
 from pos_core.database import get_session
 from .models import AuditLog
-from pos_core.sales.models import Order, OrderStatus
 from pos_core.auth.dependencies import require_permission
 from pos_core.roles import Permission
-from pos_core.sales.services import order_action_service
-from pos_core.events.service import trigger_standard_broadcasts
 import asyncio
 
 router = APIRouter()
-
-class CancelRequest(BaseModel):
-    reason: str
 
 @router.get("/audits", response_model=List[AuditLog])
 async def list_audits(
@@ -27,56 +21,3 @@ async def list_audits(
     stmt = select(AuditLog).order_by(AuditLog.timestamp.desc()).limit(100)
     res = await db.execute(stmt)
     return res.scalars().all()
-
-@router.post("/orders/{order_id}/cancel")
-async def cancel_order_with_reason(
-    order_id: int,
-    req: CancelRequest,
-    db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission(Permission.MANAGE_KITCHEN_STATUS)),
-):
-    """
-    Cancela una orden completa requiriendo un motivo.
-    La lógica de auditoría y liberación de mesa está centralizada en el servicio.
-    """
-    try:
-        order = await order_action_service.cancel_order(
-            db,
-            order_id,
-            reason=req.reason,
-            actor_uuid=str(user.id),
-            actor_name=user.email,
-        )
-        
-        # Broadcast a las pantallas en tiempo real (KDS y Orders)
-        asyncio.create_task(trigger_standard_broadcasts())
-
-        return {"status": "success", "order_id": order.id}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-@router.post("/orders/{order_id}/items/{item_id}/cancel")
-async def cancel_item_with_reason(
-    order_id: int,
-    item_id: int,
-    req: CancelRequest,
-    db: AsyncSession = Depends(get_session),
-    user=Depends(require_permission(Permission.MANAGE_KITCHEN_STATUS)),
-):
-    """
-    Cancela un ítem individual requiriendo un motivo.
-    """
-    try:
-        item = await order_action_service.cancel_order_item(
-            db,
-            order_id,
-            item_id,
-            reason=req.reason,
-            actor_uuid=str(user.id),
-            actor_name=user.email,
-        )
-        
-        asyncio.create_task(trigger_standard_broadcasts())
-        return {"status": "success", "item_id": item.id}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))

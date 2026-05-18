@@ -20,13 +20,35 @@ async def run_consumer():
     print("="*50)
     logger.info("Iniciando Consumidor de Eventos...")
     
+    # Asegurar que las tablas de la base de datos central estén creadas
     try:
-        nc = await nats.connect(NATS_URL)
+        create_db_and_tables()
+        logger.info("✅ Tablas de la base de datos central verificadas/creadas.")
+    except Exception as db_err:
+        logger.error(f"⚠️ Alerta al crear tablas de base de datos: {db_err}")
+    
+    try:
+        connect_opts = {
+            "servers": [NATS_URL],
+            "connect_timeout": 10
+        }
+        
+        seed = os.getenv("NATS_NKEY_SEED")
+        if seed:
+            connect_opts["nkeys_seed_str"] = seed
+            logger.info("🔑 Autenticación NKEY habilitada para la conexión.")
+                
+        if NATS_URL.startswith("tls://") or NATS_URL.startswith("ssl://"):
+            import ssl
+            connect_opts["tls"] = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+            logger.info("🔒 TLS/SSL activado para la conexión.")
+
+        nc = await nats.connect(**connect_opts)
         js = nc.jetstream()
         logger.info(f"✅ Conexión establecida con NATS en {NATS_URL}")
-    except Exception:
+    except Exception as e:
         print("\n" + "!"*50)
-        print("❌ ERROR DE CONEXIÓN: El servidor NATS no está respondiendo.")
+        print(f"❌ ERROR DE CONEXIÓN: El servidor NATS no está respondiendo: {e}")
         print(f"👉 Asegúrate de que NATS esté corriendo en: {NATS_URL}")
         print("   (Si usas Docker: docker run -d -p 4222:4222 nats:latest -js)")
         print("!"*50 + "\n")
@@ -76,7 +98,12 @@ async def handle_event(msg):
     logger.info(f"🔔 Evento recibido de [{branch_id}] - Tópico: {topic}")
     
     if topic == "sales.payment_added":
-        process_payment(branch_id, data)
+        # Ignorar pagos parciales y registrar solo el pago final en DB
+        # Si no viene la bandera, se asume True para compatibilidad directa
+        if data.get('is_final_payment', True):
+            process_payment(branch_id, data)
+        else:
+            logger.info(f"ℹ️ Pago parcial recibido de [{branch_id}]. Se omite persistencia en DB hasta el pago final.")
     elif topic == "ping":
         process_ping(branch_id, data)
     
@@ -85,14 +112,15 @@ async def handle_event(msg):
         await msg.ack()
     except:
         pass
-
-from models import GlobalSale, GlobalSaleItem, Branch, engine
+    
+from models import GlobalSale, GlobalSaleItem, Branch, engine, create_db_and_tables
 from sqlmodel import Session, select
 from datetime import datetime
 
 def process_payment(branch_id, data):
-    # Aquí es donde se actualizaría la base de datos central
-    logger.info(f"💰 Venta procesada en la central: Sucursal={branch_id}, Monto={data.get('amount')}")
+    # Registrar el total real acumulado de la venta en lugar del monto del pago individual si es posible
+    sale_amount = data.get('total_amount') or data.get('amount', 0.0)
+    logger.info(f"💰 Venta procesada en la central: Sucursal={branch_id}, Monto={sale_amount}")
     
     with Session(engine) as session:
         # Obtener nombre de la sucursal
@@ -103,8 +131,8 @@ def process_payment(branch_id, data):
         new_sale = GlobalSale(
             branch_id=branch_id,
             branch_name=branch_name,
-            amount=data.get('amount', 0.0),
-            items_count=data.get('items_count', 1),
+            amount=sale_amount,
+            items_count=data.get('items_count', 0),
             created_at=datetime.now().isoformat()
         )
         session.add(new_sale)

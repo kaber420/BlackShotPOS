@@ -31,9 +31,9 @@ async def simulate():
                 p = random.choice(products)
                 qty = random.randint(1, 2)
                 items.append({
-                    "product_name": p["name"],
+                    "name": p["name"],
                     "quantity": qty,
-                    "unit_price": p["price"]
+                    "price": p["price"]
                 })
                 total += p["price"] * qty
 
@@ -41,8 +41,10 @@ async def simulate():
                 "branch_id": branch["id"],
                 "branch_name": branch["name"],
                 "amount": total,
+                "total_amount": total,
                 "items_count": len(items),
                 "items": items,
+                "is_final_payment": True,
                 "created_at": datetime.now().isoformat()
             }
 

@@ -5,9 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.events.manager import pos_broadcaster, iot_broadcaster
 from pos_core.events.service import trigger_broadcast
 from pos_core.settings.service import get_settings
-from pos_core.sales.services.order_lifecycle_service import get_orders
-from pos_core.sales.schemas import OrderRead
-from pos_core.sales.models import OrderStatus
 from .service import update_device_last_seen, update_device_health
 from pos_core.events.bus import event_bus
 
@@ -79,9 +76,11 @@ async def handle_iot_session(websocket: WebSocket, db: AsyncSession, device: any
                 await websocket.send_json({"event": "msg", "data": {"message": "Solicitando cuenta..."}})
 
             elif action == "clear_table":
-                from pos_core.tables.service import vacate_table_service
-                await vacate_table_service(db, table_id)
-                logger.info(f"🧹 Mesa {table_id} liberada desde TablePad")
+                await event_bus.publish("iot.clear_table_requested", {
+                    "table_id": table_id,
+                    "device_id": device_id
+                })
+                logger.info(f"🧹 Evento clear_table_requested emitido para Mesa {table_id} desde TablePad")
 
     except WebSocketDisconnect:
         logger.info(f"🔌 Dispositivo IoT desconectado: {device.device_id}")
@@ -110,6 +109,10 @@ async def _handle_health_report(db, device_id, data, payload):
     })
 
 async def _handle_sync_orders(websocket, db, table_id):
+    from pos_core.sales.services.order_lifecycle_service import get_orders
+    from pos_core.sales.schemas import OrderRead
+    from pos_core.sales.models import OrderStatus
+
     raw_orders = await get_orders(db)
     order_dicts = [OrderRead.model_validate(o).model_dump(mode="json") for o in raw_orders]
     active_orders = [

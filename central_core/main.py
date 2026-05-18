@@ -31,7 +31,21 @@ app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), na
 async def on_startup():
     create_db_and_tables()
     try:
-        app.state.nats_connection = await nats.connect(os.getenv("NATS_URL", "nats://localhost:4222"))
+        nats_url = os.getenv("NATS_URL", "nats://localhost:4222")
+        connect_opts = {
+            "servers": [nats_url],
+            "connect_timeout": 10
+        }
+        
+        seed = os.getenv("NATS_NKEY_SEED")
+        if seed:
+            connect_opts["nkeys_seed_str"] = seed
+                
+        if nats_url.startswith("tls://") or nats_url.startswith("ssl://"):
+            import ssl
+            connect_opts["tls"] = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH)
+
+        app.state.nats_connection = await nats.connect(**connect_opts)
     except Exception as e:
         print(f"⚠️ Warning: Could not connect to NATS in API: {e}")
 

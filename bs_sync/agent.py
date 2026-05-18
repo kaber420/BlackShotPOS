@@ -108,16 +108,8 @@ async def run_agent():
                     
                     seed = os.getenv("NATS_NKEY_SEED")
                     if seed:
-                        try:
-                            import nkeys
-                            kp = nkeys.from_seed(seed.encode())
-                            async def signature_cb(nonce):
-                                return kp.sign(nonce)
-                            connect_opts["nkey"] = kp.public_key.decode()
-                            connect_opts["signature_cb"] = signature_cb
-                            logger.info("🔑 Autenticación NKEY habilitada para la conexión.")
-                        except Exception as nkey_err:
-                            logger.error(f"❌ Error al inicializar NKEY: {nkey_err}")
+                        connect_opts["nkeys_seed_str"] = seed
+                        logger.info("🔑 Autenticación NKEY habilitada para la conexión.")
                             
                     if nats_url.startswith("tls://") or nats_url.startswith("ssl://"):
                         import ssl

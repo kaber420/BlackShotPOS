@@ -5,7 +5,6 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models import Order, OrderItem, OrderStatus
-from pos_core.audit.models import AuditCategory
 from ..repository import order_repo, item_repo
 from pos_core.exceptions import OrderNotFoundError
 from pos_core.events.bus import event_bus

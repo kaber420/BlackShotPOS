@@ -137,8 +137,6 @@ async def update_order_status(
 
     return order
 
-    return order
-
 
 async def recalculate_order_totals(session: AsyncSession, order_id: int) -> Order:
     """
