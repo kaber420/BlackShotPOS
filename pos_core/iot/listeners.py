@@ -130,6 +130,23 @@ async def on_order_cancelled(payload: dict, metadata: dict):
 async def on_waiter_requested(payload: dict, metadata: dict):
     """Traduce la solicitud del hardware a una actualización de la UI Dashboard."""
     from pos_core.events.service import trigger_broadcast
+    from pos_core.database import async_session_maker
+    from pos_core.tables.models import Table
+    
+    table_id = payload.get("table_id")
+    if table_id:
+        async with async_session_maker() as session:
+            try:
+                db_table = await session.get(Table, table_id)
+                if db_table:
+                    db_table.waiter_requested = True
+                    session.add(db_table)
+                    await session.commit()
+                    await trigger_broadcast("tables")
+                    logger.info(f"🔔 Solicitud de mesero registrada para Mesa {table_id}")
+            except Exception as e:
+                logger.error(f"❌ Error al marcar waiter_requested para mesa {table_id}: {e}")
+
     await trigger_broadcast("dashboard_stats")
     logger.info(f"🔔 Solicitud de mesero desde IoT (Mesa {payload.get('table_id')}) enviada a Dashboard.")
 
@@ -137,6 +154,23 @@ async def on_waiter_requested(payload: dict, metadata: dict):
 async def on_bill_requested(payload: dict, metadata: dict):
     """Traduce la solicitud de cuenta a una actualización de la UI Dashboard."""
     from pos_core.events.service import trigger_broadcast
+    from pos_core.database import async_session_maker
+    from pos_core.tables.models import Table
+    
+    table_id = payload.get("table_id")
+    if table_id:
+        async with async_session_maker() as session:
+            try:
+                db_table = await session.get(Table, table_id)
+                if db_table:
+                    db_table.bill_requested = True
+                    session.add(db_table)
+                    await session.commit()
+                    await trigger_broadcast("tables")
+                    logger.info(f"🔔 Solicitud de cuenta registrada para Mesa {table_id}")
+            except Exception as e:
+                logger.error(f"❌ Error al marcar bill_requested para mesa {table_id}: {e}")
+
     await trigger_broadcast("dashboard_stats")
     logger.info(f"🔔 Solicitud de cuenta desde IoT (Mesa {payload.get('table_id')}) enviada a Dashboard.")
 

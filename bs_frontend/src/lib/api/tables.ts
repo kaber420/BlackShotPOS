@@ -10,6 +10,8 @@ export interface Table {
     location?: string;
     occupied_at?: string;
     is_active: boolean;
+    waiter_requested?: boolean;
+    bill_requested?: boolean;
 }
 
 export type ReservationStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
@@ -63,6 +65,11 @@ export const TableService = {
     delete: (id: number) =>
         fetchApi<{detail: string}>(`/api/v1/pos/tables/${id}`, {
             method: 'DELETE'
+        }),
+
+    clearRequests: (id: number) =>
+        fetchApi<Table>(`/api/v1/pos/tables/${id}/clear-requests`, {
+            method: 'POST'
         })
 };
 

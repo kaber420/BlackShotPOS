@@ -182,8 +182,18 @@ int main(int argc, char** argv) {
 
                 // Limpieza de mesa: el POS notifica que la mesa fue cobrada/liberada
                 if (event == "clear_table" || event == "table_cleared") {
-                    std::cout << "🧹 [PARSER]: Mesa liberada → limpiando pantalla." << std::endl;
+                    std::cout << "🧹 [PARSER]: Mesa liberada → limpiando pantalla y restableciendo botones." << std::endl;
                     UI::DashboardView::clear_orders();
+                    UI::DashboardView::reset_waiter_button();
+                    UI::DashboardView::reset_bill_button();
+                    return;
+                }
+
+                // Solicitudes atendidas: el mesero limpió las alertas en el POS
+                if (event == "clear_requests") {
+                    std::cout << "🛎️ [PARSER]: Solicitudes atendidas → restableciendo botones." << std::endl;
+                    UI::DashboardView::reset_waiter_button();
+                    UI::DashboardView::reset_bill_button();
                     return;
                 }
 

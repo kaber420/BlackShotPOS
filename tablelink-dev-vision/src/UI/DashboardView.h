@@ -49,6 +49,8 @@ public:
     static void update_table_id(const std::string& id);
 
     static void show_goodbye_screen();
+    static void reset_waiter_button();
+    static void reset_bill_button();
 
 private:
     static lv_obj_t* screen;
@@ -64,6 +66,8 @@ private:
     static lv_obj_t* status_led;
     static lv_obj_t* offline_cont;
     static lv_obj_t* goodbye_overlay;
+    static lv_obj_t* waiter_btn;
+    static lv_obj_t* bill_btn;
 
     // Métodos de Layout Modular
     static void setup_classic_list(lv_obj_t* parent);

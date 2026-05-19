@@ -14,6 +14,8 @@ class Table(SQLModel, table=True):
     
     occupied_at: Optional[datetime] = Field(default=None)
     is_active: bool = Field(default=True)
+    waiter_requested: bool = Field(default=False)
+    bill_requested: bool = Field(default=False)
 
     @field_serializer("occupied_at")
     def serialize_occupied_at(self, v: Optional[datetime]) -> Optional[str]:

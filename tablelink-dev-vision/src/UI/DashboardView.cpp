@@ -21,6 +21,8 @@ lv_obj_t* DashboardView::main_content = nullptr;
 lv_obj_t* DashboardView::status_led = nullptr;
 lv_obj_t* DashboardView::offline_cont = nullptr;
 lv_obj_t* DashboardView::goodbye_overlay = nullptr;
+lv_obj_t* DashboardView::waiter_btn = nullptr;
+lv_obj_t* DashboardView::bill_btn = nullptr;
 
 std::map<int, DishCardWidgets> DashboardView::active_dish_cards;
 bool DashboardView::bill_requested = false;
@@ -173,6 +175,8 @@ void DashboardView::setup_classic_list(lv_obj_t* parent) {
 
     for(int i=0; i<3; i++) {
         lv_obj_t* b = lv_obj_create(footer);
+        if (i == 0) DashboardView::waiter_btn = b;
+        if (i == 1) DashboardView::bill_btn = b;
         lv_obj_set_size(b, 90, 40);
         lv_obj_add_style(b, &style_btn_icon, 0);
         lv_obj_add_flag(b, LV_OBJ_FLAG_CLICKABLE);
@@ -268,6 +272,8 @@ void DashboardView::setup_modern_dashboard(lv_obj_t* parent) {
     
     for(int i=0; i<4; i++) {
         lv_obj_t* btn = lv_obj_create(sidebar);
+        if (i == 1) DashboardView::waiter_btn = btn;
+        if (i == 2) DashboardView::bill_btn = btn;
         lv_obj_set_size(btn, 48, 48);
         lv_obj_add_style(btn, &style_btn_icon, 0);
         lv_obj_set_style_radius(btn, 12, 0);
@@ -662,6 +668,54 @@ void DashboardView::show_goodbye_screen() {
     }, 3000, nullptr);
     
     lv_timer_set_repeat_count(t, 1);
+}
+
+void DashboardView::reset_waiter_button() {
+    if (!waiter_btn) return;
+    
+    lv_obj_remove_local_style_prop(waiter_btn, LV_STYLE_BG_COLOR, 0);
+    
+    uint32_t child_cnt = lv_obj_get_child_cnt(waiter_btn);
+    if (child_cnt > 0) {
+        lv_obj_t* child0 = lv_obj_get_child(waiter_btn, 0);
+        #ifdef BS_LAYOUT_MODERN
+            lv_obj_set_style_text_color(child0, BS_COLOR_TEXT_DIM, 0);
+        #else
+            lv_obj_set_style_text_color(child0, BS_COLOR_PRIMARY, 0);
+        #endif
+    }
+    if (child_cnt > 1) {
+        lv_obj_t* child1 = lv_obj_get_child(waiter_btn, 1);
+        lv_obj_remove_local_style_prop(child1, LV_STYLE_TEXT_COLOR, 0);
+    }
+    
+    lv_obj_invalidate(waiter_btn);
+}
+
+void DashboardView::reset_bill_button() {
+    DashboardView::bill_requested = false;
+    if (!bill_btn) return;
+    
+    lv_obj_remove_local_style_prop(bill_btn, LV_STYLE_BG_COLOR, 0);
+    lv_obj_remove_local_style_prop(bill_btn, LV_STYLE_BORDER_COLOR, 0);
+    
+    uint32_t child_cnt = lv_obj_get_child_cnt(bill_btn);
+    if (child_cnt > 0) {
+        lv_obj_t* child0 = lv_obj_get_child(bill_btn, 0);
+        lv_label_set_text(child0, LV_SYMBOL_CHARGE);
+        #ifdef BS_LAYOUT_MODERN
+            lv_obj_set_style_text_color(child0, BS_COLOR_TEXT_DIM, 0);
+        #else
+            lv_obj_set_style_text_color(child0, BS_COLOR_PRIMARY, 0);
+        #endif
+    }
+    if (child_cnt > 1) {
+        lv_obj_t* child1 = lv_obj_get_child(bill_btn, 1);
+        lv_label_set_text(child1, "CUENTA");
+        lv_obj_remove_local_style_prop(child1, LV_STYLE_TEXT_COLOR, 0);
+    }
+    
+    lv_obj_invalidate(bill_btn);
 }
 
 void DashboardView::set_offline_mode(bool offline) {

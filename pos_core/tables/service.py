@@ -97,6 +97,8 @@ async def vacate_table_service(
 
     db_table.status = "Free"
     db_table.occupied_at = None
+    db_table.waiter_requested = False
+    db_table.bill_requested = False
     session.add(db_table)
     await session.commit()
 

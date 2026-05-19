@@ -202,10 +202,17 @@
     function getTableGlow(table: Table) {
         if (!table.is_active) return 'border-base-300 opacity-50 grayscale cursor-not-allowed';
         
-        const order = getTableOrder(table.id);
-        
         // Efecto base de hover y click
         const baseClasses = 'hover:scale-105 active:scale-95 cursor-pointer transition-all duration-300';
+
+        if (table.waiter_requested) {
+            return `shadow-[0_0_25px_var(--tw-shadow-color)] shadow-amber-500/50 border-amber-500/60 bg-amber-500/5 ${baseClasses}`;
+        }
+        if (table.bill_requested) {
+            return `shadow-[0_0_25px_var(--tw-shadow-color)] shadow-info/50 border-info/60 bg-info/5 ${baseClasses}`;
+        }
+
+        const order = getTableOrder(table.id);
 
         if (table.status === 'Reserved') {
             return `border-info/40 shadow-info/10 ${baseClasses}`;
@@ -368,6 +375,30 @@
                                     <span class="text-lg">🔔</span>
                                     <span class="text-xs">LISTO</span>
                                 </div>
+                            </div>
+                        {/if}
+
+                        <!-- Alerta de "Mesero / Cuenta" desde IoT -->
+                        {#if table.waiter_requested || table.bill_requested}
+                            <div class="absolute -top-4 -left-3 z-20 flex flex-col gap-1.5 pointer-events-auto">
+                                {#if table.waiter_requested}
+                                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                    <div class="badge bg-amber-500 hover:bg-amber-600 text-white font-black shadow-lg shadow-amber-500/40 border-none py-3.5 px-4 flex gap-1.5 items-center cursor-pointer animate-pulse transition-all hover:scale-105" 
+                                         role="button" tabindex="0"
+                                         onclick={(e) => { e.stopPropagation(); TableService.clearRequests(table.id); }}>
+                                        <span class="text-xs">🛎️</span>
+                                        <span class="text-[9px] tracking-wider font-extrabold">MESERO</span>
+                                    </div>
+                                {/if}
+                                {#if table.bill_requested}
+                                    <!-- svelte-ignore a11y_click_events_have_key_events -->
+                                    <div class="badge bg-info hover:bg-info/80 text-white font-black shadow-lg shadow-info/40 border-none py-3.5 px-4 flex gap-1.5 items-center cursor-pointer animate-pulse transition-all hover:scale-105"
+                                         role="button" tabindex="0"
+                                         onclick={(e) => { e.stopPropagation(); TableService.clearRequests(table.id); }}>
+                                        <span class="text-xs">💵</span>
+                                        <span class="text-[9px] tracking-wider font-extrabold">CUENTA</span>
+                                    </div>
+                                {/if}
                             </div>
                         {/if}
 

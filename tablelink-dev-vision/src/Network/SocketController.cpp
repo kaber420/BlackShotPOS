@@ -8,7 +8,7 @@
 namespace Network {
 
 void SocketController::init(const std::string& host, const std::string& token) {
-    ws_url = "ws://" + host + "/api/v1/pos/ws/iot?token=" + token;
+    ws_url = "ws://" + host + "/api/v1/pos/iot/ws/iot?token=" + token;
     webSocket.setUrl(ws_url);
 
     webSocket.enableAutomaticReconnection();

@@ -82,6 +82,28 @@ async def vacate_table(table_id: int, db: AsyncSession = Depends(get_session)):
     asyncio.create_task(trigger_standard_broadcasts())
     return res
 
+@router.post("/{table_id}/clear-requests", response_model=Table)
+async def clear_table_requests(table_id: int, db: AsyncSession = Depends(get_session)):
+    """Limpia las solicitudes de mesero y cuenta de una mesa y notifica al hardware."""
+    table = await service.get_table_by_id(db, table_id)
+    if not table:
+        raise HTTPException(status_code=404, detail="Mesa no encontrada")
+    table.waiter_requested = False
+    table.bill_requested = False
+    db.add(table)
+    await db.commit()
+    await db.refresh(table)
+    
+    # Notificar a la UI Web
+    from pos_core.events.service import trigger_broadcast
+    await trigger_broadcast("tables")
+    
+    # Notificar al hardware IoT (TablePad)
+    from pos_core.events.service import trigger_iot_broadcast
+    await trigger_iot_broadcast(table_id, "clear_requests", "Solicitud atendida", data={})
+    
+    return table
+
 # --- Reservations ---
 
 @router.get("/reservations", response_model=List[Reservation])
