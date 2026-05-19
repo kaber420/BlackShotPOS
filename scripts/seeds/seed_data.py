@@ -84,10 +84,10 @@ async def seed():
 
         # 4. Crear Ingredientes (con los nuevos campos multi-unidad)
         print("Creando ingredientes...")
-        i_grano = Ingredient(name="Café en Grano (Mezcla Casa)", measure_type="weight", unit="g", current_stock=10000, minimum_stock=1000)
-        i_leche = Ingredient(name="Leche Entera", measure_type="volume", unit="ml", current_stock=20000, minimum_stock=2000)
-        i_agua = Ingredient(name="Agua Purificada", measure_type="volume", unit="ml", current_stock=100000, minimum_stock=5000)
-        i_croissant = Ingredient(name="Croissant Mantequilla", measure_type="unit", unit="pz", current_stock=24, minimum_stock=5)
+        i_grano = Ingredient(name="Café en Grano (Mezcla Casa)", measure_type="weight", unit="g", current_stock=10000, minimum_stock=1000, cost_per_unit=0.05)
+        i_leche = Ingredient(name="Leche Entera", measure_type="volume", unit="ml", current_stock=20000, minimum_stock=2000, cost_per_unit=0.02)
+        i_agua = Ingredient(name="Agua Purificada", measure_type="volume", unit="ml", current_stock=100000, minimum_stock=5000, cost_per_unit=0.001)
+        i_croissant = Ingredient(name="Croissant Mantequilla", measure_type="unit", unit="pz", current_stock=24, minimum_stock=5, cost_per_unit=15.0)
         
         session.add_all([i_grano, i_leche, i_agua, i_croissant])
         await session.commit()
@@ -167,17 +167,18 @@ async def seed():
 
         DEFAULT_CATEGORIES = [
             # Gastos
-            {"name": "Compra de Insumos",     "type": CashMovementType.EXPENSE,    "description": "Compras de materia prima e ingredientes"},
-            {"name": "Limpieza",              "type": CashMovementType.EXPENSE,    "description": "Productos y servicios de limpieza"},
-            {"name": "Mantenimiento",         "type": CashMovementType.EXPENSE,    "description": "Reparaciones y mantenimiento de equipo"},
-            {"name": "Propinas / Personal",   "type": CashMovementType.EXPENSE,    "description": "Pagos directos a empleados"},
-            {"name": "Servicios",             "type": CashMovementType.EXPENSE,    "description": "Agua, luz, gas, internet"},
-            {"name": "Varios / Emergencias",  "type": CashMovementType.EXPENSE,    "description": "Gastos no categorizados"},
+            {"name": "Compra de Insumos",             "type": CashMovementType.EXPENSE,    "description": "Compras de materia prima e ingredientes"},
+            {"name": "Limpieza",                      "type": CashMovementType.EXPENSE,    "description": "Productos y servicios de limpieza"},
+            {"name": "Mantenimiento",                 "type": CashMovementType.EXPENSE,    "description": "Reparaciones y mantenimiento de equipo"},
+            {"name": "Propinas / Personal",           "type": CashMovementType.EXPENSE,    "description": "Pagos directos a empleados"},
+            {"name": "Servicios",                     "type": CashMovementType.EXPENSE,    "description": "Agua, luz, gas, internet"},
+            {"name": "Varios / Emergencias",          "type": CashMovementType.EXPENSE,    "description": "Gastos no categorizados"},
+            {"name": "Gastos por Cortesías / Mermas", "type": CashMovementType.EXPENSE,    "description": "Costo de insumos regalados o mermas"},
             # Retiros
-            {"name": "Retiro Parcial",        "type": CashMovementType.WITHDRAWAL, "description": "Retiro de seguridad del efectivo en caja"},
+            {"name": "Retiro Parcial",                "type": CashMovementType.WITHDRAWAL, "description": "Retiro de seguridad del efectivo en caja"},
             # Ingresos
-            {"name": "Fondo Extra",           "type": CashMovementType.INCOME,     "description": "Adición de efectivo al fondo de caja"},
-            {"name": "Corrección",            "type": CashMovementType.INCOME,     "description": "Ajuste por error en conteo previo"},
+            {"name": "Fondo Extra",                   "type": CashMovementType.INCOME,     "description": "Adición de efectivo al fondo de caja"},
+            {"name": "Corrección",                    "type": CashMovementType.INCOME,     "description": "Ajuste por error en conteo previo"},
         ]
 
         for cat_data in DEFAULT_CATEGORIES:

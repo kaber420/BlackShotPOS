@@ -4,7 +4,7 @@ from typing import Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Order, OrderItem, OrderStatus
+from ..models import Order, OrderItem, OrderStatus, OrderFinancialStatus
 from ..repository import order_repo, item_repo
 from pos_core.exceptions import OrderNotFoundError
 from pos_core.events.bus import event_bus
@@ -210,7 +210,6 @@ async def split_order_items(
                 status=orig_item.status,
             )
             session.add(new_item)
-            await session.flush()
             
             # Clonar modificadores si existen
             if orig_item.modifiers:
@@ -234,3 +233,182 @@ async def split_order_items(
     await session.commit()
     await session.refresh(new_order)
     return new_order
+
+
+async def mark_order_as_courtesy(
+    session: AsyncSession,
+    order_id: int,
+    reason: str,
+    manager_uuid: str,
+    manager_name: str,
+) -> Order:
+    """
+    Marca una orden como cortesía de la casa.
+    Pone su total a 0.0, actualiza su financial_status a COMPLIMENTARY,
+    descuenta el stock si tiene items directos, y registra el costo total de los insumos
+    como un movimiento de gasto en la caja chica.
+    """
+    order = await order_repo.get_with_relations(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
+        
+    if order.financial_status == OrderFinancialStatus.COMPLIMENTARY:
+         return order
+         
+    # 1. Cambiar estado financiero
+    order.financial_status = OrderFinancialStatus.COMPLIMENTARY
+    order.courtesy_reason = reason
+    order.courtesy_by_uuid = manager_uuid
+    
+    # 2. Descontar stock para items directos que estén PENDING
+    # Nota: Los items que requieren preparación de cocina se descontarán cuando entren a preparación.
+    # Pero para items de venta directa (sin cocina), los descontamos aquí.
+    items_to_deplete = []
+    for item in order.items:
+        if item.status == OrderStatus.PENDING:
+            # Si no tiene production_area_id, es venta directa
+            if not item.product or not item.product.category or not item.product.category.production_area_id:
+                item.status = OrderStatus.READY
+                items_to_deplete.append(item)
+                
+    if items_to_deplete:
+        from pos_core.inventory.services.stock_service import process_inventory_depletion
+        await process_inventory_depletion(session, items_to_deplete)
+        from pos_core.events.service import trigger_broadcast
+        await trigger_broadcast("inventory", db=session)
+        
+    # Recalculamos totales (esto forzará totals a 0.0 debido a COMPLIMENTARY)
+    from .order_lifecycle_service import recalculate_order_totals
+    await recalculate_order_totals(session, order_id)
+    
+    # 3. Calcular el costo total de los ingredientes consumidos en esta orden
+    total_cost = 0.0
+    from pos_core.catalog.models import RecipeItem
+    from pos_core.inventory.models import Ingredient
+    from sqlalchemy.orm import selectinload
+    from sqlmodel import select
+    
+    for item in order.items:
+        if item.status != OrderStatus.CANCELLED:
+            recipe_items = []
+            if item.product_variant_id:
+                recipe_stmt = select(RecipeItem).where(RecipeItem.variant_id == item.product_variant_id).options(selectinload(RecipeItem.ingredient))
+                recipe_items = (await session.execute(recipe_stmt)).scalars().all()
+            elif item.product_id:
+                recipe_stmt = select(RecipeItem).where(RecipeItem.product_id == item.product_id).options(selectinload(RecipeItem.ingredient))
+                recipe_items = (await session.execute(recipe_stmt)).scalars().all()
+                
+            for r_item in recipe_items:
+                if r_item.ingredient:
+                    total_cost += (r_item.ingredient.cost_per_unit or 0.0) * r_item.quantity * item.quantity
+                    
+    # Si el costo es mayor a 0, registramos el gasto en la caja chica (movimiento contable virtual, sin restar expected_cash)
+    if total_cost > 0.0 and order.shift_id:
+        from pos_core.accounting.models import CashMovement, CashMovementType, CashMovementCategory
+        from sqlmodel import select
+        import uuid
+        
+        # Buscar la categoría "Gastos por Cortesías / Mermas"
+        cat_stmt = select(CashMovementCategory).where(CashMovementCategory.name == "Gastos por Cortesías / Mermas")
+        cat_res = await session.execute(cat_stmt)
+        category = cat_res.scalar_one_or_none()
+        category_id = category.id if category else None
+        
+        # Convert manager_uuid to UUID object safely
+        parsed_uuid = manager_uuid if isinstance(manager_uuid, uuid.UUID) else uuid.UUID(manager_uuid)
+        
+        movement = CashMovement(
+            shift_id=order.shift_id,
+            amount=round(total_cost, 2),
+            type=CashMovementType.EXPENSE,
+            reason=f"Costo de Cortesía Orden #{order.id}: {reason}",
+            user_id=parsed_uuid,
+            category_id=category_id
+        )
+        session.add(movement)
+        
+    await order_repo.save(session, order)
+    await session.commit()
+    
+    # Emitir evento
+    await event_bus.publish("sales.order_courtesy", {
+        "order_id": order_id,
+        "shift_id": order.shift_id,
+        "reason": reason,
+        "manager_name": manager_name,
+        "table_id": order.table_id,
+        "cost_amount": round(total_cost, 2)
+    }, actor_uuid=manager_uuid)
+    
+    # Recargar la orden para retornar
+    order = await order_repo.get_with_relations(session, order_id)
+    return order
+
+
+async def refund_order(
+    session: AsyncSession,
+    order_id: int,
+    reason: str,
+    manager_uuid: str,
+    manager_name: str,
+) -> Order:
+    """
+    Reembolsa una orden liquidada.
+    Registra un egreso de efectivo formal en la caja chica por el total devuelto.
+    """
+    order = await order_repo.get_with_relations(session, order_id)
+    if not order:
+        raise OrderNotFoundError(order_id)
+        
+    if order.financial_status != OrderFinancialStatus.PAID:
+        raise ValueError("Solo se pueden reembolsar órdenes liquidadas (PAGADO).")
+        
+    # Obtener el monto total pagado por el cliente
+    refund_amount = sum(p.amount for p in order.payments)
+    
+    # 1. Cambiar estado financiero
+    order.financial_status = OrderFinancialStatus.REFUNDED
+    await order_repo.save(session, order)
+    
+    # 2. Registrar el egreso real de efectivo en la caja chica si hay shift_id
+    if refund_amount > 0.0 and order.shift_id:
+        from pos_core.accounting.service import add_cash_movement
+        from pos_core.accounting.models import CashMovementType, CashMovementCategory
+        from sqlmodel import select
+        import uuid
+        
+        # Buscar la categoría "Varios / Emergencias" o similar para reembolsos
+        cat_stmt = select(CashMovementCategory).where(CashMovementCategory.name == "Varios / Emergencias")
+        cat_res = await session.execute(cat_stmt)
+        category = cat_res.scalar_one_or_none()
+        category_id = category.id if category else None
+        
+        # Convert manager_uuid to UUID object safely
+        parsed_uuid = manager_uuid if isinstance(manager_uuid, uuid.UUID) else uuid.UUID(manager_uuid)
+        
+        # add_cash_movement hace una salida física (resta de expected_cash)
+        await add_cash_movement(
+            session=session,
+            shift_id=order.shift_id,
+            amount=refund_amount,
+            type=CashMovementType.EXPENSE,
+            reason=f"Reembolso de Orden #{order.id}: {reason}",
+            user_id=parsed_uuid,
+            category_id=category_id
+        )
+        
+    await session.commit()
+    
+    # Emitir evento
+    await event_bus.publish("sales.order_refunded", {
+        "order_id": order_id,
+        "shift_id": order.shift_id,
+        "reason": reason,
+        "manager_name": manager_name,
+        "table_id": order.table_id,
+        "refund_amount": refund_amount
+    }, actor_uuid=manager_uuid)
+    
+    # Recargar la orden para retornar
+    order = await order_repo.get_with_relations(session, order_id)
+    return order

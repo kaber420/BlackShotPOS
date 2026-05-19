@@ -12,10 +12,15 @@ from pos_core.accounting.models import CashMovementType, CashRegister, Shift, Ca
 from pos_core.accounting import service as accounting_service
 from pos_core.auth.models import User
 from pos_core.sales.models import Order, Payment, PaymentMethod, OrderType, OrderItem
-from pos_core.tables.models import Table
 from pos_core.catalog.models import Category, Product, ProductVariant
 from pos_core.inventory.models import Ingredient
+from pos_core.tables.models import Table
+from pos_core.settings.models import BusinessSettings
+from pos_core.iot.models import IoTDevice
+from pos_core.customers.models import Customer
+from bs_sync.models import SyncEvent
 from pos_core.sales import order_service, payment_service
+from pos_core.kitchen.models import ProductionArea
 from sqlmodel import select
 
 async def test_accounting_enhanced():
@@ -47,13 +52,19 @@ async def test_accounting_enhanced():
         print("💰 Simulando ventas...")
         
         # Crear un producto para las ventas
-        cat = Category(name="Comida")
-        session.add(cat)
-        await session.flush()
+        cat_stmt = select(Category).where(Category.name == "Comida")
+        cat = (await session.execute(cat_stmt)).scalar_one_or_none()
+        if not cat:
+            cat = Category(name="Comida")
+            session.add(cat)
+            await session.flush()
         
-        prod = Product(name="Taco", price=50.0, category_id=cat.id)
-        session.add(prod)
-        await session.flush()
+        prod_stmt = select(Product).where(Product.name == "Taco")
+        prod = (await session.execute(prod_stmt)).scalar_one_or_none()
+        if not prod:
+            prod = Product(name="Taco", price=50.0, category_id=cat.id)
+            session.add(prod)
+            await session.flush()
 
         # Venta Efectivo: $100 (2 Tacos)
         order1 = await order_service.create_order(session, OrderType.TAKEAWAY)

@@ -1,0 +1,63 @@
+# ==========================================================
+# BlackShotPOS - Docker Ignore System
+# ==========================================================
+
+# Entornos virtuales locales (¡PESADO!)
+.venv/
+venv/
+ENV/
+env/
+
+# Carpetas de Documentación y Planes (¡No requeridas en producción!)
+docs/
+docs/drafts/
+docs/archive/
+docs/walkthroughs/
+docs/HISTORY.md
+docs/ROADMAP_MASTER.md
+README.md
+GEMINI.md
+LICENSE
+
+# Dependencias y Caché de Frontend (SvelteKit)
+**/node_modules/
+bs_frontend/node_modules/
+bs_frontend/.svelte-kit/
+bs_frontend/build/
+
+# Bases de datos y archivos de datos dinámicos locales
+*.db
+*.db-journal
+data/
+central_database.db
+
+# Artefactos de desarrollo y scripts temporales
+artifacts/
+scratch/
+tests/
+
+# Archivos de empaquetado y respaldos pesados de Docker
+*.tar
+*.tar.gz
+pos-backend-arm64.tar.gz
+pos-frontend-arm64.tar.gz
+
+# Control de versiones e historial
+.git/
+.gitignore
+.github/
+
+# Archivos de configuración local y secretos (Seguridad)
+.env
+.env*.local
+
+# Cachés del sistema e IDEs
+.pytest_cache/
+.antigravity/
+.vscode/
+.idea/
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.DS_Store

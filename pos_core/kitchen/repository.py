@@ -38,13 +38,6 @@ class KitchenRepository:
         result = await session.execute(statement)
         return result.scalar_one_or_none()
 
-    async def delete_tickets_by_order(self, session: AsyncSession, order_id: int):
-        statement = select(KitchenTicket).where(KitchenTicket.order_id == order_id)
-        result = await session.execute(statement)
-        tickets = result.scalars().all()
-        for t in tickets:
-            await session.delete(t)
-
     async def count_tickets_by_status(self, session: AsyncSession, order_id: Optional[int] = None):
         """Cuenta tickets agrupados por estado, opcionalmente filtrados por orden."""
         from sqlalchemy import func

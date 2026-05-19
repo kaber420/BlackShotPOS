@@ -6,7 +6,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from pos_core.database import async_session_maker
-from pos_core.inventory.models import Ingredient, RecipeItem
+from pos_core.inventory.models import Ingredient
 from pos_core.inventory import unit_converter
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -59,13 +59,12 @@ async def test_conversion():
             print(f"ERROR: Se esperaba 9.8, se obtuvo {leche.current_stock}")
             return
 
-        # 4. Test de actualización de unidad en service
-        from pos_core.inventory import service
+        from pos_core.inventory.services import ingredient_service
         from pos_core.inventory.models import IngredientUpdate
         
         # Cambiar de L a ml
         update_data = IngredientUpdate(unit="ml")
-        updated_leche = await service.update_ingredient(session, leche.id, update_data)
+        updated_leche = await ingredient_service.update_ingredient(session, leche.id, update_data)
         
         print(f"Después de cambiar unidad a ml: Stock: {updated_leche.current_stock} {updated_leche.unit}")
         

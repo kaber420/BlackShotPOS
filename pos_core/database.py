@@ -49,6 +49,40 @@ async def init_db():
         from pos_core.customers.models import Customer
         from bs_sync.models import SyncEvent
         await conn.run_sync(SQLModel.metadata.create_all)
+        
+        # Check and add new columns if they do not exist
+        try:
+            from sqlalchemy import text
+            # Check financial_status
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='order' AND column_name='financial_status';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"order\" ADD COLUMN financial_status VARCHAR(50) DEFAULT 'UNPAID';"))
+                
+            # Check courtesy_reason
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='order' AND column_name='courtesy_reason';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"order\" ADD COLUMN courtesy_reason VARCHAR(255);"))
+                
+            # Check courtesy_by_uuid
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='order' AND column_name='courtesy_by_uuid';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"order\" ADD COLUMN courtesy_by_uuid VARCHAR(255);"))
+                
+            # Check cost_per_unit in ingredient
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='ingredient' AND column_name='cost_per_unit';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"ingredient\" ADD COLUMN cost_per_unit FLOAT DEFAULT 0.0;"))
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).error(f"Error en migración automática de base de datos: {e}")
 
 async def get_session() -> AsyncSession:
     """Dependency para obtener una sesión de base de datos asíncrona."""

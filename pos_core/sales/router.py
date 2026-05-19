@@ -313,3 +313,58 @@ async def cancel_item_with_reason(
         return {"status": "success", "item_id": item.id}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
+class CourtesyRequest(BaseModel):
+    reason: str
+
+class RefundRequest(BaseModel):
+    reason: str
+
+
+@router.post("/orders/{order_id}/courtesy", response_model=OrderRead)
+async def mark_order_as_courtesy(
+    order_id: int,
+    req: CourtesyRequest,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
+):
+    """Marca una orden como cortesía."""
+    try:
+        order = await order_action_service.mark_order_as_courtesy(
+            db,
+            order_id,
+            reason=req.reason,
+            manager_uuid=str(user.id),
+            manager_name=user.username,
+        )
+        asyncio.create_task(trigger_standard_broadcasts())
+        return order
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/orders/{order_id}/refund", response_model=OrderRead)
+async def refund_order(
+    order_id: int,
+    req: RefundRequest,
+    db: AsyncSession = Depends(get_session),
+    user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
+):
+    """Reembolsa una orden liquidada."""
+    try:
+        order = await order_action_service.refund_order(
+            db,
+            order_id,
+            reason=req.reason,
+            manager_uuid=str(user.id),
+            manager_name=user.username,
+        )
+        asyncio.create_task(trigger_standard_broadcasts())
+        return order
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

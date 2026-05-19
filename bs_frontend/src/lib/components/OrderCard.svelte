@@ -2,7 +2,7 @@
     import { OrderStatus } from '$lib/api/orders';
     import type { Order } from '$lib/api/orders';
     import Button from '$lib/components/ui/Button.svelte';
-    import { appState } from '$lib/app_state.svelte';
+    import { appState, can } from '$lib/app_state.svelte';
 
     // ── Props ─────────────────────────────────────────────────────────────
     interface Props {
@@ -25,6 +25,8 @@
         onPrint?: (orderId: number) => void;
         onCharge?: (order: any) => void;
         onDeliver?: (orderId: number) => void;
+        onCourtesy?: (order: any) => void;
+        onRefund?: (order: any) => void;
     }
 
     let {
@@ -41,6 +43,8 @@
         onPrint,
         onCharge,
         onDeliver,
+        onCourtesy,
+        onRefund,
         activeRecipes = {},
         activeTimers = {}
     }: Props = $props();
@@ -104,6 +108,8 @@
     let taxRate = $derived(subtotal > 0 ? (taxAmount / subtotal) : (appState.settings?.tax_rate || 0.16));
 
     let glow = $derived(
+        order.financial_status === 'COMPLIMENTARY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-purple-500/40 border-purple-500/30' :
+        order.financial_status === 'REFUNDED' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-orange-500/40 border-orange-500/30' :
         order.status === 'PENDING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-warning/40 border-warning/30' : 
         order.status === 'PREPARING' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-primary/40 border-primary/30' : 
         order.status === 'READY' ? 'shadow-[0_0_25px_var(--tw-shadow-color)] shadow-success/40 border-success/30' : 
@@ -124,8 +130,14 @@
                     <span class="text-xs font-black uppercase tracking-widest opacity-50 px-2 py-1 bg-base-200 rounded w-fit">
                         #{order.id}
                     </span>
-                    {#if order.balance_due === 0 && (order.items ?? []).length > 0 && order.status !== 'CANCELLED'}
-                        <span class="badge badge-success badge-xs font-black text-[9px] border-none py-1 px-2">PAGADO</span>
+                    {#if order.financial_status === 'COMPLIMENTARY'}
+                        <span class="badge bg-purple-600 text-white font-black text-[9px] border-none py-1.5 px-2.5 rounded-lg w-fit">CORTESÍA</span>
+                    {:else if order.financial_status === 'PARTIALLY_PAID'}
+                        <span class="badge bg-indigo-500 text-white font-black text-[9px] border-none py-1.5 px-2.5 rounded-lg w-fit">ABONADO</span>
+                    {:else if order.financial_status === 'REFUNDED'}
+                        <span class="badge bg-orange-600 text-white font-black text-[9px] border-none py-1.5 px-2.5 rounded-lg w-fit">REEMBOLSADO</span>
+                    {:else if order.balance_due === 0 && (order.items ?? []).length > 0 && order.status !== 'CANCELLED'}
+                        <span class="badge badge-success badge-xs font-black text-[9px] border-none py-1.5 px-2.5 rounded-lg w-fit">PAGADO</span>
                     {/if}
                 </div>
                 <div class="flex flex-col items-end gap-1">
@@ -341,6 +353,22 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.216m-6.38 0c-.99.018-1.977.067-2.958.148a2.25 2.25 0 0 0-1.837 2.175V15.75c0 1.24.975 2.25 2.25 2.25h1.091m6.38 0h-6.38" />
                             </svg>
                         </Button>
+
+                        {#if onCourtesy && order.financial_status !== 'COMPLIMENTARY' && order.financial_status !== 'PAID' && order.financial_status !== 'REFUNDED' && order.status !== 'CANCELLED'}
+                            <Button variant="ghost" size="sm" square onclick={() => onCourtesy(order)} title="Aplicar Cortesía de la Casa" class="text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-950/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 0 1-1.5 1.5H5.25a1.5 1.5 0 0 1-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 1 0 9.375 7.5H12m0-2.625A2.625 2.625 0 1 1 14.625 7.5H12m0-2.625V7.5m0-2.625a2.625 2.625 0 1 1 2.625 2.625H12M12 7.5h.008v.008H12V7.5Zm0 3.75h.008v.008H12v-.008Zm0 3.75h.008v.008H12v-.008Z" />
+                                </svg>
+                            </Button>
+                        {/if}
+
+                        {#if onRefund && order.financial_status === 'PAID'}
+                            <Button variant="ghost" size="sm" square onclick={() => onRefund(order)} title="Reembolsar Orden" class="text-orange-600 hover:bg-orange-100 dark:hover:bg-orange-950/40">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                </svg>
+                            </Button>
+                        {/if}
 
                         {#if onCancelOrder && order.status !== 'PAID' && order.status !== 'DELIVERED' && order.status !== 'CANCELLED'}
                             <Button variant="ghost" size="sm" danger square onclick={() => onCancelOrder(order)} title={order.items && order.items.length > 0 ? "Cancelar Pedido" : "Eliminar Pedido Vacío"}>

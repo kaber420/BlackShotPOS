@@ -153,11 +153,13 @@ async def api_get_all_active_sessions(
 
 @router.get("/")
 async def api_list_shifts(
+    limit: int = 50,
+    offset: int = 0,
     session: AsyncSession = Depends(get_session),
     user=Depends(require_permission(Permission.MANAGE_SHIFTS)),
 ):
     """Lista todos los turnos históricos con sus totales resumidos."""
-    return await list_shifts(session)
+    return await list_shifts(session, limit=limit, offset=offset)
 
 @router.get("/{shift_id}/report")
 async def api_get_shift_report(

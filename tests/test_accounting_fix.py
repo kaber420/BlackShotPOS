@@ -8,9 +8,11 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sqlalchemy.ext.asyncio import AsyncSession
 from pos_core.database import async_session_maker
 # Importar todos los modelos para que SQLAlchemy los registre
-from pos_core.inventory.models import Category, Product, Ingredient, RecipeItem, Measure, ProductVariant
+from pos_core.catalog.models import Category, Product, RecipeItem, Measure, ProductVariant
+from pos_core.inventory.models import Ingredient
 from pos_core.tables.models import Table
-from pos_core.sales.models import Order, OrderItem, Payment, Shift, OrderType, OrderStatus, PaymentMethod
+from pos_core.sales.models import Order, OrderItem, Payment, OrderType, OrderStatus, PaymentMethod
+from pos_core.accounting.models import Shift
 from pos_core.settings.models import BusinessSettings
 from pos_core.iot.models import IoTDevice
 from pos_core.auth.models import User
@@ -18,6 +20,7 @@ from pos_core.customers.models import Customer
 from bs_sync.models import SyncEvent
 
 from pos_core.sales import payment_service, order_service
+from pos_core.kitchen.models import ProductionArea
 from sqlmodel import select
 
 async def test_accounting():
@@ -40,6 +43,40 @@ async def test_accounting():
             session.add(prod)
             await session.flush()
         
+        # 1.5 Asegurar Caja, Usuario y Turno Abierto para la Orden
+        from pos_core.accounting import service as accounting_service
+        from pos_core.accounting.models import CashRegister
+        from pos_core.auth.models import User
+        from uuid import uuid4
+        
+        reg_stmt = select(CashRegister).where(CashRegister.name == "Caja Test Fix")
+        register = (await session.execute(reg_stmt)).scalar_one_or_none()
+        if not register:
+            register = CashRegister(name="Caja Test Fix", is_active=True)
+            session.add(register)
+            await session.flush()
+        
+        user_stmt = select(User).limit(1)
+        user = (await session.execute(user_stmt)).scalar_one_or_none()
+        if not user:
+            user = User(
+                id=uuid4(),
+                email="test_fix@blackshot.app",
+                username="test_cashier_fix",
+                hashed_password="fake",
+                is_active=True,
+            )
+            session.add(user)
+            await session.flush()
+        
+        shift = await accounting_service.open_shift(
+            session, 
+            initial_cash=500.0, 
+            register_id=register.id, 
+            user_id=user.id
+        )
+        print(f"✅ Turno abierto ID: {shift.id}")
+
         # 2. Crear una orden
         order = await order_service.create_order(session, OrderType.TAKEAWAY)
         print(f"✅ Orden creada ID: {order.id}")

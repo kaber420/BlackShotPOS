@@ -10,7 +10,6 @@ export enum OrderType {
     DELIVERY = "DELIVERY"
 }
 
-/** Estados operativos de una orden. */
 export enum OrderStatus {
     PENDING = "PENDING",
     PREPARING = "PREPARING",
@@ -18,6 +17,14 @@ export enum OrderStatus {
     PAID = "PAID",
     DELIVERED = "DELIVERED",
     CANCELLED = "CANCELLED"
+}
+
+export enum OrderFinancialStatus {
+    UNPAID = "UNPAID",
+    PARTIALLY_PAID = "PARTIALLY_PAID",
+    PAID = "PAID",
+    REFUNDED = "REFUNDED",
+    COMPLIMENTARY = "COMPLIMENTARY"
 }
 
 export enum PaymentMethod {
@@ -101,6 +108,9 @@ export interface Order {
     id: number;
     type: OrderType;
     status: OrderStatus;
+    financial_status: OrderFinancialStatus;
+    courtesy_reason: string | null;
+    courtesy_by_uuid: string | null;
     subtotal: number;
     tax_amount: number;
     total_amount: number;
@@ -208,6 +218,18 @@ export const OrderService = {
         fetchApi<Order>(`/api/v1/pos/sales/orders/${orderId}/split`, {
             method: 'POST',
             body: JSON.stringify({ items })
+        }),
+
+    markCourtesy: (orderId: number, reason: string) =>
+        fetchApi<Order>(`/api/v1/pos/sales/orders/${orderId}/courtesy`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
+        }),
+
+    refund: (orderId: number, reason: string) =>
+        fetchApi<Order>(`/api/v1/pos/sales/orders/${orderId}/refund`, {
+            method: 'POST',
+            body: JSON.stringify({ reason })
         })
 };
 

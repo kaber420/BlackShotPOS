@@ -23,6 +23,7 @@ from pos_core.audit.models import AuditLog
 from pos_core.settings.models import BusinessSettings
 from pos_core.iot.models import IoTDevice
 from pos_core.customers.models import Customer
+from pos_core.kitchen.models import ProductionArea
 from bs_sync.models import SyncEvent
 
 async def setup_db():

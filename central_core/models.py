@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Optional, List
 from sqlmodel import SQLModel, Field, create_engine, Session, select, Relationship
+from sqlalchemy import JSON
 
 # --- Regional and User Management ---
 
@@ -107,6 +108,37 @@ class GlobalSaleItem(SQLModel, table=True):
 
     # Relación inversa
     sale: GlobalSale = Relationship(back_populates="items")
+
+# --- Global Customers ---
+
+class GlobalCustomer(SQLModel, table=True):
+    id: str = Field(primary_key=True) # Mismo UUID del POS
+    username: Optional[str] = Field(default=None, unique=True, index=True)
+    hashed_password: Optional[str] = None
+    
+    # Datos Personales Cifrados (PII)
+    encrypted_name: str
+    encrypted_email: Optional[str] = None
+    encrypted_phone: Optional[str] = None
+    encrypted_telegram_id: Optional[str] = None
+    
+    # Fidelidad y Finanzas
+    points: int = Field(default=0)
+    credit_balance: float = Field(default=0.0)
+    tier: str = Field(default="regular")
+    
+    # Historial y Analíticas Agregadas
+    total_spent: float = Field(default=0.0)
+    total_visits: int = Field(default=0)
+    last_visit_at: Optional[datetime] = None
+    favorite_branch_id: Optional[str] = None
+    
+    # Preferencias y Consentimientos
+    accepts_marketing_email: bool = Field(default=False)
+    accepts_marketing_telegram: bool = Field(default=False)
+    custom_metadata: dict = Field(default={}, sa_type=JSON)
+    
+    is_active: bool = Field(default=True)
 
 # Configuración de la base de datos Central
 CENTRAL_DATABASE_URL = "sqlite:///central_database.db"

@@ -3,7 +3,7 @@ from typing import List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import Order, OrderItem, OrderStatus, OrderType
+from ..models import Order, OrderItem, OrderStatus, OrderType, OrderFinancialStatus
 from ..repository import order_repo, item_repo
 from pos_core.accounting.service import get_active_shift
 from pos_core.events.bus import event_bus
@@ -63,17 +63,8 @@ async def get_orders(
     active_shift = await get_active_shift(session)
     shift_id = active_shift.id if active_shift else None
     
-    # Obtenemos solo los esqueletos
-    base_orders = await order_repo.get_all(session, status, shift_id=shift_id)
-    
-    # Cargamos relaciones una por una para evitar el bug de 'mezclado'
-    full_orders = []
-    for o in base_orders:
-        full_o = await get_order_with_relations(session, o.id)
-        if full_o:
-            full_orders.append(full_o)
-            
-    return full_orders
+    # Cargamos todas las órdenes y sus relaciones en una sola operación optimizada
+    return await order_repo.get_all(session, status, shift_id=shift_id, include_relations=True)
 
 
 
@@ -98,6 +89,9 @@ async def update_order_status(
     Actualiza el estado comercial de una orden.
     La lógica operativa (cocina) ahora se maneja en el dominio Kitchen.
     """
+    if new_status == OrderStatus.CANCELLED:
+        raise InvalidOrderStateError("Use la función cancel_order para cancelar órdenes con un motivo de auditoría.")
+
     order = await order_repo.get_by_id(session, order_id)
     if not order:
         raise OrderNotFoundError(order_id)
@@ -154,13 +148,19 @@ async def recalculate_order_totals(session: AsyncSession, order_id: int) -> Orde
             item_subtotal = item.unit_price * item.quantity
             # Aseguramos que el tax_amount del item sea consistente
             item.tax_amount = item_subtotal * (item.tax_rate / 100.0)
+            session.add(item)
             
             subtotal += item_subtotal
             tax_amount += item.tax_amount
             
-    order.subtotal = subtotal
-    order.tax_amount = tax_amount
-    order.total_amount = subtotal + tax_amount
+    if order.financial_status == OrderFinancialStatus.COMPLIMENTARY:
+        order.subtotal = 0.0
+        order.tax_amount = 0.0
+        order.total_amount = 0.0
+    else:
+        order.subtotal = subtotal
+        order.tax_amount = tax_amount
+        order.total_amount = subtotal + tax_amount
     
     await order_repo.save(session, order)
     await session.commit()

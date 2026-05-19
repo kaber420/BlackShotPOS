@@ -26,6 +26,16 @@
     let selectedTableId = $state<number | null>(null);
     let isTransferring = $state(false);
 
+    // Estado del modal de cortesía
+    let courtesyOrder = $state<Order | null>(null);
+    let courtesyReason = $state("");
+    let isSettingCourtesy = $state(false);
+
+    // Estado del modal de reembolso
+    let refundingOrder = $state<Order | null>(null);
+    let refundReason = $state("");
+    let isRefunding = $state(false);
+
     // ── Filtros ──────────────────────────────────────────────────────────────────
     type FilterKey = 'active' | 'all' | 'PENDING' | 'PREPARING' | 'READY' | 'DELIVERED' | 'PAID' | 'CANCELLED';
     let activeFilter = $state<FilterKey>('active');
@@ -208,6 +218,42 @@
         }
     }
 
+    function handleCourtesyClick(order: Order) {
+        courtesyOrder = order;
+        courtesyReason = "";
+    }
+
+    async function confirmCourtesy() {
+        if (!courtesyOrder || !courtesyReason.trim()) return;
+        isSettingCourtesy = true;
+        try {
+            await OrderService.markCourtesy(courtesyOrder.id, courtesyReason);
+            courtesyOrder = null;
+        } catch (e: any) {
+            alert(`Error al aplicar cortesía: ${e?.message ?? e}`);
+        } finally {
+            isSettingCourtesy = false;
+        }
+    }
+
+    function handleRefundClick(order: Order) {
+        refundingOrder = order;
+        refundReason = "";
+    }
+
+    async function confirmRefund() {
+        if (!refundingOrder || !refundReason.trim()) return;
+        isRefunding = true;
+        try {
+            await OrderService.refund(refundingOrder.id, refundReason);
+            refundingOrder = null;
+        } catch (e: any) {
+            alert(`Error al reembolsar: ${e?.message ?? e}`);
+        } finally {
+            isRefunding = false;
+        }
+    }
+
     function openCartForCharge(order: Order) {
         loadOrderToCart(order);
         appState.cartVisible = true;
@@ -353,6 +399,8 @@
                     onPrint={handlePrintTicket}
                     onCharge={can.charge() ? openCartForCharge : undefined}
                     onDeliver={can.charge() ? handleComplete : undefined}
+                    onCourtesy={can.manageShifts() ? handleCourtesyClick : undefined}
+                    onRefund={can.manageShifts() ? handleRefundClick : undefined}
                 />
             {/each}
         </div>
@@ -426,6 +474,74 @@
             </Button>
             <Button variant="primary" class="shadow-xl" onclick={confirmTransfer} disabled={!selectedTableId || isTransferring} isLoading={isTransferring}>
                 Confirmar Traslado
+            </Button>
+        </div>
+    </div>
+</div>
+{/if}
+
+{#if courtesyOrder}
+<div class="modal modal-open bg-base-300/80 backdrop-blur-sm z-50">
+    <div class="modal-box shadow-2xl border border-purple-500/20">
+        <h3 class="font-black text-2xl text-purple-600 flex items-center gap-2 mb-2 font-black">
+            🎁 Cortesía de la Casa - Pedido #{courtesyOrder.id}
+        </h3>
+        <p class="py-2 text-base-content/80 font-medium leading-tight">
+            Estás aplicando una cortesía total y autorizada sobre esta orden. Toda la cuenta se reducirá a $0.00 de forma auditable. Para continuar, es obligatorio ingresar el motivo/justificación de la cortesía.
+        </p>
+
+        <div class="form-control w-full mt-4">
+            <label class="label">
+                <span class="label-text font-bold text-sm">Justificación de la cortesía</span>
+            </label>
+            <textarea
+                class="textarea textarea-bordered textarea-primary w-full text-base"
+                rows="3"
+                placeholder="Ej. Atención al cliente por demora en cocina, Visita especial de socio, etc."
+                bind:value={courtesyReason}
+            ></textarea>
+        </div>
+
+        <div class="modal-action mt-6 flex justify-end gap-3">
+            <Button variant="ghost" class="border border-base-300 text-base-content/70" onclick={() => courtesyOrder = null} disabled={isSettingCourtesy}>
+                Volver
+            </Button>
+            <Button variant="primary" class="bg-purple-600 hover:bg-purple-700 text-white shadow-xl border-none font-bold" onclick={confirmCourtesy} disabled={!courtesyReason.trim()} isLoading={isSettingCourtesy}>
+                Confirmar Cortesía
+            </Button>
+        </div>
+    </div>
+</div>
+{/if}
+
+{#if refundingOrder}
+<div class="modal modal-open bg-base-300/80 backdrop-blur-sm z-50">
+    <div class="modal-box shadow-2xl border border-orange-500/20">
+        <h3 class="font-black text-2xl text-orange-600 flex items-center gap-2 mb-2 font-black">
+            🔄 Reembolsar Pedido #{refundingOrder.id}
+        </h3>
+        <p class="py-2 text-base-content/80 font-medium leading-tight">
+            Se registrará un reembolso para devolver el dinero recibido al cliente y registrar la salida física del efectivo de la caja chica. Por favor, especifica el motivo exacto del reembolso.
+        </p>
+
+        <div class="form-control w-full mt-4">
+            <label class="label">
+                <span class="label-text font-bold text-sm">Motivo del reembolso</span>
+            </label>
+            <textarea
+                class="textarea textarea-bordered textarea-warning w-full text-base"
+                rows="3"
+                placeholder="Ej. Devolución de producto defectuoso, Doble cobro involuntario, etc."
+                bind:value={refundReason}
+            ></textarea>
+        </div>
+
+        <div class="modal-action mt-6 flex justify-end gap-3">
+            <Button variant="ghost" class="border border-base-300 text-base-content/70" onclick={() => refundingOrder = null} disabled={isRefunding}>
+                Volver
+            </Button>
+            <Button variant="primary" class="bg-orange-600 hover:bg-orange-700 text-white shadow-xl border-none font-bold" onclick={confirmRefund} disabled={!refundReason.trim()} isLoading={isRefunding}>
+                Confirmar Reembolso
             </Button>
         </div>
     </div>

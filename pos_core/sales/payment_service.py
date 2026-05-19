@@ -10,7 +10,7 @@ REGLA DE ORO:
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
-from .models import Payment, PaymentMethod, OrderStatus
+from .models import Payment, PaymentMethod, OrderStatus, OrderFinancialStatus
 from .repository import order_repo, item_repo
 from pos_core.exceptions import OrderNotFoundError, InvalidOrderStateError
 from pos_core.events.bus import event_bus
@@ -40,23 +40,24 @@ async def add_payment(
          raise InvalidOrderStateError("Esta orden ya está liquidada y no se especificó propina.")
 
     # 1. Validar montos
-    # Si el monto pagado es mayor al saldo, el excedente podría ser propina o cambio.
-    # Por simplicidad, el 'amount' es lo que se abona a la deuda.
+    # El abono real a la cuenta (revenue) no puede superar el saldo pendiente.
     applied_to_order = min(amount, current_balance)
     
-    # Si el usuario envió más de lo que se debe, y no especificó tip_amount, 
-    # podríamos asumir que la diferencia es propina o simplemente registrarlo como pago.
-    # Pero seguiremos la instrucción: amount es el abono, tip_amount es la propina.
-    
-    actual_received = received_amount if received_amount is not None else (amount + tip_amount)
-    change = max(0.0, actual_received - (amount + tip_amount))
+    if received_amount is not None:
+        actual_received = received_amount
+    else:
+        # Si no se especifica received_amount, asumimos que se recibió el amount completo (con propina)
+        actual_received = amount + tip_amount
+        
+    # El cambio es lo recibido menos el abono real y la propina
+    change = max(0.0, actual_received - (applied_to_order + tip_amount))
 
     # 2. Registrar el pago
     payment = await order_repo.create_payment(
         session, 
         order_id, 
         method, 
-        amount=amount, # El abono real a la cuenta
+        amount=applied_to_order, # El abono real a la cuenta
         received_amount=actual_received,
         change_amount=change,
         tip_amount=tip_amount
@@ -70,6 +71,9 @@ async def add_payment(
     # 3. Actualizar estado de la orden
     if order.balance_due <= 0:
         order.status = OrderStatus.PAID
+        order.financial_status = OrderFinancialStatus.PAID
+    else:
+        order.financial_status = OrderFinancialStatus.PARTIALLY_PAID
 
     # 4. Inventario y Estados de Item: Delegado a listeners vía EDA.
     # El listener de Inventario reaccionará a 'sales.payment_received' para descontar stock.
@@ -82,7 +86,7 @@ async def add_payment(
         "table_id": order.table_id,
         "shift_id": order.shift_id,
         "payment_id": payment.id,
-        "amount": amount,
+        "amount": payment.amount,
         "method": payment.method,
         "tip_amount": tip_amount,
         "vacate_table": vacate_table

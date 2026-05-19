@@ -17,6 +17,7 @@ from pos_core.setup import setup_environment
 from pos_core.inventory.router import router as inventory_router
 from pos_core.catalog.router import router as catalog_router
 from pos_core.catalog.production_router import router as production_area_router
+from pos_core.media.router import router as media_router
 from pos_core.tables.router import router as tables_router
 from pos_core.sales.router import router as sales_router
 from pos_core.kitchen.printing.router import router as printing_router
@@ -110,6 +111,7 @@ async def business_logic_exception_handler(request: Request, exc: BusinessLogicE
 # Inclusión de rutas por dominio
 app.include_router(catalog_router, prefix="/api/v1/pos/catalog", tags=["Catálogo"])
 app.include_router(production_area_router, prefix="/api/v1/pos/catalog/production", tags=["Áreas de Producción"])
+app.include_router(media_router, prefix="/api/v1/pos/media", tags=["Medios"])
 app.include_router(inventory_router, prefix="/api/v1/pos/inventory", tags=["Inventario"])
 app.include_router(tables_router, prefix="/api/v1/pos/tables", tags=["Mesas"])
 app.include_router(sales_router, prefix="/api/v1/pos/sales", tags=["Ventas"])

@@ -26,32 +26,6 @@ from pos_core.auth.dependencies import require_role
 
 router = APIRouter()
 
-# --- Endpoints de Gestión de Archivos ---
-
-@router.post("/upload", dependencies=[Depends(require_role("admin"))])
-async def upload_image(file: UploadFile = File(...)):
-    """Sube una imagen al servidor y retorna su URL relativa."""
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".gif", ".webm"]:
-        raise HTTPException(status_code=400, detail="Formato de imagen no permitido")
-    
-    filename = f"{uuid.uuid4()}{ext}"
-    file_path = os.path.join("data/img", filename)
-    
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    return {"url": f"/uploads/{filename}", "filename": filename}
-
-@router.delete("/upload/{filename}", dependencies=[Depends(require_role("admin"))])
-async def delete_image(filename: str):
-    """Elimina un archivo del servidor."""
-    file_path = os.path.join("data/img", filename)
-    if os.path.exists(file_path):
-        os.remove(file_path)
-        return {"detail": "Archivo eliminado"}
-    raise HTTPException(status_code=404, detail="Archivo no encontrado")
-
 # --- Endpoints de Categorías ---
 
 @router.get("/categories", response_model=List[CategoryRead])
@@ -133,31 +107,15 @@ async def add_ingredient_to_recipe(
     input_unit: Optional[str] = None,
     db: AsyncSession = Depends(get_session)
 ):
-    final_input_qty = input_quantity if input_quantity is not None else quantity
-    final_input_unit = input_unit or ""
-    final_quantity = quantity
-
-    if input_unit:
-        ingredient = await db.get(Ingredient, ingredient_id)
-        if ingredient:
-            try:
-                final_quantity = unit_converter.convert_units(
-                    final_input_qty, 
-                    input_unit, 
-                    ingredient.unit, 
-                    ingredient.measure_type
-                )
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
-
     recipe_item = RecipeItem(
         product_id=product_id, 
         ingredient_id=ingredient_id, 
-        quantity=final_quantity,
-        input_quantity=final_input_qty,
-        input_unit=final_input_unit
+        quantity=quantity,
+        input_quantity=input_quantity,
+        input_unit=input_unit
     )
     return await recipe_service.add_ingredient_to_product(db, recipe_item)
+
 
 @router.get("/products/{product_id}/recipe", response_model=List[RecipeItem])
 async def get_recipe(product_id: int, db: AsyncSession = Depends(get_session)):
@@ -188,29 +146,12 @@ async def add_ingredient_to_variant(
     input_unit: Optional[str] = None,
     db: AsyncSession = Depends(get_session)
 ):
-    final_input_qty = input_quantity if input_quantity is not None else quantity
-    final_input_unit = input_unit or ""
-    final_quantity = quantity
-
-    if input_unit:
-        ingredient = await db.get(Ingredient, ingredient_id)
-        if ingredient:
-            try:
-                final_quantity = unit_converter.convert_units(
-                    final_input_qty, 
-                    input_unit, 
-                    ingredient.unit, 
-                    ingredient.measure_type
-                )
-            except ValueError as e:
-                raise HTTPException(status_code=400, detail=str(e))
-
     recipe_item = RecipeItem(
         variant_id=variant_id, 
         ingredient_id=ingredient_id, 
-        quantity=final_quantity,
-        input_quantity=final_input_qty,
-        input_unit=final_input_unit
+        quantity=quantity,
+        input_quantity=input_quantity,
+        input_unit=input_unit
     )
     return await recipe_service.add_ingredient_to_product(db, recipe_item)
 

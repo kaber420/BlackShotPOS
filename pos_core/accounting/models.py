@@ -9,7 +9,7 @@ class CashRegister(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     name: str = Field(index=True) # Ej: "Barra 1", "Caja Principal"
     is_active: bool = Field(default=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now())
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
 
 class CashMovementType(str, Enum):
     INCOME = "INCOME"         # Fondo extra, corrección
@@ -30,7 +30,9 @@ class CashMovement(SQLModel, table=True):
     type: CashMovementType
     reason: str
     user_id: UUID = Field(foreign_key="user.id")
-    timestamp: datetime = Field(default_factory=lambda: datetime.now())
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
+
+    shift: Optional["Shift"] = Relationship(back_populates="movements")
 
 class ShiftStatus(str, Enum):
     OPEN = "OPEN"
@@ -41,7 +43,7 @@ class Shift(SQLModel, table=True):
     register_id: Optional[int] = Field(default=None, foreign_key="cashregister.id")
     user_id: Optional[UUID] = Field(default=None, foreign_key="user.id")
     
-    start_time: datetime = Field(default_factory=lambda: datetime.now())
+    start_time: datetime = Field(default_factory=lambda: datetime.now(timezone.utc).replace(tzinfo=None))
     end_time: Optional[datetime] = Field(default=None)
     status: ShiftStatus = Field(default=ShiftStatus.OPEN)
     
@@ -68,5 +70,5 @@ class Shift(SQLModel, table=True):
         if v.tzinfo is None: v = v.replace(tzinfo=timezone.utc)
         return v.isoformat()
     
-    movements: List["CashMovement"] = Relationship()
+    movements: List["CashMovement"] = Relationship(back_populates="shift", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 

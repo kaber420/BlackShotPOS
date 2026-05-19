@@ -40,6 +40,7 @@ class IngredientBase(SQLModel):
     calories_per_unit: float = Field(default=0.0, description="Calorías por unidad de medida")
     carbs_per_unit: float = Field(default=0.0, description="Carbohidratos por unidad de medida")
     fats_per_unit: float = Field(default=0.0, description="Grasas por unidad de medida")
+    cost_per_unit: float = Field(default=0.0, description="Costo promedio por unidad de medida")
 
 class Ingredient(IngredientBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -65,6 +66,7 @@ class IngredientUpdate(SQLModel):
     calories_per_unit: Optional[float] = None
     carbs_per_unit: Optional[float] = None
     fats_per_unit: Optional[float] = None
+    cost_per_unit: Optional[float] = None
 
 # --- Registro de Merma / Ajustes de Inventario ---
 
@@ -85,7 +87,7 @@ class AdjustmentReason(str, Enum):
     CORRECTION = "CORRECTION"
 
 class InventoryAdjustmentBase(SQLModel):
-    ingredient_id: int = Field(foreign_key="ingredient.id")
+    ingredient_id: int = Field(foreign_key="ingredient.id", index=True)
     quantity: float = Field(description="Cantidad descontada (en unidad base)")
     reason: AdjustmentReason = Field(default=AdjustmentReason.WASTE)
     note: Optional[str] = None
@@ -107,7 +109,7 @@ class InventoryAdjustmentCreate(SQLModel):
 
 class IngredientBatch(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
-    ingredient_id: int = Field(foreign_key="ingredient.id")
+    ingredient_id: int = Field(foreign_key="ingredient.id", index=True)
     original_quantity: float = Field(description="Cantidad inicial del lote")
     current_quantity: float = Field(description="Cantidad restante")
     expiration_date: Optional[datetime] = None

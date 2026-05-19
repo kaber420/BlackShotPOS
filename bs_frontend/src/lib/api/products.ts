@@ -212,14 +212,14 @@ export const ProductService = {
     uploadImage: (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        return fetchApi<{url: string, filename: string}>('/api/v1/pos/catalog/upload', {
+        return fetchApi<{url: string, filename: string}>('/api/v1/pos/media/upload', {
             method: 'POST',
             body: formData
         });
     },
 
     deleteImage: (filename: string) =>
-        fetchApi<{detail: string}>(`/api/v1/pos/catalog/upload/${filename}`, {
+        fetchApi<{detail: string}>(`/api/v1/pos/media/upload/${filename}`, {
             method: 'DELETE'
         })
 };

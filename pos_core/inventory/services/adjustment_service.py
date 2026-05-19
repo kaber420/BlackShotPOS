@@ -85,16 +85,17 @@ async def create_adjustment(
             ingredient_id=adjustment_data.ingredient_id,
             original_quantity=adjustment_data.quantity,
             current_quantity=adjustment_data.quantity,
-            expiration_date=adjustment_data.expiration_date
+            expiration_date=adjustment_data.expiration_date,
+            arrival_date=datetime.utcnow()
         )
         session.add(new_batch)
     
-    # Comiteamos para asegurar consistencia antes de disparar eventos
-    await session.commit()
-    await session.refresh(adjustment)
-    await session.refresh(ingredient)
+    # Hacemos flush para enviar los cambios pendientes al motor de base de datos
+    # y autogenerar el primary key 'adjustment.id' antes de construir el payload de sincronización,
+    # manteniendo la transacción activa y garantizando consistencia atómica (Outbox Pattern).
+    await session.flush()
 
-    logger.info(f"✅ Movimiento registrado: {reason} para {ingredient.name} (Δ: {delta})")
+    logger.info(f"✅ Movimiento registrado en sesión: {reason} para {ingredient.name} (Δ: {delta})")
 
     # 4. Notificar actualización de inventario vía WebSocket
     await trigger_broadcast("inventory")
@@ -126,7 +127,13 @@ async def create_adjustment(
         "timestamp": adjustment.timestamp.isoformat()
     }
     await enqueue_event(session, "sales.inventory_adjustment", sync_payload)
+    
+    # Único commit atómico de toda la operación
     await session.commit()
+    
+    # Refrescar los objetos con los datos definitivos ya persistidos
+    await session.refresh(adjustment)
+    await session.refresh(ingredient)
 
     return adjustment
 

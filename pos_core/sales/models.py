@@ -23,6 +23,13 @@ class PaymentMethod(str, Enum):
     CARD = "CARD"
     TRANSFER = "TRANSFER"
 
+class OrderFinancialStatus(str, Enum):
+    UNPAID = "UNPAID"
+    PARTIALLY_PAID = "PARTIALLY_PAID"
+    PAID = "PAID"
+    REFUNDED = "REFUNDED"
+    COMPLIMENTARY = "COMPLIMENTARY"
+
 
 
 class OrderItemModifier(SQLModel, table=True):
@@ -73,6 +80,9 @@ class Order(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     type: OrderType
     status: OrderStatus = Field(default=OrderStatus.PENDING, index=True)
+    financial_status: OrderFinancialStatus = Field(default=OrderFinancialStatus.UNPAID, index=True)
+    courtesy_reason: Optional[str] = Field(default=None)
+    courtesy_by_uuid: Optional[str] = Field(default=None)
     
     # Snapshot Financiero
     subtotal: float = Field(default=0.0)

@@ -1,0 +1,29 @@
+# ==========================================================
+# BlackShotPOS Frontend - Docker Ignore System
+# ==========================================================
+
+# Ignorar dependencias de Node.js locales (¡Muy pesadas!)
+node_modules/
+
+# Ignorar archivos temporales y caché de SvelteKit/Vite
+.svelte-kit/
+
+# Ignorar entorno y configuraciones locales
+.env
+.env*.local
+
+# Ignorar código fuente (solo se necesita la carpeta build/ en el runner de Nginx)
+src/
+static/
+vite.config.ts
+svelte.config.js
+tsconfig.json
+package.json
+pnpm-lock.yaml
+package-lock.json
+svelte_check_log.txt
+
+# Ignorar control de versiones y documentación
+.git/
+.gitignore
+README.md

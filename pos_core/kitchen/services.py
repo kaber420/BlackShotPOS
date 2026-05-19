@@ -17,8 +17,10 @@ async def create_tickets_for_order(
     **extra_metadata
 ):
     """
+    Crea los tickets de cocina correspondientes para los ítems de una orden.
+    Optimizado para evitar consultas N+1 en la obtención de productos del catálogo.
     """
-    from pos_core.catalog.models import Product, Category
+    from pos_core.catalog.models import Product
     
     # Metadata opcional de la orden (snapshot)
     table_id = extra_metadata.get("table_id")
@@ -26,19 +28,24 @@ async def create_tickets_for_order(
     waiter_name = extra_metadata.get("waiter_name")
     external_reference = extra_metadata.get("external_reference")
     
-    for item in items_data:
-        item_id = item.get("id")
-        product_id = item.get("product_id")
-        quantity = item.get("quantity", 1)
-        
-        # Obtener el área de producción desde el catálogo (Desacoplado)
+    # Pre-cargar todos los productos involucrados de una sola vez
+    product_ids = {item.get("product_id") for item in items_data if item.get("product_id") is not None}
+    products_map = {}
+    if product_ids:
         stmt = (
             select(Product)
-            .where(Product.id == product_id)
+            .where(Product.id.in_(product_ids))
             .options(selectinload(Product.category))
         )
         result = await session.execute(stmt)
-        product = result.scalar_one_or_none()
+        products_map = {p.id: p for p in result.scalars().all()}
+        
+    tickets_created = 0
+    for item in items_data:
+        item_id = item.get("id")
+        product_id = item.get("product_id")
+        
+        product = products_map.get(product_id)
         
         production_area_id = None
         if product and product.category:
@@ -75,13 +82,72 @@ async def create_tickets_for_order(
             received_at=datetime.now(timezone.utc).replace(tzinfo=None)
         )
         await kitchen_repo.save(session, ticket)
+        tickets_created += 1
     
-    await session.commit()
-    logger.info(f"👨‍🍳 Tickets creados para la orden {order_id}")
+    if tickets_created > 0:
+        await session.commit()
+        logger.info(f"👨‍🍳 {tickets_created} tickets creados para la orden {order_id}")
+        
+        # Notificar a la UI del KDS y Meseros
+        from pos_core.events.service import trigger_standard_broadcasts
+        await trigger_standard_broadcasts()
+
+
+async def _apply_ticket_status_change(
+    ticket: KitchenTicket,
+    new_status: KitchenStatus,
+    now: datetime,
+    cook_uuid: Optional[str] = None,
+    cook_name: Optional[str] = None
+) -> bool:
+    """
+    Aplica el cambio de estado en memoria al ticket y publica eventos en el Event Bus.
+    No realiza transacciones de base de datos de forma directa.
+    Retorna True si el estado cambió, False de lo contrario.
+    """
+    if ticket.status == new_status:
+        return False
+        
+    ticket.status = new_status
     
-    # Notificar a la UI del KDS y Meseros
-    from pos_core.events.service import trigger_standard_broadcasts
-    await trigger_standard_broadcasts()
+    if new_status == KitchenStatus.PREPARING:
+        ticket.started_at = now
+        ticket.cook_uuid = cook_uuid
+        ticket.cook_name = cook_name
+        
+        from pos_core.events.bus import event_bus
+        await event_bus.publish("kitchen.item_preparing", {
+            "ticket_id": ticket.id,
+            "order_id": ticket.order_id,
+            "item_id": ticket.item_id,
+            "table_id": ticket.table_id,
+            "cook_name": cook_name
+        }, actor_uuid=cook_uuid)
+        
+    elif new_status == KitchenStatus.READY:
+        ticket.finished_at = now
+        
+        from pos_core.events.bus import event_bus
+        await event_bus.publish("kitchen.item_ready", {
+            "ticket_id": ticket.id,
+            "order_id": ticket.order_id,
+            "item_id": ticket.item_id,
+            "table_id": ticket.table_id,
+            "product_name": ticket.product_name
+        })
+        
+    elif new_status == KitchenStatus.DELIVERED:
+        ticket.delivered_at = now
+        
+        from pos_core.events.bus import event_bus
+        await event_bus.publish("kitchen.item_delivered", {
+            "ticket_id": ticket.id,
+            "order_id": ticket.order_id,
+            "item_id": ticket.item_id,
+            "product_name": ticket.product_name
+        })
+        
+    return True
 
 
 async def update_ticket_status(
@@ -91,58 +157,24 @@ async def update_ticket_status(
     cook_uuid: Optional[str] = None,
     cook_name: Optional[str] = None
 ) -> Optional[KitchenTicket]:
+    """Actualiza el estado de un ticket individual."""
     ticket = await kitchen_repo.get_ticket_by_id(session, ticket_id)
     if not ticket:
         return None
     
-    ticket.status = new_status
     now = datetime.now(timezone.utc).replace(tzinfo=None)
-
+    changed = await _apply_ticket_status_change(ticket, new_status, now, cook_uuid, cook_name)
     
-    if new_status == KitchenStatus.PREPARING:
-        ticket.started_at = now
-        ticket.cook_uuid = cook_uuid
-        ticket.cook_name = cook_name
-        # Emitir evento kitchen.item_preparing para que Ventas se entere del inicio
-        from pos_core.events.bus import event_bus
-        await event_bus.publish("kitchen.item_preparing", {
-            "ticket_id": ticket.id,
-            "order_id": ticket.order_id,
-            "item_id": ticket.item_id,
-            "table_id": ticket.table_id,
-            "cook_name": cook_name
-        }, actor_uuid=cook_uuid)
-    elif new_status == KitchenStatus.READY:
-        ticket.finished_at = now
-        # Emitir evento kitchen.item_ready
-        from pos_core.events.bus import event_bus
-        await event_bus.publish("kitchen.item_ready", {
-            "ticket_id": ticket.id,
-            "order_id": ticket.order_id,
-            "item_id": ticket.item_id,
-            "table_id": ticket.table_id,
-            "product_name": ticket.product_name
-        })
-    elif new_status == KitchenStatus.DELIVERED:
-        ticket.delivered_at = now
-        # Emitir evento kitchen.item_delivered
-        from pos_core.events.bus import event_bus
-        await event_bus.publish("kitchen.item_delivered", {
-            "ticket_id": ticket.id,
-            "order_id": ticket.order_id,
-            "item_id": ticket.item_id,
-            "product_name": ticket.product_name
-        })
-
-    await kitchen_repo.save(session, ticket)
-    await session.commit()
-
-    # Notificar a la UI del KDS y Meseros
-    from pos_core.events.service import trigger_standard_broadcasts
-    await trigger_standard_broadcasts()
-
-
+    if changed:
+        await kitchen_repo.save(session, ticket)
+        await session.commit()
+        
+        # Notificar a la UI del KDS y Meseros
+        from pos_core.events.service import trigger_standard_broadcasts
+        await trigger_standard_broadcasts()
+        
     return ticket
+
 
 async def update_ticket_status_by_item_id(
     session: AsyncSession,
@@ -157,6 +189,7 @@ async def update_ticket_status_by_item_id(
         return None
     return await update_ticket_status(session, ticket.id, new_status, cook_uuid, cook_name)
 
+
 async def update_order_tickets_status(
     session: AsyncSession,
     order_id: int,
@@ -164,12 +197,28 @@ async def update_order_tickets_status(
     cook_uuid: Optional[str] = None,
     cook_name: Optional[str] = None
 ) -> List[KitchenTicket]:
-    """Actualiza todos los tickets asociados a una orden."""
-    tickets = await kitchen_repo.get_tickets_by_order_id(session, order_id)
+    """
+    Actualiza todos los tickets asociados a una orden.
+    Optimizado: realiza un único commit de BD y un único broadcast de red al final.
+    """
+    tickets = await kitchen_repo.get_tickets_by_order(session, order_id)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
     updated = []
+    
+    any_changed = False
     for t in tickets:
-        u = await update_ticket_status(session, t.id, new_status, cook_uuid, cook_name)
-        if u:
-            updated.append(u)
+        changed = await _apply_ticket_status_change(t, new_status, now, cook_uuid, cook_name)
+        if changed:
+            await kitchen_repo.save(session, t)
+            updated.append(t)
+            any_changed = True
+            
+    if any_changed:
+        await session.commit()
+        
+        # Notificar a la UI del KDS y Meseros
+        from pos_core.events.service import trigger_standard_broadcasts
+        await trigger_standard_broadcasts()
+        
     return updated
 

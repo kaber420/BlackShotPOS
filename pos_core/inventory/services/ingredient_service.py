@@ -28,23 +28,34 @@ async def get_ingredients(
     offset: int = 0
 ) -> dict:
     statement = select(Ingredient)
+    count_statement = select(func.count(Ingredient.id))
     
     if search:
         # Búsqueda robusta por nombre
-        statement = statement.where(Ingredient.name.ilike(f"%{search}%"))
+        cond = Ingredient.name.ilike(f"%{search}%")
+        statement = statement.where(cond)
+        count_statement = count_statement.where(cond)
     
     if category_ids:
-        statement = statement.where(Ingredient.category_id.in_(category_ids))
+        cond = Ingredient.category_id.in_(category_ids)
+        statement = statement.where(cond)
+        count_statement = count_statement.where(cond)
     elif category:
         # Soporte para filtro por nombre de categoría (case-insensitive)
-        statement = statement.where(Ingredient.category.ilike(category))
+        cond = Ingredient.category.ilike(category)
+        statement = statement.where(cond)
+        count_statement = count_statement.where(cond)
 
     # Filtros de Estado de Stock
     if stock_status == "low":
-        statement = statement.where(Ingredient.current_stock <= Ingredient.minimum_stock)
-        statement = statement.where(Ingredient.current_stock > 0)
+        cond1 = Ingredient.current_stock <= Ingredient.minimum_stock
+        cond2 = Ingredient.current_stock > 0
+        statement = statement.where(cond1).where(cond2)
+        count_statement = count_statement.where(cond1).where(cond2)
     elif stock_status == "none":
-        statement = statement.where(Ingredient.current_stock <= 0)
+        cond = Ingredient.current_stock <= 0
+        statement = statement.where(cond)
+        count_statement = count_statement.where(cond)
     elif stock_status == "expiring":
         from ..models import IngredientBatch
         from datetime import datetime, timedelta
@@ -54,14 +65,15 @@ async def get_ingredients(
             IngredientBatch.expiration_date <= deadline,
             IngredientBatch.current_quantity > 0
         )
-        statement = statement.where(Ingredient.id.in_(subq))
+        cond = Ingredient.id.in_(subq)
+        statement = statement.where(cond)
+        count_statement = count_statement.where(cond)
     
-    # Clonar para el conteo total
-    count_statement = select(func.count()).select_from(statement.subquery())
+    # Obtener el conteo total utilizando la consulta optimizada
     total_result = await session.execute(count_statement)
     total = total_result.scalar() or 0
     
-    # Aplicar paginación
+    # Aplicar paginación a la consulta de items
     statement = statement.limit(limit).offset(offset)
     result = await session.execute(statement)
     items = result.scalars().all()

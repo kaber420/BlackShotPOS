@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict
-from pos_core.sales.models import OrderType, OrderStatus, PaymentMethod
+from pos_core.sales.models import OrderType, OrderStatus, PaymentMethod, OrderFinancialStatus
 
 # ---------------------------------------------------------------------------
 # SCHEMAS DE INVENTARIO (espejo de inventory/models.py para órdenes)
@@ -79,6 +79,9 @@ class OrderRead(BaseModel):
     id: int
     type: OrderType
     status: OrderStatus
+    financial_status: OrderFinancialStatus
+    courtesy_reason: Optional[str] = None
+    courtesy_by_uuid: Optional[str] = None
     subtotal: float = 0.0
     tax_amount: float = 0.0
     total_amount: float = 0.0
