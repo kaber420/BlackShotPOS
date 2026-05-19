@@ -79,7 +79,7 @@
                                     {session.register_id}
                                 </div>
                                 <div>
-                                    <h3 class="font-black text-lg text-base-content group-hover:text-primary transition-colors">Cajero #{session.user_id?.toString().substring(0,4) || '??'}</h3>
+                                    <h3 class="font-black text-lg text-base-content group-hover:text-primary transition-colors">Cajero #{session.user_id ? session.user_id.toString().substring(0,4) : '??'}</h3>
                                     <p class="text-[10px] font-black uppercase tracking-widest opacity-40">Caja Registradora {session.register_id}</p>
                                 </div>
                             </div>

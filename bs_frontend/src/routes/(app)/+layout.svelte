@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { appState, setTheme, setAuth, setActiveShift, initAuth, can, getRoleLabel } from '$lib/app_state.svelte';
+	import { appState, setTheme, setAuth, setActiveShift, initAuth, can, getRoleLabel, logout } from '$lib/app_state.svelte';
 	import { fetchApi } from '$lib/api';
 	import { checkActiveShift, openShift } from '$lib/api/shifts';
 	import { onMount } from 'svelte';

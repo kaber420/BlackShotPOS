@@ -105,10 +105,16 @@ class CustomerService:
         return customer
 
     @staticmethod
+    async def list_all(db: AsyncSession, limit: int = 50) -> List[Customer]:
+        statement = select(Customer).order_by(Customer.username).limit(limit)
+        result = await db.execute(statement)
+        return result.scalars().all()
+
+    @staticmethod
     async def update_last_visit(db: AsyncSession, customer_id: UUID):
         customer = await db.get(Customer, customer_id)
         if customer:
-            customer.last_visit_at = datetime.now(timezone.utc)
+            customer.last_visit_at = datetime.utcnow()
             db.add(customer)
             await db.commit()
 

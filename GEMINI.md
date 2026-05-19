@@ -65,9 +65,9 @@ Este documento proporciona un resumen de alto nivel del ecosistema Blackshot par
 *   **Soporte de Impresión Térmica (ESC/POS):**
     *   Integración directa para la impresión automática de tickets de venta y comandas en la cocina mediante protocolos ESC/POS sobre hardware local o de red.
 
-*   **Configuración Estándar y CORS:**
-    *   Uso de configuraciones dinámicas basadas en variables de entorno (ej. `FRONTEND_PORT`) para evitar puertos hardcodeados.
-    *   Políticas y whitelisting estricto de CORS para resguardar la seguridad de las conexiones backend-frontend.
+*   **Configuración de Red y CORS Dinámico:**
+    *   **Inyección Dinámica de IP:** Al arrancar, el backend (`main.py`) detecta automáticamente la IP local activa en la red y la añade a los hosts permitidos (`ALLOWED_HOSTS`) y a los orígenes de CORS (`ALLOWED_ORIGINS`).
+    *   **Alineación Dinámica de Puertos:** Resuelve el CORS y Trusted Hosts utilizando dinámicamente los puertos reales configurados en el `.env` (`PORT` y `FRONTEND_PORT`), junto con fallbacks de desarrollo (`5173`, `5174`), sin hardcodear puertos de producción y eliminando la necesidad de reconfigurar archivos manuales si cambia la IP local de red.
 
 *   **Gestión Multi-Sucursal (Central):**
     *   Organización jerárquica: Región -> Sucursal.

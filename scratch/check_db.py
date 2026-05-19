@@ -1,26 +1,40 @@
-import sqlite3
+import asyncio
+import sys
+import os
 
-db_path = "pos_database.db"
-conn = sqlite3.connect(db_path)
-cursor = conn.cursor()
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-tables = ["product", "order", "orderitem", "payment"]
+from pos_core.database import async_session_maker
+from pos_core.auth.models import User
+from pos_core.customers.models import Customer
+from sqlmodel import select
 
-for table in tables:
-    print(f"\n--- Schema for table: {table} ---")
-    cursor.execute(f'PRAGMA table_info("{table}")')
-    columns = cursor.fetchall()
-    for col in columns:
-        print(f"Column: {col[1]}, Type: {col[2]}")
-    
-    print(f"\n--- Indices for table: {table} ---")
-    cursor.execute(f'PRAGMA index_list("{table}")')
-    indices = cursor.fetchall()
-    for idx in indices:
-        idx_name = idx[1]
-        cursor.execute(f'PRAGMA index_info("{idx_name}")')
-        idx_info = cursor.fetchall()
-        cols = ", ".join([c[2] for c in idx_info])
-        print(f"Index: {idx_name}, Columns: ({cols}), Unique: {idx[2]}")
+async def main():
+    try:
+        print("=== 🔍 INSPECCIONANDO TABLAS DE USUARIOS Y CLIENTES ===")
+        async with async_session_maker() as session:
+            # Query Users (POS Staff / Admins)
+            print("\n--- 👥 POS Staff (User Table) ---")
+            statement_users = select(User)
+            result_users = await session.execute(statement_users)
+            users = result_users.scalars().all()
+            print(f"Total: {len(users)}")
+            for u in users:
+                print(f"- Email: {u.email} | Username: {u.username} | Activo: {u.is_active} | Superuser: {u.is_superuser}")
 
-conn.close()
+            # Query Customers
+            print("\n--- 🛍️ Customers (Customer Table) ---")
+            statement_cust = select(Customer)
+            result_cust = await session.execute(statement_cust)
+            customers = result_cust.scalars().all()
+            print(f"Total: {len(customers)}")
+            for c in customers:
+                # Some fields might be encrypted based on earlier conversations?
+                # Let's see what fields exist
+                print(f"- ID: {c.id} | Name: {getattr(c, 'name', 'N/A')} | Username: {getattr(c, 'username', 'N/A')} | Hashed Password: {getattr(c, 'hashed_password', 'N/A') is not None}")
+
+    except Exception as e:
+        print(f"\n❌ Error al consultar la base de datos: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())

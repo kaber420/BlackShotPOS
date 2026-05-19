@@ -3,6 +3,7 @@ import secrets
 import shutil
 import socket
 import sys
+import select
 import subprocess
 import getpass
 import time
@@ -54,13 +55,40 @@ def get_local_ip():
     except Exception:
         return None
 
+def input_with_timeout(prompt, timeout=5, default="s"):
+    """
+    Lee entrada de stdin con un timeout. Si expira, no es interactivo o hay un error, devuelve default.
+    """
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+
+    # Si no hay TTY (entorno no interactivo, como Docker o daemons de fondo), auto-seleccionamos
+    if not sys.stdin.isatty():
+        sys.stdout.write(f" (Entorno no interactivo, auto-seleccionando: [{default}])\n")
+        sys.stdout.flush()
+        return default
+
+    try:
+        ready, _, _ = select.select([sys.stdin], [], [], timeout)
+        if ready:
+            val = sys.stdin.readline().strip()
+            return val if val else default
+        else:
+            sys.stdout.write(f"\n⏰ Tiempo de espera agotado. Auto-seleccionando: [{default}]\n")
+            sys.stdout.flush()
+            return default
+    except Exception as e:
+        sys.stdout.write(f"\n⚠️ Error al leer entrada ({e}). Auto-seleccionando: [{default}]\n")
+        sys.stdout.flush()
+        return default
+
 def check_and_prompt_ip(env_path=".env"):
     """
     Revisa si la IP local está permitida en CORS y Hosts; si no, ofrece configurarla.
     Permite autorizar la IP local, agregar manuales o mantener acceso restringido.
     """
-    # Si no hay TTY (ej. ejecutando como servicio), no preguntamos
-    if not sys.stdin.isatty():
+    # Evitar prompts si se solicita explícitamente omitir
+    if os.getenv("SKIP_IP_PROMPT", "false").lower() in ("true", "1", "yes"):
         return
 
     local_ip = get_local_ip()
@@ -96,30 +124,48 @@ def check_and_prompt_ip(env_path=".env"):
 
     # Verificar si la configuración es completa (Whitelist + Binding)
     is_ip_authorized = local_ip in current_hosts and f"http://{local_ip}" in current_origins
-    is_fully_configured = is_ip_authorized and current_bind_host == local_ip
+    is_fully_configured = is_ip_authorized and current_bind_host in (local_ip, "0.0.0.0")
     
     if not is_fully_configured:
         print(f"\n📡 [Configuración de Red] IP local detectada: {local_ip}")
         
-        if is_ip_authorized and current_bind_host != local_ip:
+        if is_ip_authorized and current_bind_host not in (local_ip, "0.0.0.0"):
             print(f"⚠️  Tu IP está en la Whitelist, pero el servidor solo escucha en {current_bind_host}.")
-            print(f"Para que otros dispositivos entren, el servidor debe escuchar en {local_ip}.")
+            print(f"Para que otros dispositivos entren, el servidor debe escuchar en 0.0.0.0 o {local_ip}.")
         else:
             print("Esta IP no está autorizada para acceso externo en la configuración actual.")
         
         try:
             print("\nOpciones:")
-            print(f" [s] Autorizar IP local y activar Binding Estricto ({local_ip})")
+            print(f" [s] Autorizar IP local y escuchar en todas las interfaces (0.0.0.0)")
             print(" [m] Agregar IPs o Dominios manualmente")
             print(" [n] Mantener solo acceso local (localhost)")
             
-            choice = input("\nSelecciona una opción [s/m/n] (Enter para omitir): ").lower()
+            choice = input_with_timeout("\nSelecciona una opción [s/m/n] (Enter para omitir, 5s timeout): ", timeout=5, default="s").lower().strip()
             
             updates = {}
+            if not choice:
+                # El usuario omitió. Ofrecemos guardar la omisión permanentemente.
+                try:
+                    save_skip = input("¿Deseas guardar esta omisión de forma permanente para no volver a preguntar en futuros arranques? (s/N): ").lower().strip()
+                    if save_skip == 's':
+                        _update_env_file(env_path, {"SKIP_IP_PROMPT": "true"})
+                        print("✅ Decisión guardada. No se volverá a preguntar al iniciar.")
+                except (KeyboardInterrupt, EOFError):
+                    pass
+                return
+
             if choice == 's':
                 new_hosts = f"{current_hosts},{local_ip}" if local_ip not in current_hosts else current_hosts
                 new_origins = current_origins
-                for p in [current_frontend_port, current_api_port]:
+                
+                # Construir puertos a autorizar basados en el .env y desarrollo (Vite)
+                ports_to_whitelist = [current_frontend_port, current_api_port]
+                for dev_p in ["5173", "5174"]:
+                    if dev_p not in ports_to_whitelist:
+                        ports_to_whitelist.append(dev_p)
+                
+                for p in ports_to_whitelist:
                     if p in ["80", "443"]:
                         o = f"http://{local_ip}" if p == "80" else f"https://{local_ip}"
                     else:
@@ -130,9 +176,10 @@ def check_and_prompt_ip(env_path=".env"):
                 updates = {
                     "ALLOWED_HOSTS": new_hosts,
                     "ALLOWED_ORIGINS": new_origins,
-                    "HOST": local_ip
+                    "HOST": "0.0.0.0",
+                    "SKIP_IP_PROMPT": "true"
                 }
-                print(f"✅ Configuración actualizada: El servidor ahora escuchará en {local_ip}")
+                print(f"✅ Configuración actualizada: El servidor ahora escuchará en 0.0.0.0 (todas las interfaces, incluyendo localhost y {local_ip})")
             
             elif choice == 'm':
                 manual_input = input("Ingresa las IPs o dominios (ej: 192.168.1.10, mi-pos.local): ")
@@ -146,7 +193,13 @@ def check_and_prompt_ip(env_path=".env"):
                         new_hosts += f",{val}"
                     base_origin = f"http://{val}" if not val.startswith("http") else val
                     if ":" not in val and not val.startswith("http"):
-                        for p in [current_frontend_port, current_api_port]:
+                        # Construir puertos a autorizar basados en el .env y desarrollo (Vite)
+                        ports_to_whitelist = [current_frontend_port, current_api_port]
+                        for dev_p in ["5173", "5174"]:
+                            if dev_p not in ports_to_whitelist:
+                                ports_to_whitelist.append(dev_p)
+                                
+                        for p in ports_to_whitelist:
                             if p in ["80", "443"]:
                                 o = f"http://{val}" if p == "80" else f"https://{val}"
                             else:
@@ -159,14 +212,17 @@ def check_and_prompt_ip(env_path=".env"):
                 updates = {
                     "ALLOWED_HOSTS": new_hosts,
                     "ALLOWED_ORIGINS": new_origins,
-                    "HOST": local_ip
+                    "HOST": "0.0.0.0",
+                    "SKIP_IP_PROMPT": "true"
                 }
-                print(f"✅ Configuración manual aplicada.")
+                print(f"✅ Configuración manual aplicada (escuchando en 0.0.0.0).")
             
             elif choice == 'n':
                 print("🔒 Seguridad mantenida: Acceso restringido a localhost.")
+                _update_env_file(env_path, {"SKIP_IP_PROMPT": "true"})
+                print("✅ Configuración guardada. No se volverá a preguntar al iniciar.")
                 return
-
+ 
             if updates:
                 _update_env_file(env_path, updates)
                 for k, v in updates.items():
@@ -183,7 +239,7 @@ def _ensure_secure_tokens(env_path):
     with open(env_path, "r") as f:
         lines = f.readlines()
 
-    keys_to_ensure = ["JWT_SECRET", "ALLOWED_ORIGINS", "ALLOWED_HOSTS", "PUBLIC_API_URL", "HOST", "PORT", "FRONTEND_PORT"]
+    keys_to_ensure = ["JWT_SECRET", "ALLOWED_ORIGINS", "ALLOWED_HOSTS", "HOST", "PORT", "FRONTEND_PORT"]
     current_values = {}
     
     for line in lines:
@@ -210,10 +266,6 @@ def _ensure_secure_tokens(env_path):
             if key not in current_values or not current_values[key]:
                 updates[key] = "localhost,127.0.0.1"
                 print(f"[setup] 🏠 Configurando hosts permitidos por defecto")
-        elif key == "PUBLIC_API_URL":
-            if key not in current_values or not current_values[key]:
-                updates[key] = "http://localhost:8000"
-                print(f"[setup] 🔗 Configurando URL de API pública por defecto")
         elif key == "HOST":
             if key not in current_values or not current_values[key]:
                 updates[key] = "127.0.0.1"

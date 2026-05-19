@@ -80,9 +80,24 @@ async def init_db():
             )
             if not cursor.first():
                 await conn.execute(text("ALTER TABLE \"ingredient\" ADD COLUMN cost_per_unit FLOAT DEFAULT 0.0;"))
+
+            # Check username in customer
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='customer' AND column_name='username';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"customer\" ADD COLUMN username VARCHAR(255) UNIQUE;"))
+
+            # Check hashed_password in customer
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='customer' AND column_name='hashed_password';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"customer\" ADD COLUMN hashed_password VARCHAR(255);"))
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Error en migración automática de base de datos: {e}")
+
 
 async def get_session() -> AsyncSession:
     """Dependency para obtener una sesión de base de datos asíncrona."""

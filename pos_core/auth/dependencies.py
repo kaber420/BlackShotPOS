@@ -75,3 +75,35 @@ def require_permission(permission: str):
     return permission_dependency
 
 
+async def get_current_customer(
+    customer_token: Optional[str] = Header(None, alias="Authorization"),
+    db: AsyncSession = Depends(get_session)
+):
+    from pos_core.auth.customer_jwt import decode_customer_access_token
+    from pos_core.customers.service import CustomerService
+    
+    if not customer_token or not customer_token.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de cliente requerido"
+        )
+    
+    token = customer_token.split(" ")[1]
+    payload = decode_customer_access_token(token)
+    
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token de cliente inválido o expirado"
+        )
+        
+    customer_id = payload.get("sub")
+    customer = await CustomerService.get_by_id(db, customer_id)
+    if not customer:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Cliente no encontrado"
+        )
+    
+    return customer
+

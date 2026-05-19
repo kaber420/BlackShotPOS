@@ -69,6 +69,13 @@
             show: can.manageUsers()
         },
         { 
+            name: 'Clientes', 
+            href: '/admin/customers', 
+            icon: '☕', 
+            desc: 'Fidelidad, monedero y notas',
+            show: can.takeOrders()
+        },
+        { 
             name: 'Estaciones de Producción', 
             href: '/admin/config/stations', 
             icon: '🍳', 

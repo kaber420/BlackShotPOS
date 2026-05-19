@@ -181,9 +181,6 @@ def start():
     if root_dir not in sys.path:
         sys.path.insert(0, root_dir)
 
-    # Verificamos la IP local para ofrecer añadirla al .env
-    check_and_prompt_ip()
-
     def _check_db_or_prompt():
         is_ok, error = verify_db_connection()
         if not is_ok:

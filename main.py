@@ -13,7 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.middleware import SlowAPIMiddleware
 from pos_core.database import init_db
-from pos_core.setup import setup_environment
+from pos_core.setup import setup_environment, get_local_ip
 from pos_core.inventory.router import router as inventory_router
 from pos_core.catalog.router import router as catalog_router
 from pos_core.catalog.production_router import router as production_area_router
@@ -32,6 +32,8 @@ from pos_core.auth.router import auth_router, user_router
 from pos_core.customers.router import router as customer_router
 from pos_core.communications.router import router as communications_router
 from pos_core.kitchen.router import router as kitchen_router
+from pos_core.customers.public_router import router as customer_public_router
+from pos_core.inventory.public_catalog_router import router as public_catalog_router
 from pos_core.events.discovery import discover_event_providers, discover_event_listeners
 
 
@@ -71,8 +73,36 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 
 # 2. Configuración de CORS
-allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:8000")
+allowed_origins_str = os.getenv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:8000")
 allowed_origins = [o.strip() for o in allowed_origins_str.split(",") if o.strip()]
+
+# Inyectar dinámicamente la IP local activa en orígenes permitidos
+local_ip = get_local_ip()
+if local_ip:
+    allowed_origins.append(f"http://{local_ip}")
+    
+    # Obtener puertos configurados del entorno dinámicamente
+    api_port = os.getenv("PORT")
+    fe_port = os.getenv("FRONTEND_PORT")
+    
+    if api_port:
+        allowed_origins.append(f"http://{local_ip}:{api_port}")
+    if fe_port:
+        if fe_port in ["80", "443"]:
+            allowed_origins.append(f"http://{local_ip}" if fe_port == "80" else f"https://{local_ip}")
+        else:
+            allowed_origins.append(f"http://{local_ip}:{fe_port}")
+            
+    # Fallback de desarrollo para puertos locales de Vite/SvelteKit
+    for dev_port in ["5173", "5174"]:
+        allowed_origins.append(f"http://{local_ip}:{dev_port}")
+
+# Asegurar que localhost y 127.0.0.1 en puertos de desarrollo estándar estén permitidos en CORS
+for host in ["localhost", "127.0.0.1"]:
+    for dev_port in ["5173", "5174"]:
+        origin = f"http://{host}:{dev_port}"
+        if origin not in allowed_origins:
+            allowed_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
@@ -85,6 +115,8 @@ app.add_middleware(
 # 1. Trusted Hosts (Más externo, rechaza ataques de Host Header primero)
 allowed_hosts_str = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
 allowed_hosts = [h.strip() for h in allowed_hosts_str.split(",") if h.strip()]
+if local_ip and local_ip not in allowed_hosts:
+    allowed_hosts.append(local_ip)
 
 app.add_middleware(
     TrustedHostMiddleware, allowed_hosts=allowed_hosts
@@ -116,7 +148,7 @@ app.include_router(inventory_router, prefix="/api/v1/pos/inventory", tags=["Inve
 app.include_router(tables_router, prefix="/api/v1/pos/tables", tags=["Mesas"])
 app.include_router(sales_router, prefix="/api/v1/pos/sales", tags=["Ventas"])
 app.include_router(shifts_router, prefix="/api/v1/pos/sales/shifts", tags=["Cortes de Caja"])
-app.include_router(customer_router, prefix="/api/v1/pos/sales/customers", tags=["Clientes"])
+app.include_router(customer_router, prefix="/api/v1/pos/customers", tags=["Clientes"])
 app.include_router(printing_router, prefix="/api/v1/pos/system/printing", tags=["Impresión"])
 app.include_router(settings_router, prefix="/api/v1/pos/system/settings", tags=["Configuración"])
 app.include_router(analytics_router, prefix="/api/v1/pos/system/analytics", tags=["Analíticas"])
@@ -128,6 +160,10 @@ app.include_router(communications_router, prefix="/api/v1/pos/communications", t
 app.include_router(kitchen_router, prefix="/api/v1/pos/kitchen", tags=["Cocina"])
 app.include_router(auth_router, prefix="/api/auth", tags=["Auth"])
 app.include_router(user_router, prefix="/api/users", tags=["Users"])
+
+# Rutas Públicas (Portal de Clientes)
+app.include_router(customer_public_router, prefix="/api/v1/public/customers", tags=["Clientes Público"])
+app.include_router(public_catalog_router, prefix="/api/v1/public", tags=["Catálogo Público"])
 
 
 @app.get("/api/sync/status")

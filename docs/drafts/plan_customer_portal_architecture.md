@@ -1,78 +1,73 @@
-# Plan de Arquitectura: Portal de Clientes (Customer Portal)
+# Especificación Técnica y Arquitectónica: Portal de Clientes (Carta Digital Interactiva)
 
-Este documento analiza las diferentes opciones arquitectónicas para la creación del **Portal de Clientes** de Blackshot, donde los clientes podrán iniciar sesión, ver sus puntos de lealtad, historial de visitas y gestionar su saldo a favor.
-
----
-
-## 1. Opciones Arquitectónicas
-
-Existen tres caminos principales para implementar la interfaz de usuario (UI) del portal de clientes, cada uno con implicaciones directas en seguridad, mantenimiento y resiliencia.
-
-### Opción A: Aplicación Separada (Standalone App) - *Recomendada*
-Crear un nuevo proyecto frontend (ej. `bs_customer_portal` en SvelteKit o React) que viva en un repositorio o carpeta separada. Esta aplicación se comunica **exclusivamente con la API del Central Core**.
-
-*   **Pros:**
-    *   **Máxima Seguridad:** El código, las dependencias y el despliegue están 100% aislados del POS local y del Dashboard Administrativo.
-    *   **Escalabilidad:** Si miles de clientes entran al mismo tiempo, solo se escala el portal y el Central Core, sin afectar la operación local de las cafeterías.
-    *   **Flexibilidad:** Permite convertirse fácilmente en una PWA (Progressive Web App) o aplicación móvil nativa a futuro.
-*   **Contras:**
-    *   Requiere configurar un nuevo entorno de despliegue (hosting como Vercel, Netlify o un contenedor Docker separado).
-
-### Opción B: Compartido con el POS Local (`bs_frontend`)
-Añadir rutas públicas (ej. `/cliente/*`) dentro del proyecto SvelteKit actual que usan los cajeros.
-
-*   **Pros:**
-    *   Reutilización máxima de componentes de UI y estilos (Tailwind/CSS).
-    *   Cero configuración adicional de repositorios.
-*   **Contras:**
-    *   **Riesgo Crítico de Seguridad:** Implica exponer el servidor del POS (que debe operar en la red local de la sucursal) a Internet. 
-    *   **Rendimiento:** Un pico de tráfico de clientes revisando sus puntos podría alentar el sistema de caja y la toma de comandas, afectando la operación en tiempo real.
-    *   Contradice la premisa de "Offline-First" y aislamiento de sucursales.
-
-### Opción C: Unido al Central Core (Módulo Integrado)
-Servir el portal directamente desde el proyecto `central_core`, ya sea usando plantillas (Jinja2) o integrando un frontend unificado junto con el Dashboard de Administración.
-
-*   **Pros:**
-    *   Una sola base de código para todo lo que está "en la nube".
-    *   Latencia mínima entre el frontend y la base de datos `GlobalCustomer`.
-*   **Contras:**
-    *   Mezcla dominios de negocio (B2C para clientes vs B2B para administradores).
-    *   Si un ataque vulnera el portal de clientes, el panel de administración central queda potencialmente expuesto.
+Este documento detalla la arquitectura de red, el modelo de datos unificado, el flujo de autenticación y la seguridad para el **Portal de Clientes** de Blackshot POS. El objetivo es estructurar una experiencia interactiva basada en la **Carta Digital**, integrada localmente en el ecosistema de la sucursal, garantizando alta disponibilidad offline y seguridad perimetral local.
 
 ---
 
-## 2. Comparativa y Veredicto
+## 1. Visión del Producto: La Carta Interactiva
 
-| Criterio | Opción A (Separado) | Opción B (POS Frontend) | Opción C (Central Core) |
-| :--- | :---: | :---: | :---: |
-| **Seguridad de Sucursales** | Alta (Aislado) | Muy Baja (Expuesto) | Alta (Aislado) |
-| **Aislamiento de Admins** | Alto | N/A | Bajo |
-| **Esfuerzo de Configuración** | Medio | Bajo | Medio |
-| **Preparado para App Móvil** | Sí | No | Difícil |
+El portal de clientes es una extensión directa de la experiencia de compra de la cafetería. Su diseño está optimizado para dispositivos móviles bajo un esquema *Mobile-First*.
 
-**Veredicto:** La **Opción A (Separado)** es la única que cumple estrictamente con los estándares de seguridad de Blackshot y mantiene la invulnerabilidad del POS local. El portal debe ser un frontend "tonto" que consume la API segura del `Central Core`.
+### 1.1 Comportamiento y UX
+*   **Identidad Visual Compartida:** Reutilización de los componentes visuales de `bs_frontend` (como grids de productos, variantes y animaciones de Svelte 5 runes) para garantizar una experiencia fluida e idéntica a la del punto de venta.
+*   **Búsqueda y Exploración:** Filtros interactivos por categorías y barra de búsqueda reactiva local para localizar productos instantáneamente.
+*   **Perfil Privado:** Un área exclusiva donde el cliente visualiza:
+    *   Su saldo a favor y puntos de lealtad acumulados.
+    *   Su **Código QR de Lealtad** único para que el cajero lo escanee en la terminal física de cobro.
+    *   Sus preferencias de consumo (alergias, favoritos, notas de preparación automáticas).
 
 ---
 
-## 3. Plan de Implementación (Basado en Opción A)
+## 2. Arquitectura de UI y Red (Despliegue Local Unificado)
 
-Si se aprueba el enfoque separado, las siguientes fases guiarán el desarrollo:
+Para maximizar la simplicidad operativa y eliminar dependencias de internet en la mesa de los clientes, adoptamos una **arquitectura LAN de base única**.
 
-### Fase 1: Preparación del Backend (Central Core)
-1.  Crear router de autenticación JWT público en `central_core/api/customers_auth.py` (`/api/customers/login`, `/api/customers/me`).
-2.  Desarrollar endpoints de solo lectura para el portal: `/api/customers/transactions`, `/api/customers/loyalty`.
-3.  Configurar CORS estricto en el Central Core para permitir solo el dominio del nuevo portal.
+```
+                       [ RED LOCAL / WI-FI DE LA SUCURSAL ]
+                       
+  +------------------+                    +------------------------------------+
+  |  Celular Cliente  | <--- HTTPS ---->  |           Servidor Local           |
+  |  (Portal Svelte)  |                   |  (Puerto 8000 - Blackshot POS Core)|
+  +------------------+                    +------------------------------------+
+                                                            |
+                                               [ Base PostgreSQL Local ]
+                                               (Clientes y Ventas Unificados)
+```
 
-### Fase 2: Creación del Proyecto Frontend
-1.  Inicializar `bs_customer_portal` usando SvelteKit y **pnpm** (siguiendo las normativas del proyecto).
-2.  Configurar un sistema de diseño visual (UI) orientado al consumidor final (más visual, dinámico y "premium" que el panel de administración).
-3.  Implementar el flujo de Autenticación (Login con Teléfono/Usuario + Password o envío de OTP).
+### 2.1 Aislamiento en el Mismo Hardware
+1.  **`bs_frontend` (Puerto 5173 / Local):** Interfaz dedicada estrictamente al Staff (Caja, Pantalla de Cocina, Gestión de Inventario).
+2.  **`bs_customer_portal` (Puerto 5174 / Local):** Interfaz dedicada al cliente, servida estáticamente. Consume únicamente la API pública del POS Core.
+3.  **`pos_core` (FastAPI - Puerto 8000):** El motor unificado. Sirve tanto al staff como a los clientes mediante políticas de enrutamiento y dependencias de tokens separadas.
 
-### Fase 3: Integración de Funcionalidades Clave
-1.  **Dashboard Principal:** Mostrar el `loyalty_code` en formato **Código QR** renderizado dinámicamente en pantalla.
-2.  **Billetera (Wallet):** Visualización de `points` y `credit_balance`.
-3.  **Historial:** Lista de últimas compras sincronizadas desde las sucursales.
+### 2.2 Ventajas del Despliegue de Red Local
+*   **Indestructible ante Caídas de Internet:** Si la conexión a internet de la sucursal falla, el portal de clientes sigue operando al 100% de velocidad local para cualquiera conectado al Wi-Fi de la cafetería.
+*   **Inmunidad a Ataques Externos (DDoS):** Al no exponer puertos a la WAN pública, el servidor físico local es invisible y totalmente inaccesible desde el exterior del local.
 
-### Fase 4: Despliegue
-1.  Crear `Dockerfile` multi-stage para el portal de clientes.
-2.  Desplegar el frontend en la nube (ej. Vercel o Docker Server) apuntando las variables de entorno al dominio público del `Central Core`.
+---
+
+## 3. Modelo de Autenticación Unificado (Username + Password + UUID)
+
+Los clientes y el staff coexisten en la misma base de datos física local (`blackshot_db`), pero bajo esquemas de tablas, privilegios y tokens totalmente separados. La autenticación de clientes se desvincula por completo del teléfono para evitar bloqueos si el usuario cambia de número.
+
+### 3.1 Mecanismo de Identificación
+*   **Identificador de Acceso:** El cliente utiliza un **Nombre de Usuario (`username`)** único y una **Contraseña (`password`)** robusta para autenticarse.
+*   **Clave Persistente (UUID):** El identificador inalterable del cliente es su `id` (UUID). Este es el valor codificado en el token JWT y el usado para relacionar todas sus órdenes en caja.
+*   **Datos Personales Cifrados (PII):**
+    *   El Nombre (`encrypted_name`), Teléfono (`encrypted_phone`) y Email (`encrypted_email`) se cifran simétricamente en reposo (AES/Fernet).
+    *   El número de teléfono es totalmente secundario y opcional. No tiene ningún impacto en las credenciales de inicio de sesión.
+*   **Almacenamiento de Contraseña:** La contraseña se hashea usando **Argon2** en el campo `hashed_password` de la base de datos de la sucursal.
+*   **Emisión de Tokens:** Al validar el username y el hash de la contraseña, el backend emite un JWT exclusivo para clientes (`role="customer"`) con el UUID en el campo `sub`.
+
+### 3.2 Flujo de Rutas Públicas (Prefijo `/api/v1/public`)
+*   `POST /api/v1/public/customers/auth/register`: Registra un cliente de forma local usando username, password, nombre y teléfono opcional, y devuelve su token.
+*   `POST /api/v1/public/customers/auth/login`: Valida las credenciales de `username` y `password` contra la base de datos local y devuelve el token de acceso JWT.
+*   `GET /api/v1/public/catalog`: Devuelve la carta sin información de negocio sensible. Requiere token de cliente.
+
+---
+
+## 4. Aislamiento Físico y de Privilegios
+
+La seguridad perimetral de la API se garantiza a través de la inyección de dependencias estrictas en FastAPI:
+
+*   **`get_current_staff_user`:** Valida que el token JWT contenga un rol de empleado administrativo/caja. Protege rutas sensibles de administración (`/api/v1/pos/sales/*`, `/api/v1/pos/inventory/*`). Un token de cliente recibirá un `403 Forbidden` inmediato si intenta acceder aquí.
+*   **`get_current_customer`:** Valida que el token contenga el rol de cliente. Otorga acceso exclusivamente al portal de la carta (`/api/v1/public/catalog`) y a la información personal del cliente autenticado (`/api/v1/public/customers/me`).

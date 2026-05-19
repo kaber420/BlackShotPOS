@@ -23,7 +23,24 @@ async def create_customer(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Ya existe un cliente con ese número de teléfono"
             )
+            
+    # Verificar si ya existe el nombre de usuario
+    if customer_in.username:
+        existing = await CustomerService.get_by_username(db, customer_in.username)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Ya existe un cliente con ese nombre de usuario"
+            )
     return await CustomerService.create(db, customer_in)
+
+@router.get("/", response_model=List[CustomerRead])
+async def list_customers(
+    limit: int = Query(50, ge=1, le=100),
+    db: AsyncSession = Depends(get_session),
+    _ = Depends(require_permission("can_take_orders"))
+):
+    return await CustomerService.list_all(db, limit)
 
 @router.get("/search", response_model=List[CustomerRead])
 async def search_customers(

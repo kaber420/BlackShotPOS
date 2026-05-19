@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { setAuth, initAuth } from '$lib/app_state.svelte';
-	import { PUBLIC_API_URL } from '$env/static/public';
 	import Button from '$lib/components/ui/Button.svelte';
 
 	let email = $state('');
@@ -21,7 +20,7 @@
 			formData.append('username', email); // FastAPI Users espera 'username' como email
 			formData.append('password', password);
 
-			const res = await fetch(`${PUBLIC_API_URL}/api/auth/jwt/login`, {
+			const res = await fetch(`/api/auth/jwt/login`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 				credentials: 'include',

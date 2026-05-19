@@ -36,8 +36,8 @@ class Customer(SQLModel, table=True):
     # Infraestructura Distribuida
     organization_id: str = Field(default="default", index=True)
     is_synced: bool = Field(default=False, index=True)
-    last_visit_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    last_visit_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
     
     # Metadata adicional (ej: preferencias, notas)
     custom_metadata: dict = Field(default={}, sa_type=JSON)
@@ -45,22 +45,34 @@ class Customer(SQLModel, table=True):
     @property
     def name(self) -> str:
         from pos_core.crypto import CryptoService
-        return CryptoService.decrypt_data(self.encrypted_name)
+        decrypted = CryptoService.decrypt_data(self.encrypted_name)
+        if decrypted.startswith("gAAAAA"):
+            return "Error de Descifrado"
+        return decrypted
 
     @property
     def phone(self) -> Optional[str]:
         from pos_core.crypto import CryptoService
-        return CryptoService.decrypt_data(self.encrypted_phone) if self.encrypted_phone else None
+        decrypted = CryptoService.decrypt_data(self.encrypted_phone) if self.encrypted_phone else None
+        if decrypted and decrypted.startswith("gAAAAA"):
+            return "0000000000"
+        return decrypted
 
     @property
     def email(self) -> Optional[str]:
         from pos_core.crypto import CryptoService
-        return CryptoService.decrypt_data(self.encrypted_email) if self.encrypted_email else None
+        decrypted = CryptoService.decrypt_data(self.encrypted_email) if self.encrypted_email else None
+        if decrypted and decrypted.startswith("gAAAAA"):
+            return "decryption-failed@blackshot.com"
+        return decrypted
 
     @property
     def telegram_id(self) -> Optional[str]:
         from pos_core.crypto import CryptoService
-        return CryptoService.decrypt_data(self.encrypted_telegram_id) if self.encrypted_telegram_id else None
+        decrypted = CryptoService.decrypt_data(self.encrypted_telegram_id) if self.encrypted_telegram_id else None
+        if decrypted and decrypted.startswith("gAAAAA"):
+            return "decryption_failed_id"
+        return decrypted
 
     # Relaciones
     # orders: List["Order"] = Relationship(back_populates="customer")

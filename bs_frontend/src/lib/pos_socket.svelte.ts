@@ -1,4 +1,3 @@
-import { PUBLIC_API_URL } from '$env/static/public';
 import type { Order } from '$lib/api/orders';
 import type { Table } from '$lib/api/tables';
 import type { IntercomMessage } from '$lib/api/intercom';
@@ -40,12 +39,9 @@ class PosSocketManager {
         if (this.status === 'connecting' || this.status === 'open') return;
 
         // Convert HTTP/S URL to WS/S URL
-        let socketBase = PUBLIC_API_URL;
-        if (!socketBase && typeof window !== 'undefined') {
-            socketBase = window.location.origin;
-        }
-        socketBase = socketBase.replace(/^http/, 'ws');
-        const url = `${socketBase}/api/v1/pos/events/ws/pos`;
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const host = window.location.host;
+        const url = `${protocol}://${host}/api/v1/pos/events/ws/pos`;
 
         console.log("🔌 SOCKET: Conectando...");
         this.status = 'connecting';

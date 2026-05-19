@@ -65,7 +65,7 @@ export const UserService = {
     },
 
     async setPermission(uuid: string, perm: string, value: boolean): Promise<void> {
-        const res = await fetch(`${BASE}/users/${uuid}/permissions`, {
+        const res = await fetch(`${BASE}/${uuid}/permissions`, {
             method: 'PATCH',
             headers: authHeaders(),
             body: JSON.stringify({ [perm]: value }),
@@ -74,7 +74,7 @@ export const UserService = {
     },
 
     async resetPermission(uuid: string, perm: string): Promise<void> {
-        const res = await fetch(`${BASE}/users/${uuid}/permissions/${perm}`, {
+        const res = await fetch(`${BASE}/${uuid}/permissions/${perm}`, {
             method: 'DELETE',
             headers: authHeaders(),
         });
@@ -82,7 +82,7 @@ export const UserService = {
     },
 
     async changePassword(uuid: string, newPassword: string): Promise<void> {
-        const res = await fetch(`${BASE}/users/${uuid}/password`, {
+        const res = await fetch(`${BASE}/${uuid}/password`, {
             method: 'PUT',
             headers: authHeaders(),
             body: JSON.stringify({ new_password: newPassword }),
@@ -91,7 +91,7 @@ export const UserService = {
     },
 
     async deactivate(uuid: string): Promise<void> {
-        const res = await fetch(`${BASE}/users/${uuid}`, {
+        const res = await fetch(`${BASE}/${uuid}`, {
             method: 'DELETE',
             headers: authHeaders(),
         });

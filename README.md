@@ -49,13 +49,13 @@ python scripts/seed_data.py
 blackshot
 ```
 
-#### Configuración del Frontend
+#### Configuración del Frontend (⚠️ USAR EXCLUSIVAMENTE PNPM)
 ```bash
 cd bs_frontend
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
-> Acceso: `http://localhost:5173` | API: `http://localhost:8000`
+> Acceso: `http://localhost:5173` | API: `http://localhost:8400`
 
 ---
 
@@ -107,6 +107,16 @@ blackshot/
 ├── drafts/         # Planes de desarrollo futuro
 └── pyproject.toml  # Configuración base del proyecto
 ```
+
+---
+
+## 📡 Configuración Dinámica de Red y CORS
+
+Para simplificar el despliegue local y evitar problemas de conectividad al cambiar de red Wi-Fi o conectar dispositivos externos (como tablets para comandas o smartphones para el Portal de Clientes), Blackshot implementa un sistema de **Red Autoadministrada**:
+
+- **Detección Activa de IP:** Al arrancar el backend (`main.py`), este detecta automáticamente la IP local activa de la sucursal.
+- **Inyección de CORS y Trusted Hosts:** La IP detectada se añade en caliente a los middlewares de seguridad de FastAPI usando los puertos configurados dinámicamente en tu `.env` (`PORT` y `FRONTEND_PORT`), junto con los puertos de desarrollo Vite (`5173`, `5174`) como fallbacks de comodidad. 
+- **Cero Hardcoding:** No necesitas editar manualmente el archivo `.env` cada vez que tu router te asigne una nueva dirección de red local.
 
 ---
 
