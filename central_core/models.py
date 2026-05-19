@@ -116,6 +116,10 @@ class GlobalCustomer(SQLModel, table=True):
     username: Optional[str] = Field(default=None, unique=True, index=True)
     hashed_password: Optional[str] = None
     
+    # Identificadores para hardware y portales (QR / NFC / Tarjetas Físicas)
+    loyalty_code: str = Field(index=True, unique=True)
+    nfc_tag_id: Optional[str] = Field(default=None, index=True, unique=True)
+    
     # Datos Personales Cifrados (PII)
     encrypted_name: str
     encrypted_email: Optional[str] = None

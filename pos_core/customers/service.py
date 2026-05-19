@@ -12,6 +12,11 @@ class CustomerService:
     async def create(db: AsyncSession, customer_in: CustomerCreate) -> Customer:
         data = customer_in.model_dump(exclude={"name", "phone", "email", "password", "telegram_id"})
         
+        # Generar loyalty_code si no viene
+        if not data.get("loyalty_code"):
+            from uuid import uuid4
+            data["loyalty_code"] = uuid4().hex[:8].upper()
+        
         # PII Encryption
         data["encrypted_name"] = CryptoService.encrypt_data(customer_in.name)
         data["encrypted_email"] = CryptoService.encrypt_data(customer_in.email) if customer_in.email else None
@@ -51,14 +56,16 @@ class CustomerService:
     @staticmethod
     async def search(db: AsyncSession, query: str, limit: int = 10) -> List[Customer]:
         # Nota: Ya no podemos hacer ILIKE en nombre o email cifrados.
-        # Búsqueda determinista por username o hash de teléfono
+        # Búsqueda determinista por username, hash de teléfono, nfc_tag_id o loyalty_code
         phone_hash = CryptoService.hash_data(query)
         statement = (
             select(Customer)
             .where(
                 or_(
                     Customer.username == query,
-                    Customer.phone_hash == phone_hash
+                    Customer.phone_hash == phone_hash,
+                    Customer.nfc_tag_id == query,
+                    Customer.loyalty_code == query.upper()
                 )
             )
             .limit(limit)

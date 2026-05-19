@@ -8,6 +8,10 @@ class Customer(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True)
     username: Optional[str] = Field(default=None, index=True, unique=True)
     hashed_password: Optional[str] = Field(default=None)
+    
+    # Identificadores para hardware y portales (QR / NFC / Tarjetas Físicas)
+    loyalty_code: str = Field(default_factory=lambda: uuid4().hex[:8].upper(), index=True, unique=True)
+    nfc_tag_id: Optional[str] = Field(default=None, index=True, unique=True)
 
     # Datos Personales Cifrados (PII)
     encrypted_name: str

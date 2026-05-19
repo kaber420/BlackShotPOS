@@ -9,6 +9,8 @@ class CustomerBase(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     telegram_id: Optional[str] = None
+    nfc_tag_id: Optional[str] = None
+    loyalty_code: Optional[str] = None
     custom_metadata: dict = {}
     accepts_marketing_email: bool = False
     accepts_marketing_telegram: bool = False
@@ -23,6 +25,8 @@ class CustomerUpdate(BaseModel):
     email: Optional[EmailStr] = None
     username: Optional[str] = None
     telegram_id: Optional[str] = None
+    nfc_tag_id: Optional[str] = None
+    loyalty_code: Optional[str] = None
     points: Optional[int] = None
     credit_balance: Optional[float] = None
     tier: Optional[str] = None
@@ -43,6 +47,8 @@ class CustomerRead(CustomerBase):
     is_synced: bool
     last_visit_at: datetime
     created_at: datetime
+    nfc_tag_id: Optional[str] = None
+    loyalty_code: Optional[str] = None
 
     class Config:
         from_attributes = True
