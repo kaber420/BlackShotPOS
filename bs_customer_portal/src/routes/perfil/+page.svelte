@@ -21,7 +21,34 @@
         };
     }
 
+    interface OrderItemData {
+        product_name: string;
+        quantity: number;
+        unit_price: number;
+        measure_name: string | null;
+    }
+
+    interface OrderData {
+        id: number;
+        created_at: string;
+        branch_name: string;
+        total_amount: number;
+        financial_status: string;
+        items: OrderItemData[];
+        payment_methods: string[];
+    }
+
+    interface StatsData {
+        total_visits: number;
+        total_spent: number;
+        favorite_product: string | null;
+        favorite_branch: string;
+        last_visit_at: string | null;
+    }
+
     let customer = $state<CustomerData | null>(null);
+    let orders = $state<OrderData[]>([]);
+    let stats = $state<StatsData | null>(null);
     let isLoading = $state(true);
     let isSaving = $state(false);
     let errorMessage = $state('');
@@ -61,6 +88,26 @@
             // Populate form fields
             prefNotes = customer?.custom_metadata?.preferences_notes || '';
             prefAllergies = customer?.custom_metadata?.allergies || '';
+
+            // Fetch statistics
+            const statsResponse = await fetch(`/api/v1/public/customers/me/stats`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (statsResponse.ok) {
+                stats = await statsResponse.json();
+            }
+
+            // Fetch purchase history
+            const ordersResponse = await fetch(`/api/v1/public/customers/me/orders`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (ordersResponse.ok) {
+                orders = await ordersResponse.json();
+            }
         } catch (error) {
             console.error('Error loading profile:', error);
             errorMessage = 'No se pudo cargar tu perfil. Revisa tu conexión.';
@@ -192,6 +239,28 @@
                 <button onclick={loadProfile} class="btn btn-primary rounded-2xl font-black uppercase tracking-wider px-8">Reintentar</button>
             </div>
         {:else if customer}
+            <!-- Estadísticas en Grid Ancho -->
+            {#if stats}
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8" in:fly={{ y: 20, duration: 500, delay: 100 }}>
+                    <div class="bg-base-200/40 border border-base-200 rounded-[2rem] p-5 text-center flex flex-col justify-center shadow-lg transition-transform duration-300 hover:scale-[1.02]">
+                        <span class="text-[8px] uppercase tracking-[0.25em] font-black opacity-45 block mb-1">Visitas Totales</span>
+                        <span class="text-3xl font-black font-mono tracking-tight text-primary">{stats.total_visits}</span>
+                    </div>
+                    <div class="bg-base-200/40 border border-base-200 rounded-[2rem] p-5 text-center flex flex-col justify-center shadow-lg transition-transform duration-300 hover:scale-[1.02]">
+                        <span class="text-[8px] uppercase tracking-[0.25em] font-black opacity-45 block mb-1">Total Consumido</span>
+                        <span class="text-3xl font-black font-mono tracking-tight text-secondary">${stats.total_spent.toFixed(2)}</span>
+                    </div>
+                    <div class="bg-base-200/40 border border-base-200 rounded-[2rem] p-5 text-center flex flex-col justify-center shadow-lg transition-transform duration-300 hover:scale-[1.02]">
+                        <span class="text-[8px] uppercase tracking-[0.25em] font-black opacity-45 block mb-1">Bebida Estrella</span>
+                        <span class="text-sm font-black uppercase tracking-tight text-base-content/80 truncate mt-1">{stats.favorite_product || 'Ninguna aún'}</span>
+                    </div>
+                    <div class="bg-base-200/40 border border-base-200 rounded-[2rem] p-5 text-center flex flex-col justify-center shadow-lg transition-transform duration-300 hover:scale-[1.02]">
+                        <span class="text-[8px] uppercase tracking-[0.25em] font-black opacity-45 block mb-1">Sucursal Activa</span>
+                        <span class="text-sm font-black uppercase tracking-tight text-accent truncate mt-1">{stats.favorite_branch || 'BlackShot'}</span>
+                    </div>
+                </div>
+            {/if}
+
             <div class="grid grid-cols-1 md:grid-cols-12 gap-8" in:fly={{ y: 30, duration: 600, easing: quintOut }}>
                 
                 <!-- Columna Izquierda: Tarjeta Digital VIP & QR -->
@@ -345,6 +414,74 @@
 
                 </div>
 
+            </div>
+
+            <!-- Historial de Compras Timeline -->
+            <div class="mt-12 bg-base-200/50 backdrop-blur-xl border border-base-200 rounded-[3rem] p-8 md:p-10 shadow-xl" in:fly={{ y: 30, duration: 600, delay: 200 }}>
+                <div class="flex items-center gap-3 mb-8">
+                    <div class="w-10 h-10 bg-secondary/10 rounded-2xl flex items-center justify-center text-secondary border border-secondary/20">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 002-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-black uppercase tracking-tight">Historial de Compras</h3>
+                        <p class="text-[9px] uppercase tracking-wider opacity-40 font-bold">Auditoría detallada de tus consumos y canjes</p>
+                    </div>
+                </div>
+
+                {#if orders.length === 0}
+                    <div class="text-center py-16 opacity-40 flex flex-col items-center justify-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-base-content/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="text-xs uppercase tracking-widest font-black">No tienes compras registradas aún</span>
+                    </div>
+                {:else}
+                    <div class="flex flex-col gap-6">
+                        {#each orders as order}
+                            <div class="bg-base-100/60 rounded-3xl border border-base-200/80 p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all duration-300 hover:bg-base-100 hover:shadow-lg">
+                                <div class="flex flex-col gap-2">
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs font-mono font-black text-primary opacity-90 bg-primary/10 px-3 py-1 rounded-xl">
+                                            #{order.id}
+                                        </span>
+                                        <span class="text-[10px] uppercase font-black opacity-45">
+                                            {new Date(order.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                        </span>
+                                        <span class="text-[10px] uppercase font-black text-accent bg-accent/10 px-3 py-1 rounded-xl border border-accent/10">
+                                            {order.branch_name}
+                                        </span>
+                                    </div>
+                                    <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs font-semibold opacity-70 mt-1">
+                                        {#each order.items as item}
+                                            <span class="bg-base-200/50 px-3 py-1 rounded-xl flex items-center gap-1.5 border border-base-300/30">
+                                                <span class="font-black text-primary">{item.quantity}x</span> 
+                                                <span>{item.product_name}</span>
+                                                {#if item.measure_name}
+                                                    <span class="text-[9px] uppercase tracking-wider font-bold opacity-50">({item.measure_name})</span>
+                                                {/if}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                </div>
+                                <div class="flex items-center justify-between md:justify-end gap-6 border-t border-base-200/50 md:border-none pt-4 md:pt-0">
+                                    <div class="flex flex-wrap gap-2">
+                                        {#each order.payment_methods as method}
+                                            <span class="text-[9px] uppercase tracking-wider font-black px-3 py-1 rounded-full border border-base-300 bg-base-200/50 opacity-60">
+                                                {method}
+                                            </span>
+                                        {/each}
+                                    </div>
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-lg font-mono font-black tracking-tight">${order.total_amount.toFixed(2)}</span>
+                                        <span class="text-[8px] uppercase tracking-widest font-black opacity-45 mt-0.5">Total Pagado</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+                {/if}
             </div>
         {/if}
 

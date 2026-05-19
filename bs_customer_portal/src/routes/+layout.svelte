@@ -1,6 +1,18 @@
 <script lang="ts">
 	import '../app.css';
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	
 	let { children } = $props();
+	let hasToken = $state(false);
+
+	$effect(() => {
+		// Triggers reactively on path change
+		const path = $page.url.pathname;
+		if (typeof window !== 'undefined') {
+			hasToken = !!localStorage.getItem('customer_token');
+		}
+	});
 </script>
 
 <svelte:head>
@@ -21,6 +33,30 @@
                     <span class="text-[10px] uppercase tracking-[0.2em] font-bold opacity-40">Portal de Clientes</span>
                 </div>
             </div>
+
+            {#if hasToken && $page.url.pathname !== '/login'}
+                {#if $page.url.pathname === '/perfil'}
+                    <a 
+                        href="/menu"
+                        class="btn btn-neutral rounded-2xl flex items-center gap-2 font-black uppercase text-[10px] tracking-wider shadow-lg transition-all duration-300 hover:scale-105 active:scale-95"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                        Ver Menú
+                    </a>
+                {:else}
+                    <a 
+                        href="/perfil"
+                        class="btn btn-primary rounded-2xl flex items-center gap-2 font-black uppercase text-[10px] tracking-wider shadow-lg shadow-primary/15 transition-all duration-300 hover:scale-105 active:scale-95"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Mi Perfil / Monedero
+                    </a>
+                {/if}
+            {/if}
         </div>
     </header>
 

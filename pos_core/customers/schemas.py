@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 from uuid import UUID
 from pydantic import BaseModel, EmailStr
@@ -52,3 +52,26 @@ class CustomerRead(CustomerBase):
 
     class Config:
         from_attributes = True
+
+class CustomerOrderItemRead(BaseModel):
+    product_name: str
+    quantity: int
+    unit_price: float
+    measure_name: Optional[str] = None
+
+class CustomerOrderRead(BaseModel):
+    id: int
+    created_at: datetime
+    branch_name: str
+    total_amount: float
+    financial_status: str
+    items: List[CustomerOrderItemRead]
+    payment_methods: List[str]
+
+class CustomerStatsRead(BaseModel):
+    total_visits: int
+    total_spent: float
+    favorite_product: Optional[str] = None
+    favorite_branch: str
+    last_visit_at: Optional[datetime] = None
+
