@@ -51,7 +51,7 @@
     }
 </script>
 
-<div class="p-6 max-w-4xl mx-auto">
+<div class="p-6 w-full">
     <div class="flex items-center gap-4 mb-8">
         <div class="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">

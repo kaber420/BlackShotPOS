@@ -79,5 +79,9 @@ async def on_kitchen_item_status_change(payload: dict, metadata: dict):
                 await item_repo.save(session, item)
                 await session.commit()
                 logger.info(f"🔄 OrderItem {item_id} (Orden {order_id}) actualizado a {new_status} en base de datos.")
+                
+                # Disparar actualización del WebSocket 'recent_orders' de ventas tras persistencia física
+                from pos_core.events.service import trigger_broadcast
+                await trigger_broadcast("recent_orders")
         except Exception as e:
             logger.error(f"❌ Error en on_kitchen_item_status_change: {e}")

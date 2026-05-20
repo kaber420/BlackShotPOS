@@ -35,7 +35,7 @@
     );
 </script>
 
-<div class="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 flex-1 min-h-0 overflow-y-auto w-full">
+<div class="p-4 lg:p-8 space-y-8 flex-1 min-h-0 overflow-y-auto w-full">
     
     <!-- Unified Header Toolbar -->
     <Toolbar title="Bitácora de Auditoría">

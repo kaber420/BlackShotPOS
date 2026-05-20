@@ -118,7 +118,7 @@
     }
 </script>
 
-<div class="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 flex-1 min-h-0 overflow-y-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
+<div class="p-6 lg:p-10 space-y-8 flex-1 min-h-0 overflow-y-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
     
     <!-- Unified Header Toolbar -->
     <Toolbar title="Ventas & Desempeño">

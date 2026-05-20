@@ -186,8 +186,7 @@
 								{/if}
 
 								{#if can.manageShifts()}
-									<li><a href="/accounting">💵 Mi Contabilidad</a></li>
-									<li><a href="/admin/registers">🖥️ Monitor de Cajas</a></li>
+									<li><a href="/accounting">💵 Mi Caja</a></li>
 								{/if}
 
 								{#if can.manageSettings()}

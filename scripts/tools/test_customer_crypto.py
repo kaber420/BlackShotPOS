@@ -63,13 +63,23 @@ async def main():
         assert fetched.name == "John Doe"
         print("Customer Get By Phone: OK\n")
         
-        print("--- Testing CustomerService Search (by hash/exact) ---")
+        print("--- Testing CustomerService Search (by hash/exact & partial) ---")
         searched = await CustomerService.search(session, "1234567890")
         assert len(searched) == 1
         assert searched[0].name == "John Doe"
         
         searched_by_user = await CustomerService.search(session, "johndoe")
         assert len(searched_by_user) == 1
+        
+        # Test similar/prefix searches
+        searched_by_prefix = await CustomerService.search(session, "john")
+        assert len(searched_by_prefix) == 1
+        assert searched_by_prefix[0].username == "johndoe"
+
+        # Test case-insensitivity
+        searched_by_case = await CustomerService.search(session, "JOHN")
+        assert len(searched_by_case) == 1
+        
         print("Customer Search: OK\n")
         
         print("--- Testing Customer Update ---")

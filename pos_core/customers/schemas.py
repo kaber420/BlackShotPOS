@@ -14,6 +14,7 @@ class CustomerBase(BaseModel):
     custom_metadata: dict = {}
     accepts_marketing_email: bool = False
     accepts_marketing_telegram: bool = False
+    is_active: bool = True
 
 class CustomerCreate(CustomerBase):
     organization_id: str = "default"
@@ -35,6 +36,7 @@ class CustomerUpdate(BaseModel):
     custom_metadata: Optional[dict] = None
     is_synced: Optional[bool] = None
     password: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class CustomerRead(CustomerBase):
     id: UUID

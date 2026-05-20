@@ -56,16 +56,20 @@ class CustomerService:
     @staticmethod
     async def search(db: AsyncSession, query: str, limit: int = 10) -> List[Customer]:
         # Nota: Ya no podemos hacer ILIKE en nombre o email cifrados.
-        # Búsqueda determinista por username, hash de teléfono, nfc_tag_id o loyalty_code
+        # Búsqueda determinista o parcial por username, hash de teléfono, nfc_tag_id o loyalty_code
         phone_hash = CryptoService.hash_data(query)
+        
+        # Búsqueda parcial (insensible a mayúsculas/minúsculas)
+        like_query = f"%{query}%"
+        
         statement = (
             select(Customer)
             .where(
                 or_(
-                    Customer.username == query,
+                    Customer.username.ilike(like_query),
                     Customer.phone_hash == phone_hash,
-                    Customer.nfc_tag_id == query,
-                    Customer.loyalty_code == query.upper()
+                    Customer.nfc_tag_id.ilike(like_query),
+                    Customer.loyalty_code.ilike(like_query)
                 )
             )
             .limit(limit)

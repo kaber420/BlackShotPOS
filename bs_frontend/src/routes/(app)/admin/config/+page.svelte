@@ -139,7 +139,7 @@
 
 </script>
 
-<div class="p-6 lg:p-10 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full space-y-10">
+<div class="p-6 lg:p-10 flex-1 min-h-0 overflow-y-auto w-full space-y-10">
     
     <!-- Header -->
     <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">

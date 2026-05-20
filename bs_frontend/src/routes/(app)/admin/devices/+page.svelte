@@ -59,7 +59,7 @@
     <title>Blackshot IoT | Gestión de Dispositivos</title>
 </svelte:head>
 
-<div class="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 overflow-y-auto h-full">
+<div class="p-4 lg:p-8 space-y-8 animate-in fade-in duration-500 overflow-y-auto h-full w-full">
     
     <!-- Unified Header Toolbar -->
     <Toolbar title="Gestión IoT">

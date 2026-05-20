@@ -48,6 +48,12 @@
             show: can.viewReports()
         },
         { 
+            name: 'Cajas', 
+            href: '/admin/registers', 
+            icon: '🖥️', 
+            show: can.manageShifts()
+        },
+        { 
             name: 'Analíticas', 
             href: '/admin/analytics', 
             icon: '📈', 
@@ -87,7 +93,7 @@
 
 </script>
 
-<div class="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+<div class="p-6 lg:p-10 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
     
     <!-- Header Toolbar -->
     <Toolbar title="Administración">

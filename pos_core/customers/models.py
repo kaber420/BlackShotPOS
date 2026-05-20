@@ -36,6 +36,7 @@ class Customer(SQLModel, table=True):
     # Infraestructura Distribuida
     organization_id: str = Field(default="default", index=True)
     is_synced: bool = Field(default=False, index=True)
+    is_active: bool = Field(default=True, index=True)
     last_visit_at: datetime = Field(default_factory=datetime.utcnow)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     

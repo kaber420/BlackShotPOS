@@ -94,6 +94,13 @@ async def init_db():
             )
             if not cursor.first():
                 await conn.execute(text("ALTER TABLE \"customer\" ADD COLUMN hashed_password VARCHAR(255);"))
+
+            # Check is_active in customer
+            cursor = await conn.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name='customer' AND column_name='is_active';")
+            )
+            if not cursor.first():
+                await conn.execute(text("ALTER TABLE \"customer\" ADD COLUMN is_active BOOLEAN DEFAULT TRUE;"))
         except Exception as e:
             import logging
             logging.getLogger(__name__).error(f"Error en migración automática de base de datos: {e}")

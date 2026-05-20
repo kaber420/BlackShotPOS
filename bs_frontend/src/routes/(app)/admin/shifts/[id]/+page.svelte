@@ -55,7 +55,7 @@
     }
 </script>
 
-<div class="p-6 lg:p-10 max-w-5xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 print:p-0 print:max-w-none">
+<div class="p-6 lg:p-10 w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 print:p-0 print:max-w-none">
     
     <!-- Header -->
     <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 print:hidden">

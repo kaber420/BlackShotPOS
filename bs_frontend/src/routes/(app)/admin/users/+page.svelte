@@ -156,7 +156,7 @@
     }
 </script>
 
-<div class="p-6 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full space-y-6">
+<div class="p-6 flex-1 min-h-0 overflow-y-auto w-full space-y-6">
 
     <!-- Unified Header Toolbar -->
     <Toolbar title="Gestión de Usuarios">

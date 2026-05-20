@@ -169,9 +169,10 @@ async def update_ticket_status(
         await kitchen_repo.save(session, ticket)
         await session.commit()
         
-        # Notificar a la UI del KDS y Meseros
-        from pos_core.events.service import trigger_standard_broadcasts
-        await trigger_standard_broadcasts()
+        # Notificar a la UI del KDS y del Dashboard (Cocina y Stats)
+        from pos_core.events.service import trigger_broadcast
+        await trigger_broadcast("kitchen_orders")
+        await trigger_broadcast("dashboard_stats")
         
     return ticket
 
@@ -216,9 +217,10 @@ async def update_order_tickets_status(
     if any_changed:
         await session.commit()
         
-        # Notificar a la UI del KDS y Meseros
-        from pos_core.events.service import trigger_standard_broadcasts
-        await trigger_standard_broadcasts()
+        # Notificar a la UI del KDS y del Dashboard (Cocina y Stats)
+        from pos_core.events.service import trigger_broadcast
+        await trigger_broadcast("kitchen_orders")
+        await trigger_broadcast("dashboard_stats")
         
     return updated
 

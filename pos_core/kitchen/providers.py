@@ -72,45 +72,26 @@ async def provide_kitchen_orders(db: AsyncSession) -> List[Dict[str, Any]]:
 async def provide_recent_orders(db: AsyncSession):
     """
     Proveedor para el tópico 'recent_orders'.
-    AHORA EN COCURA: Agrega información de Cocina en tiempo real para que el mesero vea el progreso.
+    Optimizada y Desacoplada: Lee el estado físico real de Ventas,
+    aprovechando la sincronización en tiempo real provista por EDA.
     """
     from pos_core.sales.services.order_lifecycle_service import get_orders
     from pos_core.sales.schemas import OrderRead
-    from pos_core.sales.models import OrderStatus
     
     orders = await get_orders(db)
-    order_ids = [o.id for o in orders]
-    
-    if not order_ids:
-        return []
-        
-    # Obtener estados de cocina para estas órdenes
-    stmt = select(KitchenTicket).where(KitchenTicket.order_id.in_(order_ids))
-    result = await db.execute(stmt)
-    tickets = result.scalars().all()
-    
-    # Mapeo de item_id -> status de cocina
-    kitchen_status_map: Dict[int, str] = {t.item_id: t.status for t in tickets}
-    
     data = []
+    
     for o in orders:
         order_dict = OrderRead.model_validate(o).model_dump(mode="json")
         item_statuses = []
         
-        # Enriquecer cada item con su estado real de cocina
+        # Leemos el estado del producto directamente de la base de datos de ventas
         for item in order_dict.get("items", []):
-            item_id = item.get("id")
-            if item_id in kitchen_status_map:
-                k_status = kitchen_status_map[item_id]
-                status_str = k_status.value if hasattr(k_status, "value") else str(k_status)
-                item["status"] = status_str
-                item_statuses.append(status_str)
-            else:
-                s = item.get("status")
-                status_str = s.value if hasattr(s, "value") else str(s)
-                item_statuses.append(status_str)
+            s = item.get("status")
+            status_str = s.value if hasattr(s, "value") else str(s)
+            item_statuses.append(status_str)
         
-        # SINTESIS DE ESTADO DE LA ORDEN PARA LA UI (Meseros)
+        # Síntesis rápida de estado de la orden para la UI (Meseros)
         if any(s == "PREPARING" for s in item_statuses):
             order_dict["status"] = "PREPARING"
         elif all(s in ["READY", "DELIVERED", "PAID", "CANCELLED"] for s in item_statuses) and item_statuses:
@@ -119,11 +100,11 @@ async def provide_recent_orders(db: AsyncSession):
             elif all(s in ["DELIVERED", "CANCELLED"] for s in item_statuses):
                 order_dict["status"] = "DELIVERED"
         else:
-            # Si hay al menos un PENDING y nada PREPARING, la orden es PENDING
             order_dict["status"] = "PENDING"
         
         data.append(order_dict)
             
     return sorted(data, key=lambda x: x["created_at"], reverse=True)
+
 
 

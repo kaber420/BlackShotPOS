@@ -3,6 +3,7 @@
     import { listActiveSessions, type ShiftInfo } from '$lib/api/shifts';
     import { formatCurrency, formatDateTime } from '$lib/utils';
     import Button from '$lib/components/ui/Button.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
     import { toast } from '$lib/toast.svelte';
 
     let activeSessions = $state<ShiftInfo[]>([]);
@@ -31,25 +32,26 @@
     }
 </script>
 
-<div class="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <!-- Header -->
-    <header class="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-            <h1 class="text-4xl font-black tracking-tight text-base-content uppercase">
-                Monitor de <span class="text-primary">Cajas Activas</span>
-            </h1>
-            <p class="text-base-content/60 font-medium mt-1">Supervisión en tiempo real de todos los puntos de venta abiertos</p>
-        </div>
+<div class="p-6 flex-1 min-h-0 overflow-y-auto w-full space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <!-- Unified Header Toolbar -->
+    <Toolbar title="Monitor de Cajas">
+        {#snippet left()}
+            <a href="/admin" class="btn btn-ghost btn-sm font-black gap-1 rounded-xl uppercase tracking-wider text-xs">
+                ← Volver
+            </a>
+        {/snippet}
 
-        <Button variant="ghost" class="font-bold gap-2" onclick={loadSessions} disabled={isLoading}>
-            {#if isLoading}
-                <span class="loading loading-spinner loading-xs"></span>
-            {:else}
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-            {/if}
-            Actualizar
-        </Button>
-    </header>
+        {#snippet right()}
+            <Button variant="ghost" size="sm" class="font-bold gap-2 rounded-xl" onclick={loadSessions} disabled={isLoading}>
+                {#if isLoading}
+                    <span class="loading loading-spinner loading-xs"></span>
+                {:else}
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                {/if}
+                Actualizar
+            </Button>
+        {/snippet}
+    </Toolbar>
 
     {#if isLoading && activeSessions.length === 0}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
