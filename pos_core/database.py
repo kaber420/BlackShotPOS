@@ -98,6 +98,20 @@ async def init_db():
             import logging
             logging.getLogger(__name__).error(f"Error en migración automática de base de datos: {e}")
 
+    # Check and add 'PREPARING' to orderstatus Enum type in PostgreSQL
+    try:
+        from sqlalchemy import text
+        autocommit_engine = engine.execution_options(isolation_level="AUTOCOMMIT")
+        async with autocommit_engine.connect() as check_conn:
+            cursor = await check_conn.execute(
+                text("SELECT 1 FROM pg_enum WHERE enumtypid = 'orderstatus'::regtype AND enumlabel = 'PREPARING';")
+            )
+            if not cursor.first():
+                await check_conn.execute(text("ALTER TYPE orderstatus ADD VALUE 'PREPARING';"))
+    except Exception as enum_err:
+        import logging
+        logging.getLogger(__name__).warning(f"No se pudo verificar/agregar 'PREPARING' al enum de la base de datos: {enum_err}")
+
 
 async def get_session() -> AsyncSession:
     """Dependency para obtener una sesión de base de datos asíncrona."""

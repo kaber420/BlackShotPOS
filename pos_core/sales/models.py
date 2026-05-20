@@ -13,6 +13,7 @@ class OrderType(str, Enum):
 
 class OrderStatus(str, Enum):
     PENDING = "PENDING"
+    PREPARING = "PREPARING"
     PAID = "PAID"
     READY = "READY"
     DELIVERED = "DELIVERED"

@@ -40,60 +40,49 @@
         }
     });
 
-    const operationsLinks = [
+    const adminNavLinks = [
         { 
-            name: 'Caja Chica y Turno', 
-            href: '/accounting', 
-            icon: '💵', 
-            desc: 'Flujos manuales de dinero y caja chica',
-            show: can.manageShifts()
-        },
-        { 
-            name: 'Historial de Cortes', 
+            name: 'Cortes', 
             href: '/admin/shifts',
             icon: '📋', 
-            desc: 'Auditoría y cierres de turnos anteriores',
             show: can.viewReports()
         },
         { 
-            name: 'Analíticas y Reportes', 
+            name: 'Analíticas', 
             href: '/admin/analytics', 
             icon: '📈', 
-            desc: 'Reportes de ventas y desempeño del equipo',
             show: can.viewReports()
         },
         { 
             name: 'Clientes', 
             href: '/admin/customers', 
             icon: '☕', 
-            desc: 'Fidelidad, monedero digital y notas',
             show: can.takeOrders()
         },
         { 
-            name: 'Bitácora de Auditoría', 
+            name: 'Auditoría', 
             href: '/admin/audits', 
             icon: '🛡️', 
-            desc: 'Bitácora global de eventos operativos',
             show: can.viewReports()
-        }
-    ].filter(link => link.show);
-
-    const systemsLinks = [
-        { 
-            name: 'Centro de Control', 
-            href: '/admin/config', 
-            icon: '⚙️', 
-            desc: 'Configuración general e impuestos del negocio',
-            show: can.manageSettings()
         },
         { 
-            name: 'Usuarios y Permisos', 
+            name: 'Personal', 
             href: '/admin/users', 
             icon: '👥', 
-            desc: 'Gestión del personal y roles de acceso',
             show: can.manageUsers()
         }
     ].filter(link => link.show);
+
+    let paymentBreakdown = $derived(
+        summary && summary.by_payment_method ? [
+            { key: 'CASH', name: 'Efectivo', icon: '💵', color: 'bg-success', textClass: 'text-success', bgClass: 'bg-success/10', amount: summary.by_payment_method.CASH || 0 },
+            { key: 'CARD', name: 'Tarjeta', icon: '💳', color: 'bg-info', textClass: 'text-info', bgClass: 'bg-info/10', amount: summary.by_payment_method.CARD || 0 },
+            { key: 'TRANSFER', name: 'Transferencia', icon: '📲', color: 'bg-primary', textClass: 'text-primary', bgClass: 'bg-primary/10', amount: summary.by_payment_method.TRANSFER || 0 }
+        ].map(item => ({
+            ...item,
+            percentage: summary.total_sales > 0 ? (item.amount / summary.total_sales) * 100 : 0
+        })).sort((a, b) => b.amount - a.amount) : []
+    );
 
 
 </script>
@@ -102,6 +91,19 @@
     
     <!-- Header Toolbar -->
     <Toolbar title="Administración">
+        {#snippet left()}
+            <div class="hidden md:flex items-center gap-1 ml-2">
+                {#each adminNavLinks as link}
+                    <a 
+                        href={link.href} 
+                        class="btn btn-ghost btn-sm font-black normal-case gap-1.5 rounded-xl px-3 text-base-content/70 hover:text-primary hover:bg-primary/10 transition-all duration-200"
+                    >
+                        <span>{link.icon}</span>
+                        <span>{link.name}</span>
+                    </a>
+                {/each}
+            </div>
+        {/snippet}
         {#snippet right()}
             <div class="tabs tabs-boxed bg-base-200 p-1 rounded-xl shadow-inner flex items-center">
                 <button 
@@ -269,59 +271,96 @@
                 </div>
             </section>
 
-            <!-- Navigation Links (Right Column) -->
+            <!-- Widgets Column (Right Column) -->
             <div class="lg:col-span-1 space-y-8 order-1 lg:order-2">
-                <!-- Operations Section -->
-                <section class="space-y-4">
-                    <h3 class="text-xs font-black uppercase tracking-widest flex items-center gap-2 opacity-50">
-                        <span class="w-1.5 h-4 bg-primary rounded-full"></span>
-                        Operaciones y Negocio
-                    </h3>
-                    <div class="grid grid-cols-1 gap-3">
-                        {#each operationsLinks as link}
-                            <a 
-                                href={link.href} 
-                                class="flex items-center gap-4 p-4 bg-base-100 hover:bg-base-300 border border-base-content/5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 group active:scale-98"
-                            >
-                                <div class="w-11 h-11 flex items-center justify-center bg-primary/10 text-primary rounded-xl text-xl group-hover:scale-110 transition-transform shadow-inner">
-                                    {link.icon}
+                <!-- Widget: Top Products -->
+                <section class="bg-base-100 border border-base-content/5 rounded-3xl p-6 shadow-xl space-y-6 hover:shadow-2xl transition-all duration-300">
+                    <div class="flex items-center justify-between border-b border-base-content/5 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary text-lg">
+                                🏆
+                            </div>
+                            <div>
+                                <h3 class="font-black text-sm uppercase tracking-wider text-base-content">Más Vendidos</h3>
+                                <p class="text-[10px] font-semibold text-base-content/55">Top del período</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        {#if !summary.top_products || summary.top_products.length === 0}
+                            <div class="py-8 text-center text-base-content/40 text-xs font-bold">
+                                No hay datos de ventas.
+                            </div>
+                        {:else}
+                            {@const maxQty = Math.max(...summary.top_products.map((p: any) => p.quantity), 1)}
+                            {#each summary.top_products.slice(0, 5) as product, index}
+                                {@const percentage = (product.quantity / maxQty) * 100}
+                                <div class="space-y-1.5 group">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <div class="flex items-center gap-2 font-black text-base-content/95 truncate">
+                                            <span class="w-5 h-5 rounded-md bg-base-200 flex items-center justify-center text-[10px] text-base-content/60 group-hover:bg-primary group-hover:text-primary-content transition-colors font-serif">
+                                                {index + 1}
+                                            </span>
+                                            <span class="truncate">{product.name}</span>
+                                        </div>
+                                        <span class="font-bold text-base-content/60 tabular-nums">{product.quantity} uds</span>
+                                    </div>
+                                    <div class="w-full bg-base-200 rounded-full h-2.5 overflow-hidden">
+                                        <div 
+                                            class="bg-gradient-to-r from-secondary to-primary h-full rounded-full transition-all duration-1000 ease-out" 
+                                            style="width: {percentage}%"
+                                        ></div>
+                                    </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="font-black text-base-content leading-snug group-hover:text-primary transition-colors text-sm">{link.name}</h4>
-                                    <p class="text-[11px] font-semibold text-base-content/55 mt-0.5 truncate">{link.desc}</p>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-base-content/20 group-hover:text-primary group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </a>
-                        {/each}
+                            {/each}
+                        {/if}
                     </div>
                 </section>
 
-                <!-- Configuration Section -->
-                <section class="space-y-4">
-                    <h3 class="text-xs font-black uppercase tracking-widest flex items-center gap-2 opacity-50">
-                        <span class="w-1.5 h-4 bg-accent rounded-full"></span>
-                        Configuración del Sistema
-                    </h3>
-                    <div class="grid grid-cols-1 gap-3">
-                        {#each systemsLinks as link}
-                            <a 
-                                href={link.href} 
-                                class="flex items-center gap-4 p-4 bg-base-100 hover:bg-base-300 border border-base-content/5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 group active:scale-98"
-                            >
-                                <div class="w-11 h-11 flex items-center justify-center bg-accent/10 text-accent rounded-xl text-xl group-hover:scale-110 transition-transform shadow-inner">
-                                    {link.icon}
+                <!-- Widget: Payment Methods -->
+                <section class="bg-base-100 border border-base-content/5 rounded-3xl p-6 shadow-xl space-y-6 hover:shadow-2xl transition-all duration-300">
+                    <div class="flex items-center justify-between border-b border-base-content/5 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary text-lg">
+                                📊
+                            </div>
+                            <div>
+                                <h3 class="font-black text-sm uppercase tracking-wider text-base-content">Métodos de Pago</h3>
+                                <p class="text-[10px] font-semibold text-base-content/55">Distribución de ingresos</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        {#if paymentBreakdown.length === 0 || summary.total_sales === 0}
+                            <div class="py-8 text-center text-base-content/40 text-xs font-bold">
+                                Sin transacciones registradas.
+                            </div>
+                        {:else}
+                            {#each paymentBreakdown as method}
+                                <div class="space-y-1.5">
+                                    <div class="flex justify-between items-center text-xs">
+                                        <div class="flex items-center gap-2 font-black text-base-content/95">
+                                            <span class="w-8 h-8 rounded-lg flex items-center justify-center text-md {method.bgClass} {method.textClass}">
+                                                {method.icon}
+                                            </span>
+                                            <span>{method.name}</span>
+                                        </div>
+                                        <div class="text-right">
+                                            <span class="font-black text-base-content/95 block tabular-nums">{formatCurrency(method.amount)}</span>
+                                            <span class="text-[9px] font-bold opacity-50 block tabular-nums">{method.percentage.toFixed(1)}%</span>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-base-200 rounded-full h-2.5 overflow-hidden">
+                                        <div 
+                                            class="{method.color} h-full rounded-full transition-all duration-1000 ease-out" 
+                                            style="width: {method.percentage}%"
+                                        ></div>
+                                    </div>
                                 </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="font-black text-base-content leading-snug group-hover:text-accent transition-colors text-sm">{link.name}</h4>
-                                    <p class="text-[11px] font-semibold text-base-content/55 mt-0.5 truncate">{link.desc}</p>
-                                </div>
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-base-content/20 group-hover:text-accent group-hover:translate-x-1 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </a>
-                        {/each}
+                            {/each}
+                        {/if}
                     </div>
                 </section>
             </div>
