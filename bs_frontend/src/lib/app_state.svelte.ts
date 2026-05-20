@@ -34,7 +34,7 @@ function loadSavedSession() {
 const savedSession = loadSavedSession();
 
 export const appState = $state({
-    currentTheme: 'corporate',
+    currentTheme: (typeof localStorage !== 'undefined') ? (localStorage.getItem('bs_theme') || 'corporate') : 'corporate',
     isLoggedIn: false,
     cart: savedSession.cart,
     activeTable: savedSession.activeTable,
@@ -79,8 +79,22 @@ export function persistSession() {
 
 export function setTheme(theme: string) {
     appState.currentTheme = theme;
+    if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('bs_theme', theme);
+    }
     if (typeof document !== 'undefined') {
         document.documentElement.setAttribute('data-theme', theme);
+    }
+}
+
+export function initTheme() {
+    if (typeof localStorage !== 'undefined') {
+        const savedTheme = localStorage.getItem('bs_theme');
+        if (savedTheme) {
+            setTheme(savedTheme);
+        } else {
+            setTheme('corporate');
+        }
     }
 }
 

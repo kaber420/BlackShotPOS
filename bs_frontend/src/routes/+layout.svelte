@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { appState, setAuth } from '$lib/app_state.svelte';
+	import { appState, setAuth, initTheme } from '$lib/app_state.svelte';
 	import IntercomWidget from '$lib/components/intercom/IntercomWidget.svelte';
 
 	let { children } = $props();
@@ -23,6 +23,7 @@
 
 	onMount(() => {
 		checkAuth();
+		initTheme();
 		// Escuchar cambios en localStorage (otro tab cerró sesión, etc.)
 		window.addEventListener('storage', checkAuth);
 		return () => window.removeEventListener('storage', checkAuth);

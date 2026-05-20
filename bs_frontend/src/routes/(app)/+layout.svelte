@@ -66,6 +66,114 @@
 		if (href !== '/' && page.url.pathname.startsWith(href)) return true;
 		return false;
 	}
+
+	// --- AVATAR Y PERSONALIZACIÓN PREMIUM (OFFLINE-FIRST) ---
+	function getInitials(name: string | null): string {
+		if (!name) return '??';
+		const clean = name.trim();
+		if (clean.length === 0) return '??';
+		const parts = clean.split(/[\s_-]+/);
+		if (parts.length >= 2) {
+			return (parts[0][0] + parts[1][0]).toUpperCase();
+		}
+		return clean.slice(0, 2).toUpperCase();
+	}
+
+	const AVATAR_GRADIENTS = [
+		{ id: 'purple', classes: 'from-violet-500 to-indigo-500' },
+		{ id: 'emerald', classes: 'from-emerald-500 to-teal-500' },
+		{ id: 'rose', classes: 'from-pink-500 to-rose-500' },
+		{ id: 'amber', classes: 'from-amber-500 to-orange-500' },
+		{ id: 'blue', classes: 'from-blue-500 to-cyan-500' },
+		{ id: 'magenta', classes: 'from-fuchsia-500 to-pink-600' },
+	];
+
+	let customAvatarImg = $state<string | null>(null);
+	let selectedAvatarStyle = $state<string>('');
+	let fileInput = $state<HTMLInputElement | null>(null);
+
+	$effect(() => {
+		if (typeof localStorage !== 'undefined' && appState.userName) {
+			customAvatarImg = localStorage.getItem(`bs_avatar_img_${appState.userName}`) || null;
+			selectedAvatarStyle = localStorage.getItem(`bs_avatar_style_${appState.userName}`) || '';
+		} else {
+			customAvatarImg = null;
+			selectedAvatarStyle = '';
+		}
+	});
+
+	function getAvatarColor(name: string | null): string {
+		if (selectedAvatarStyle) {
+			const found = AVATAR_GRADIENTS.find(g => g.id === selectedAvatarStyle);
+			if (found) return found.classes;
+		}
+		if (!name) return 'from-primary to-primary-focus';
+		let hash = 0;
+		for (let i = 0; i < name.length; i++) {
+			hash = name.charCodeAt(i) + ((hash << 5) - hash);
+		}
+		const index = Math.abs(hash) % AVATAR_GRADIENTS.length;
+		return AVATAR_GRADIENTS[index].classes;
+	}
+
+	function setAvatarColor(colorId: string) {
+		if (!appState.userName) return;
+		selectedAvatarStyle = colorId;
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(`bs_avatar_style_${appState.userName}`, colorId);
+		}
+	}
+
+	function handleAvatarUpload(event: Event) {
+		const input = event.target as HTMLInputElement;
+		if (!input.files || input.files.length === 0) return;
+		
+		const file = input.files[0];
+		const reader = new FileReader();
+		
+		reader.onload = (e) => {
+			const img = new Image();
+			img.onload = () => {
+				const canvas = document.createElement('canvas');
+				const MAX_WIDTH = 128;
+				const MAX_HEIGHT = 128;
+				let width = img.width;
+				let height = img.height;
+
+				if (width > height) {
+					if (width > MAX_WIDTH) {
+						height *= MAX_WIDTH / width;
+						width = MAX_WIDTH;
+					}
+				} else {
+					if (height > MAX_HEIGHT) {
+						width *= MAX_HEIGHT / height;
+						height = MAX_HEIGHT;
+					}
+				}
+
+				canvas.width = width;
+				canvas.height = height;
+				const ctx = canvas.getContext('2d');
+				ctx?.drawImage(img, 0, 0, width, height);
+
+				const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+				customAvatarImg = dataUrl;
+				if (typeof localStorage !== 'undefined' && appState.userName) {
+					localStorage.setItem(`bs_avatar_img_${appState.userName}`, dataUrl);
+				}
+			};
+			img.src = e.target?.result as string;
+		};
+		reader.readAsDataURL(file);
+	}
+
+	function removeCustomAvatar() {
+		customAvatarImg = null;
+		if (typeof localStorage !== 'undefined' && appState.userName) {
+			localStorage.removeItem(`bs_avatar_img_${appState.userName}`);
+		}
+	}
 </script>
 
 <div class="h-screen flex flex-col bg-base-200 overflow-hidden">
@@ -168,18 +276,99 @@
 
 			{#if appState.isLoggedIn}
 				<div class="dropdown dropdown-end">
-					<label tabindex="0" class="btn btn-ghost btn-circle avatar border-2 border-primary/20">
-						<div class="w-10 rounded-full">
-							<img src="https://api.dicebear.com/7.x/avataaars/svg?seed={appState.userName ?? 'Admin'}" alt="Avatar" />
+					<!-- File Input for local offline avatar upload -->
+					<input 
+						type="file" 
+						accept="image/*" 
+						class="hidden" 
+						onchange={handleAvatarUpload} 
+						bind:this={fileInput}
+					/>
+
+					<!-- Sleek Minimalist Avatar (No bulky text in Navbar) -->
+					<label tabindex="0" class="btn btn-ghost btn-circle avatar border-2 border-primary/20 hover:border-primary hover:scale-105 transition-all duration-300 shadow-sm cursor-pointer select-none">
+						<div class="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center">
+							{#if customAvatarImg}
+								<img src={customAvatarImg} alt="User Avatar" class="w-full h-full object-cover" />
+							{:else}
+								<div class="w-full h-full bg-gradient-to-tr {getAvatarColor(appState.userName)} text-white flex items-center justify-center font-black text-sm tracking-wider">
+									{getInitials(appState.userName ?? 'Admin')}
+								</div>
+							{/if}
 						</div>
 					</label>
-					<div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-64 bg-base-100 shadow-xl border border-base-300">
-						<div class="card-body">
-							<div class="flex flex-col gap-1 pb-2 border-b border-base-200">
-								<span class="font-black text-lg">{appState.userName ?? 'Usuario'}</span>
-								<span class="text-xs opacity-50 uppercase tracking-widest">{getRoleLabel(appState.userRole)}</span>
+
+					<!-- Beautiful Premium Dropdown Card -->
+					<div tabindex="0" class="mt-3 z-[1] card card-compact dropdown-content w-72 bg-base-100 shadow-xl border border-base-300 overflow-hidden">
+						<!-- Custom Header Gradient representing the role/style -->
+						<div class="h-16 bg-gradient-to-r {getAvatarColor(appState.userName)} opacity-85 relative">
+							<!-- Subtle overlay -->
+							<div class="absolute inset-0 bg-black/10"></div>
+						</div>
+
+						<div class="card-body -mt-10 relative pt-0 px-4 pb-4">
+							<!-- Large avatar inside card to show profile look -->
+							<div class="flex items-end justify-between mb-2">
+								<div class="avatar placeholder">
+									<div class="w-16 h-16 rounded-2xl border-4 border-base-100 shadow-md bg-gradient-to-tr {getAvatarColor(appState.userName)} overflow-hidden flex items-center justify-center">
+										{#if customAvatarImg}
+											<img src={customAvatarImg} alt="Avatar" class="w-full h-full object-cover" />
+										{:else}
+											<span class="text-white font-black text-xl">{getInitials(appState.userName ?? 'Admin')}</span>
+										{/if}
+									</div>
+								</div>
+								
+								<!-- Role Badge -->
+								<span class="badge badge-sm uppercase tracking-widest font-black py-2.5 px-3 bg-base-200 border-base-300 text-base-content/85 -mb-2">
+									{getRoleLabel(appState.userRole)}
+								</span>
 							</div>
-							<ul class="menu p-0">
+
+							<!-- User Details -->
+							<div class="flex flex-col gap-0.5 pb-2">
+								<span class="font-black text-lg text-base-content leading-tight">{appState.userName ?? 'Usuario'}</span>
+								<span class="text-[9px] opacity-45 uppercase tracking-wider font-extrabold">Sesión Activa</span>
+							</div>
+
+							<!-- Personalización de Avatar (Premium & Compact) -->
+							<div class="py-2.5 flex flex-col gap-2 bg-base-200/50 rounded-xl px-2.5 border border-base-200/60 my-1">
+								<span class="text-[9px] font-black uppercase tracking-wider text-base-content/65">Estilo Personal</span>
+								
+								<div class="flex items-center justify-between gap-1.5 mt-0.5">
+									{#if customAvatarImg}
+										<button 
+											type="button"
+											onclick={removeCustomAvatar}
+											class="btn btn-xs btn-error btn-outline font-black rounded-lg text-[8px] uppercase tracking-widest cursor-pointer py-1"
+										>
+											🗑️ Quitar Foto
+										</button>
+									{:else}
+										<button 
+											type="button"
+											onclick={() => fileInput?.click()}
+											class="btn btn-xs btn-primary btn-outline font-black rounded-lg text-[8px] uppercase tracking-widest cursor-pointer py-1"
+										>
+											📸 Subir Foto
+										</button>
+									{/if}
+
+									<!-- Color Swatches -->
+									<div class="flex gap-1">
+										{#each AVATAR_GRADIENTS as g}
+											<button 
+												type="button"
+												onclick={() => setAvatarColor(g.id)}
+												class="w-4 h-4 rounded-full bg-gradient-to-tr {g.classes} cursor-pointer border transition-all duration-150 hover:scale-110 active:scale-90 {selectedAvatarStyle === g.id ? 'ring-1 ring-primary ring-offset-0.5 border-white' : 'border-base-300'}"
+												title="Elegir gradiente {g.id}"
+											></button>
+										{/each}
+									</div>
+								</div>
+							</div>
+
+							<ul class="menu p-0 mt-1">
 								{#if can.viewReports() || can.manageShifts() || can.manageUsers()}
 									<li><a href="/admin" class="font-black text-primary">🏠 Panel de Control</a></li>
 									<div class="divider my-0 opacity-20"></div>
@@ -193,7 +382,8 @@
 									<li><a href="/admin/config">⚙️ Configuración</a></li>
 								{/if}
 							</ul>
-							<div class="py-2 border-t border-base-200">
+
+							<div class="py-1.5 border-t border-base-200 mt-1">
 								{#if appState.activeShift}
 									<button 
 										class="w-full text-left px-4 py-2 hover:bg-error/10 text-error flex items-center gap-2 transition-colors rounded-lg"
@@ -213,25 +403,48 @@
 								{/if}
 							</div>
 
-
-							<!-- Theme Selection (Quick Access) -->
-							<div class="px-4 py-2 flex items-center justify-between bg-base-200/50 rounded-xl mx-2 mb-2">
-								<div class="flex items-center gap-2">
-									<svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.172-1.172a4 4 0 015.656 0l1.172 1.172a4 4 0 010 5.656l-1.172 1.172a4 4 0 01-5.656 0l-1.172-1.172a4 4 0 010-5.656z" /></svg>
-									<span class="text-[10px] font-black uppercase tracking-widest">Tema</span>
+							<!-- Theme Selection Swatches -->
+							<div class="px-2.5 py-2 flex flex-col gap-1.5 bg-base-200/50 rounded-xl border border-base-200/60 mt-1 mb-1">
+								<div class="flex items-center justify-between">
+									<div class="flex items-center gap-1">
+										<span class="text-[9px] font-black uppercase tracking-wider text-base-content/75">Tema Visual</span>
+									</div>
+									<span class="text-[8px] font-black px-1 py-0.5 bg-primary/10 text-primary rounded uppercase tracking-wider">
+										{appState.currentTheme}
+									</span>
 								</div>
-								<select 
-									class="select select-ghost select-xs font-bold p-0 min-h-0 h-auto focus:outline-none bg-transparent" 
-									onchange={(e) => setTheme(e.currentTarget.value)} 
-									value={appState.currentTheme}
-								>
-									{#each ['corporate', 'coffee', 'bumblebee', 'light', 'dark', 'dim'] as theme}
-										<option value={theme}>{theme}</option>
+								
+								<div class="grid grid-cols-3 gap-1 mt-0.5">
+									{#each [
+										{ id: 'corporate', name: 'Corp', bg: 'bg-white', primary: 'bg-[#4b6bfb]', border: 'border-slate-200' },
+										{ id: 'coffee', name: 'Café', bg: 'bg-[#20161F]', primary: 'bg-[#DB924B]', border: 'border-[#181017]' },
+										{ id: 'bumblebee', name: 'Avispa', bg: 'bg-white', primary: 'bg-[#E0A82E]', border: 'border-slate-200' },
+										{ id: 'light', name: 'Claro', bg: 'bg-white', primary: 'bg-[#570DF8]', border: 'border-slate-200' },
+										{ id: 'dark', name: 'Oscuro', bg: 'bg-[#1D232A]', primary: 'bg-[#7480FF]', border: 'border-[#15191E]' },
+										{ id: 'dim', name: 'Ocaso', bg: 'bg-[#2A303C]', primary: 'bg-[#661AE6]', border: 'border-[#1F242E]' }
+									] as t}
+										<button 
+											type="button"
+											onclick={() => setTheme(t.id)}
+											class="flex flex-col items-center justify-center p-1 rounded-lg border transition-all duration-200 relative group cursor-pointer overflow-hidden {appState.currentTheme === t.id ? 'border-primary ring-1 ring-primary/20 bg-base-100 shadow-sm' : 'border-base-300 hover:border-base-content/20 bg-base-100/50'}"
+											title={t.id}
+										>
+											<div class="flex gap-0.5 mb-0.5 items-center justify-center">
+												<span class="w-2.5 h-2.5 rounded-full {t.bg} {t.border} border shadow-xs inline-block"></span>
+												<span class="w-2.5 h-2.5 rounded-full {t.primary} shadow-xs inline-block"></span>
+											</div>
+											<span class="text-[8px] font-black tracking-tighter text-base-content/80 group-hover:text-base-content uppercase">
+												{t.name}
+											</span>
+											{#if appState.currentTheme === t.id}
+												<span class="absolute top-0.5 right-0.5 w-1 h-1 bg-primary rounded-full"></span>
+											{/if}
+										</button>
 									{/each}
-								</select>
+								</div>
 							</div>
 
-							<div class="card-actions pt-2 border-t border-base-200">
+							<div class="card-actions pt-1.5 border-t border-base-200">
 								<Button variant="danger" size="sm" class="btn-block" onclick={handleLogout}>Cerrar Sesión</Button>
 							</div>
 						</div>
