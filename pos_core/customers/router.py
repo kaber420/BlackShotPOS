@@ -72,3 +72,15 @@ async def update_customer(
     if not customer:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     return await CustomerService.update(db, customer, customer_in)
+
+@router.delete("/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_customer(
+    customer_id: UUID,
+    db: AsyncSession = Depends(get_session),
+    _ = Depends(require_permission("can_take_orders"))
+):
+    deleted = await CustomerService.delete(db, customer_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return
+

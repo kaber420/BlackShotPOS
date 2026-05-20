@@ -96,5 +96,17 @@ export const CustomerService = {
             throw new Error(err.detail ?? 'Error al actualizar el cliente');
         }
         return res.json();
+    },
+
+    async delete(id: string): Promise<void> {
+        const res = await fetch(`${BASE}/${id}`, {
+            method: 'DELETE',
+            headers: authHeaders(),
+            credentials: 'include'
+        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.detail ?? 'Error al eliminar el cliente');
+        }
     }
 };

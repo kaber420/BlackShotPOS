@@ -132,3 +132,34 @@ class CustomerService:
             await db.commit()
             await db.refresh(customer)
         return customer
+
+    @staticmethod
+    async def delete(db: AsyncSession, customer_id: UUID) -> bool:
+        customer = await db.get(Customer, customer_id)
+        if not customer:
+            return False
+
+        # Evitar importaciones circulares importando localmente
+        from sqlalchemy import update
+        from pos_core.sales.models import Order
+        from pos_core.tables.models import Reservation
+
+        # Desvincular órdenes de venta
+        await db.execute(
+            update(Order)
+            .where(Order.customer_id == customer_id)
+            .values(customer_id=None)
+        )
+
+        # Desvincular reservaciones
+        await db.execute(
+            update(Reservation)
+            .where(Reservation.customer_id == customer_id)
+            .values(customer_id=None)
+        )
+
+        # Eliminar físicamente al cliente
+        await db.delete(customer)
+        await db.commit()
+        return True
+
