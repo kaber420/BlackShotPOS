@@ -2,6 +2,7 @@
     import { onMount } from 'svelte';
     import { checkActiveShift, closeShift, getShiftReport } from '$lib/api/shifts';
     import Button from '$lib/components/ui/Button.svelte';
+    import { appState, setActiveShift } from '$lib/app_state.svelte';
     
     let isChecking = $state(true);
     let shiftReport = $state<any>(null);
@@ -34,7 +35,12 @@
         
         isClosing = true;
         try {
-            const result = await closeShift(appState.activeShift.id, actualCash);
+            const result = await closeShift(appState.activeShift.id, {
+                actual_cash: actualCash,
+                actual_card: 0.0,
+                actual_transfer: 0.0,
+                notes: 'Cierre rápido desde Administración'
+            });
             closedShiftData = await getShiftReport(result.id);
             setActiveShift(null);
         } catch (e) {

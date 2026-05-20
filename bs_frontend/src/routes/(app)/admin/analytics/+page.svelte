@@ -3,6 +3,7 @@
     import { fetchApi } from '$lib/api';
     import { formatCurrency } from '$lib/utils';
     import Button from '$lib/components/ui/Button.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
     type Period = 'today' | 'week' | 'month' | 'custom';
     let period: Period = $state('today');
@@ -118,52 +119,46 @@
 </script>
 
 <div class="p-6 lg:p-10 max-w-7xl mx-auto space-y-8 flex-1 min-h-0 overflow-y-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <!-- Header -->
-    <header class="flex flex-col lg:flex-row lg:items-end justify-between gap-8">
-        <div>
-            <div class="text-sm breadcrumbs opacity-50 font-bold uppercase tracking-widest">
-                <ul>
-                    <li><a href="/admin">Admin</a></li>
-                    <li>Analíticas</li>
-                </ul>
-            </div>
-            <h1 class="text-5xl font-black text-base-content tracking-tighter uppercase">
-                Ventas & <span class="text-primary">Desempeño</span>
-            </h1>
-            <p class="text-base-content/60 font-medium mt-1">Análisis detallado de transacciones y estados operativos</p>
-        </div>
-
-        <div class="flex flex-col gap-4">
-            <div class="tabs tabs-boxed bg-base-300 p-1 rounded-2xl shadow-inner inline-flex">
-                <button 
-                    class="tab rounded-xl font-bold transition-all {period === 'today' ? 'tab-active bg-primary text-primary-content shadow-lg' : ''}" 
-                    onclick={() => period = 'today'}>Hoy</button>
-                <button 
-                    class="tab rounded-xl font-bold transition-all {period === 'week' ? 'tab-active bg-primary text-primary-content shadow-lg' : ''}" 
-                    onclick={() => period = 'week'}>Semana</button>
-                <button 
-                    class="tab rounded-xl font-bold transition-all {period === 'month' ? 'tab-active bg-primary text-primary-content shadow-lg' : ''}" 
-                    onclick={() => period = 'month'}>Mes</button>
-                <button 
-                    class="tab rounded-xl font-bold transition-all {period === 'custom' ? 'tab-active bg-primary text-primary-content shadow-lg' : ''}" 
-                    onclick={() => period = 'custom'}>Personalizado</button>
-            </div>
-
-            {#if period === 'custom'}
-                <div class="flex items-end gap-2 p-4 bg-base-100 rounded-2xl border border-primary/20 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                    <div class="form-control">
-                        <label class="label p-0 mb-1"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">De</span></label>
-                        <input type="date" bind:value={fromDate} class="input input-bordered input-sm font-bold" />
-                    </div>
-                    <div class="form-control">
-                        <label class="label p-0 mb-1"><span class="label-text-alt font-black uppercase tracking-widest opacity-40">Até</span></label>
-                        <input type="date" bind:value={toDate} class="input input-bordered input-sm font-bold" />
-                    </div>
-                    <Button variant="primary" size="sm" class="font-black" onclick={handleCustomSearch}>Buscar</Button>
+    
+    <!-- Unified Header Toolbar -->
+    <Toolbar title="Ventas & Desempeño">
+        {#snippet left()}
+            <a href="/admin" class="btn btn-ghost btn-sm font-black gap-1 rounded-xl uppercase tracking-wider text-xs">
+                ← Volver al Panel
+            </a>
+        {/snippet}
+        
+        {#snippet right()}
+            <div class="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+                <div class="tabs tabs-boxed bg-base-200 p-1 rounded-xl shadow-inner flex items-center">
+                    <button 
+                        class="tab tab-sm rounded-lg font-bold transition-all duration-200 {period === 'today' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                        onclick={() => period = 'today'}>Hoy</button>
+                    <button 
+                        class="tab tab-sm rounded-lg font-bold transition-all duration-200 {period === 'week' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                        onclick={() => period = 'week'}>Semana</button>
+                    <button 
+                        class="tab tab-sm rounded-lg font-bold transition-all duration-200 {period === 'month' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                        onclick={() => period = 'month'}>Mes</button>
+                    <button 
+                        class="tab tab-sm rounded-lg font-bold transition-all duration-200 {period === 'custom' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                        onclick={() => period = 'custom'}>Personalizado</button>
                 </div>
-            {/if}
-        </div>
-    </header>
+
+                {#if period === 'custom'}
+                    <div class="flex items-end gap-2 p-2 bg-base-100 rounded-2xl border border-primary/20 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                        <div class="form-control">
+                            <input type="date" bind:value={fromDate} class="input input-bordered input-xs font-bold w-32" />
+                        </div>
+                        <div class="form-control">
+                            <input type="date" bind:value={toDate} class="input input-bordered input-xs font-bold w-32" />
+                        </div>
+                        <Button variant="primary" size="xs" class="font-black" onclick={handleCustomSearch}>Buscar</Button>
+                    </div>
+                {/if}
+            </div>
+        {/snippet}
+    </Toolbar>
 
     {#if loading}
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">

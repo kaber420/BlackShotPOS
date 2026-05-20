@@ -5,6 +5,7 @@
     import Button from '$lib/components/ui/Button.svelte';
     import IoTManagementModal from '$lib/components/IoTManagementModal.svelte';
     import { toast } from '$lib/toast.svelte.js';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
     let showModal = $state(false);
     let selectedDevice = $state<any>(null);
@@ -59,53 +60,41 @@
 </svelte:head>
 
 <div class="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500 overflow-y-auto h-full">
-    <!-- Header & Dashboard Stats -->
-    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-8 bg-base-100/40 p-6 rounded-[2.5rem] border border-base-content/5 backdrop-blur-md">
-        <div class="space-y-1">
-            <div class="flex items-center gap-3 mb-1">
-                <div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
-                    </svg>
-                </div>
-                <h1 class="text-4xl font-black tracking-tight text-base-content">
-                    Gestión <span class="text-primary italic">IoT</span>
-                </h1>
-            </div>
-            <p class="text-base-content/60 font-medium ml-1">Monitoreo y configuración de hardware en tiempo real.</p>
-        </div>
-        
-        <div class="flex flex-wrap items-center gap-6">
-            <div class="flex items-center gap-8 px-8 py-4 bg-base-100 rounded-3xl shadow-sm border border-base-content/5">
-                <div class="text-center">
-                    <div class="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">Total</div>
-                    <div class="text-3xl font-black tabular-nums">{totalCount}</div>
-                </div>
-                <div class="divider divider-horizontal mx-0 opacity-10"></div>
-                <div class="text-center">
-                    <div class="text-[10px] font-bold uppercase tracking-widest opacity-40 mb-1">En Línea</div>
-                    <div class="text-3xl font-black text-success tabular-nums flex items-center gap-2">
-                        {onlineCount}
-                        <span class="flex h-2 w-2 rounded-full bg-success animate-ping"></span>
-                    </div>
-                </div>
-            </div>
+    
+    <!-- Unified Header Toolbar -->
+    <Toolbar title="Gestión IoT">
+        {#snippet left()}
+            <a href="/admin" class="btn btn-ghost btn-sm font-black gap-1 rounded-xl uppercase tracking-wider text-xs">
+                ← Volver
+            </a>
             
-            <Button variant="outline" size="lg" class="px-6 font-black rounded-[1.5rem] border-2 group" onclick={handleSync}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 group-hover:rotate-180 transition-transform duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <div class="h-5 w-[1px] bg-base-300 mx-2 hidden sm:block"></div>
+            
+            <div class="hidden sm:flex items-center gap-4 text-xs font-bold text-base-content/60">
+                <span>Total: <strong class="text-base-content font-black">{totalCount}</strong></span>
+                <span class="flex items-center gap-1.5">
+                    En línea: <strong class="text-success font-black">{onlineCount}</strong>
+                    <span class="flex h-2 w-2 rounded-full bg-success animate-pulse"></span>
+                </span>
+            </div>
+        {/snippet}
+        
+        {#snippet right()}
+            <Button variant="outline" size="sm" class="px-4 font-black rounded-xl border-2 group text-xs font-bold" onclick={handleSync}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 group-hover:rotate-180 transition-transform duration-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 SINCRONIZAR
             </Button>
 
-            <Button variant="primary" size="lg" class="px-10 font-black rounded-[1.5rem] shadow-xl hover:shadow-primary/30 group" onclick={() => openModal()}>
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 group-hover:rotate-90 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+            <Button variant="primary" size="sm" class="px-5 font-black rounded-xl shadow-md group text-xs font-bold" onclick={() => openModal()}>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5 group-hover:rotate-90 transition-transform duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 REGISTRAR
             </Button>
-        </div>
-    </div>
+        {/snippet}
+    </Toolbar>
 
     {#if isLoading}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -4,6 +4,7 @@
     import { getRoleLabel } from '$lib/app_state.svelte';
     import PermissionRow from '$lib/PermissionRow.svelte';
     import Button from '$lib/components/ui/Button.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
     // ── Constantes ──────────────────────────────────────────────────────────────
     const ROLES = [
@@ -155,34 +156,36 @@
     }
 </script>
 
-<div class="p-6 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full">
+<div class="p-6 max-w-6xl mx-auto flex-1 min-h-0 overflow-y-auto w-full space-y-6">
 
-    <!-- Encabezado -->
-    <div class="flex items-center justify-between mb-8 flex-wrap gap-4">
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-2xl">👥</div>
-            <div>
-                <h1 class="text-3xl font-black">Gestión de Usuarios</h1>
-                <p class="text-base-content/60 font-medium">Administra el equipo del negocio</p>
-            </div>
-        </div>
-        <div class="flex items-center gap-3">
-            <label class="label cursor-pointer gap-2">
-                <span class="label-text font-semibold text-sm opacity-60">Mostrar inactivos</span>
-                <input type="checkbox" class="toggle toggle-sm" bind:checked={showInactive}
+    <!-- Unified Header Toolbar -->
+    <Toolbar title="Gestión de Usuarios">
+        {#snippet left()}
+            <a href="/admin" class="btn btn-ghost btn-sm font-black gap-1 rounded-xl uppercase tracking-wider text-xs">
+                ← Volver
+            </a>
+            
+            <div class="h-5 w-[1px] bg-base-300 mx-2"></div>
+            
+            <label class="label cursor-pointer gap-2 select-none">
+                <span class="label-text font-bold text-xs opacity-60">Mostrar inactivos</span>
+                <input type="checkbox" class="toggle toggle-xs toggle-primary" bind:checked={showInactive}
                     onchange={loadUsers} />
             </label>
-            <Button id="btn-create-user" variant="primary" size="md" class="gap-2"
+        {/snippet}
+        
+        {#snippet right()}
+            <Button id="btn-create-user" variant="primary" size="sm" class="gap-2 rounded-xl font-bold"
                 onclick={() => (showCreateModal = true)}>
                 <svelte:fragment slot="icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
                     </svg>
                 </svelte:fragment>
                 Nuevo Usuario
             </Button>
-        </div>
-    </div>
+        {/snippet}
+    </Toolbar>
 
     <!-- Alertas -->
     {#if successMsg}

@@ -5,11 +5,27 @@
     import { formatCurrency, formatDateTime } from '$lib/utils';
     import Button from '$lib/components/ui/Button.svelte';
     import { goto } from '$app/navigation';
+    import { can } from '$lib/app_state.svelte';
 
     let report: any = $state(null);
+    let audits: any[] = $state([]);
     let loading = $state(true);
     let expandedOrders = $state<Record<number, boolean>>({});
     const shiftId = $derived(Number(page.params.id));
+
+    // Filtro de logs de auditoría para este turno
+    const shiftAudits = $derived(
+        report && report.shift
+            ? audits.filter((a: any) => {
+                const ts = new Date(a.timestamp).getTime();
+                const start = new Date(report.shift.start_time).getTime();
+                const end = report.shift.end_time 
+                    ? new Date(report.shift.end_time).getTime()
+                    : Date.now();
+                return ts >= start && ts <= end;
+            })
+            : []
+    );
 
     function toggleOrder(id: number) {
         expandedOrders[id] = !expandedOrders[id];
@@ -18,6 +34,15 @@
     onMount(async () => {
         try {
             report = await fetchApi(`/api/v1/pos/sales/shifts/${shiftId}/report`);
+            
+            // Si el usuario tiene permisos para ver auditorías, cargamos los logs del sistema
+            if (can.viewReports()) {
+                try {
+                    audits = await fetchApi('/api/v1/pos/system/audit/audits');
+                } catch (auditErr) {
+                    console.error("No se pudieron cargar los logs de auditoría", auditErr);
+                }
+            }
         } catch (e) {
             console.error("Error al cargar reporte de turno", e);
         } finally {
@@ -43,7 +68,7 @@
                 </ul>
             </div>
             <h1 class="text-4xl font-black tracking-tight text-base-content uppercase">
-                Auditoría de <span class="text-primary">Turno #{shiftId}</span>
+                Detalle de <span class="text-primary">Corte #{shiftId}</span>
             </h1>
         </div>
 
@@ -70,7 +95,7 @@
                 <div class="card-body p-8">
                     <h3 class="font-black uppercase tracking-widest text-xs opacity-50 mb-6 flex items-center gap-2">
                         <span class="w-1.5 h-4 bg-primary rounded-full"></span>
-                        Resumen del Turno
+                        Resumen del Corte
                     </h3>
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-8">
                         <div>
@@ -89,7 +114,7 @@
                             <span class="text-[10px] font-black uppercase tracking-widest opacity-40 block mb-1">Estado de Caja</span>
                             <div class="flex items-center gap-3 mt-1">
                                 <span class="font-black text-2xl {report.shift.difference === 0 ? 'text-success' : report.shift.difference > 0 ? 'text-info' : 'text-error'}">
-                                    {report.shift.difference === 0 ? '平衡 Balanceado' : report.shift.difference > 0 ? '📈 Sobrante' : '📉 Faltante'}
+                                    {report.shift.difference === 0 ? '✔️ Balanceado' : report.shift.difference > 0 ? '📈 Sobrante' : '📉 Faltante'}
                                 </span>
                             </div>
                         </div>
@@ -334,6 +359,59 @@
                 </div>
             </div>
         </div>
+        <!-- Trazabilidad de Seguridad (Logs del Turno) -->
+        {#if can.viewReports() && shiftAudits.length > 0}
+            <div class="card bg-base-100 border border-error/10 shadow-xl overflow-hidden print:hidden">
+                <div class="card-body p-8">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="font-black uppercase tracking-widest text-xs opacity-50 flex items-center gap-2">
+                            <span class="w-1.5 h-4 bg-error rounded-full animate-pulse"></span>
+                            Trazabilidad de Seguridad (Logs del Turno)
+                        </h3>
+                        <span class="badge badge-error badge-sm font-black p-3 text-[10px] tracking-wider uppercase">
+                            🛡️ {shiftAudits.length} EVENTOS CRÍTICOS
+                        </span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="table table-md w-full">
+                            <thead>
+                                <tr class="bg-base-200/50">
+                                    <th class="font-bold tracking-widest text-[10px] uppercase opacity-75">Hora</th>
+                                    <th class="font-bold tracking-widest text-[10px] uppercase opacity-75">Usuario</th>
+                                    <th class="font-bold tracking-widest text-[10px] uppercase opacity-75">Acción</th>
+                                    <th class="font-bold tracking-widest text-[10px] uppercase opacity-75">Detalles</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {#each shiftAudits as log}
+                                    <tr class="hover:bg-base-200/50 transition-colors">
+                                        <td class="font-medium opacity-60 whitespace-nowrap text-xs">
+                                            {new Date(log.timestamp).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+                                        </td>
+                                        <td class="font-bold text-xs">{log.actor_name}</td>
+                                        <td>
+                                            <span class="badge badge-sm font-black uppercase {log.action.includes('DENIED') || log.action.includes('CANCELLED') ? 'badge-error' : 'badge-neutral'} text-[9px]">
+                                                {log.action}
+                                            </span>
+                                        </td>
+                                        <td class="text-xs max-w-sm whitespace-normal leading-relaxed">
+                                            {#if log.reason}
+                                                <span class="italic font-medium opacity-80">"{log.reason}"</span>
+                                            {/if}
+                                            {#if log.changes_json}
+                                                <div class="text-[10px] opacity-40 font-mono mt-1 break-all bg-base-200/60 p-2 rounded-xl border border-base-content/5">
+                                                    {log.changes_json}
+                                                </div>
+                                            {/if}
+                                        </td>
+                                    </tr>
+                                {/each}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        {/if}
     {/if}
 </div>
 

@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { fetchApi } from '$lib/api';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
     let audits: any[] = $state([]);
     let error: string | null = $state(null);
@@ -35,23 +36,35 @@
 </script>
 
 <div class="p-4 lg:p-8 max-w-7xl mx-auto space-y-8 flex-1 min-h-0 overflow-y-auto w-full">
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-            <h1 class="text-4xl font-black text-primary flex items-center gap-3 tracking-tighter">
-                🛡️ Bitácora y Auditoría
-            </h1>
-            <div class="text-sm font-bold opacity-50 uppercase tracking-widest mt-1">Registro Global de Eventos</div>
-        </div>
+    
+    <!-- Unified Header Toolbar -->
+    <Toolbar title="Bitácora de Auditoría">
+        {#snippet left()}
+            <a href="/admin" class="btn btn-ghost btn-sm font-black gap-1 rounded-xl uppercase tracking-wider text-xs">
+                ← Volver al Panel
+            </a>
+        {/snippet}
         
-        <!-- Filtros de Categoría -->
-        <div class="join">
-            <button class="btn join-item btn-sm {selectedCategory === 'ALL' ? 'btn-primary' : 'btn-ghost bg-base-200'}" onclick={() => selectedCategory = 'ALL'}>Todo</button>
-            <button class="btn join-item btn-sm {selectedCategory === 'security' ? 'btn-primary' : 'btn-ghost bg-base-200'}" onclick={() => selectedCategory = 'security'}>Seguridad</button>
-            <button class="btn join-item btn-sm {selectedCategory === 'sales' ? 'btn-primary' : 'btn-ghost bg-base-200'}" onclick={() => selectedCategory = 'sales'}>Ventas</button>
-            <button class="btn join-item btn-sm {selectedCategory === 'inventory' ? 'btn-primary' : 'btn-ghost bg-base-200'}" onclick={() => selectedCategory = 'inventory'}>Inventario</button>
-            <button class="btn join-item btn-sm {selectedCategory === 'config' ? 'btn-primary' : 'btn-ghost bg-base-200'}" onclick={() => selectedCategory = 'config'}>Sistema</button>
-        </div>
-    </div>
+        {#snippet right()}
+            <div class="tabs tabs-boxed bg-base-200 p-1 rounded-xl shadow-inner flex items-center">
+                <button 
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {selectedCategory === 'ALL' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                    onclick={() => selectedCategory = 'ALL'}>Todo</button>
+                <button 
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {selectedCategory === 'security' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                    onclick={() => selectedCategory = 'security'}>Seguridad</button>
+                <button 
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {selectedCategory === 'sales' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                    onclick={() => selectedCategory = 'sales'}>Ventas</button>
+                <button 
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {selectedCategory === 'inventory' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                    onclick={() => selectedCategory = 'inventory'}>Inventario</button>
+                <button 
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {selectedCategory === 'config' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
+                    onclick={() => selectedCategory = 'config'}>Sistema</button>
+            </div>
+        {/snippet}
+    </Toolbar>
 
     {#if loading}
         <div class="flex justify-center py-12">

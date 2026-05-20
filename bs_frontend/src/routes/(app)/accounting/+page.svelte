@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { appState, can } from '$lib/app_state.svelte';
-    import { checkActiveShift, getShiftReport, listShifts, type ShiftInfo } from '$lib/api/shifts';
+    import { checkActiveShift, getShiftReport, type ShiftInfo } from '$lib/api/shifts';
     import Button from '$lib/components/ui/Button.svelte';
     import CashMovementModal from '$lib/components/accounting/CashMovementModal.svelte';
     import { toast } from '$lib/toast.svelte';
@@ -9,7 +9,6 @@
     import { formatDateTime } from '$lib/utils';
 
     let activeShift = $state<ShiftInfo | null>(null);
-    let historicalShifts = $state<ShiftInfo[]>([]);
     let isLoading = $state(true);
     let showMovementModal = $state(false);
     let movementType = $state<'INCOME' | 'EXPENSE' | 'WITHDRAWAL'>('EXPENSE');
@@ -28,7 +27,6 @@
             if (activeShift) {
                 activeShiftReport = await getShiftReport(activeShift.id);
             }
-            historicalShifts = await listShifts();
         } catch (e) {
             console.error("Error loading accounting data", e);
         } finally {
@@ -308,42 +306,7 @@
         </div>
     {/if}
 
-    <!-- Historical Shifts -->
-    <div class="space-y-6">
-        <h2 class="text-2xl font-black tracking-tight">Historial de Turnos</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {#each historicalShifts.filter(s => s.status === 'CLOSED').slice(0, 6) as shift}
-                <div 
-                    class="bg-base-100 p-6 rounded-3xl border border-base-200 hover:border-primary/30 transition-all cursor-pointer group"
-                    onclick={() => can.viewReports() ? goto(`/admin/shifts/${shift.id}`) : toast.error("No tienes permisos para ver auditorías detalladas")}
-                >
-                    <div class="flex justify-between items-start mb-4">
-                        <div>
-                            <div class="font-black text-lg">Corte #{shift.id}</div>
-                            <div class="text-xs opacity-50 font-bold">{new Date(shift.start_time).toLocaleDateString()}</div>
-                        </div>
-                        <div class="badge badge-ghost font-black text-[10px] uppercase">Cerrado</div>
-                    </div>
-                    <div class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <span class="opacity-50 font-bold">Venta Total:</span>
-                            <span class="font-black">{formatCurrency(shift.sales?.total ?? 0)}</span>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <span class="opacity-50 font-bold">Diferencia:</span>
-                            <span class="font-black {(shift.difference_cash || 0) >= 0 ? 'text-success' : 'text-error'}">
-                                {(shift.difference_cash || 0) >= 0 ? '+' : ''}{formatCurrency(shift.difference_cash || 0)}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="mt-4 pt-4 border-t border-base-200 group-hover:border-primary/20 flex justify-between items-center">
-                        <span class="text-[10px] font-black uppercase tracking-widest opacity-30">Ver detalles</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-primary opacity-0 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
-                    </div>
-                </div>
-            {/each}
-        </div>
-    </div>
+
 </div>
 
 {#if showMovementModal && activeShift}

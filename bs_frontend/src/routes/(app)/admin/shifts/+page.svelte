@@ -4,6 +4,7 @@
     import { formatCurrency, formatDate, formatDateTime } from '$lib/utils';
     import { goto } from '$app/navigation';
     import Button from '$lib/components/ui/Button.svelte';
+    import Toolbar from '$lib/components/ui/Toolbar.svelte';
 
     let shifts: any[] = $state([]);
     let loading = $state(true);
@@ -37,36 +38,29 @@
 </script>
 
 <div class="p-6 lg:p-10 max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <!-- Breadcrumb & Header -->
-    <header class="space-y-4">
-        <div class="text-sm breadcrumbs opacity-50 font-bold uppercase tracking-widest">
-            <ul>
-                <li><a href="/admin">Admin</a></li>
-                <li>Historial de Cortes</li>
-            </ul>
-        </div>
+    
+    <!-- Unified Header Toolbar -->
+    <Toolbar title="Historial de Cortes">
+        {#snippet left()}
+            <a href="/admin" class="btn btn-ghost btn-sm font-black gap-1 rounded-xl uppercase tracking-wider text-xs">
+                ← Volver al Panel
+            </a>
+        {/snippet}
         
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-                <h1 class="text-4xl font-black tracking-tight text-base-content uppercase">
-                    Historial de <span class="text-primary">Cortes</span>
-                </h1>
-                <p class="text-base-content/60 font-medium mt-1">Consulta y auditoría de todos los turnos de caja registrados</p>
-            </div>
-
-            <div class="flex gap-2 bg-base-300 p-1 rounded-2xl shadow-inner">
+        {#snippet right()}
+            <div class="tabs tabs-boxed bg-base-200 p-1 rounded-xl shadow-inner flex items-center">
                 <button 
-                    class="btn btn-sm rounded-xl font-bold {filterStatus === 'all' ? 'bg-primary text-primary-content shadow-lg' : 'btn-ghost opacity-50'}"
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {filterStatus === 'all' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
                     onclick={() => filterStatus = 'all'}>Todos</button>
                 <button 
-                    class="btn btn-sm rounded-xl font-bold {filterStatus === 'OPEN' ? 'bg-warning text-warning-content shadow-lg' : 'btn-ghost opacity-50'}"
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {filterStatus === 'OPEN' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
                     onclick={() => filterStatus = 'OPEN'}>Abiertos</button>
                 <button 
-                    class="btn btn-sm rounded-xl font-bold {filterStatus === 'CLOSED' ? 'bg-success text-success-content shadow-lg' : 'btn-ghost opacity-50'}"
+                    class="tab tab-sm rounded-lg font-bold transition-all duration-200 {filterStatus === 'CLOSED' ? 'tab-active bg-primary text-primary-content shadow-md' : 'opacity-60'}" 
                     onclick={() => filterStatus = 'CLOSED'}>Cerrados</button>
             </div>
-        </div>
-    </header>
+        {/snippet}
+    </Toolbar>
 
     {#if loading}
         <div class="space-y-4">
@@ -157,7 +151,7 @@
                                             onclick={() => goto(`/admin/shifts/${shift.id}`)}
                                             class="group-hover:bg-primary group-hover:text-primary-content font-black"
                                         >
-                                            Auditar
+                                            Ver Detalle
                                         </Button>
                                     </td>
                                 </tr>
